@@ -15,31 +15,27 @@ in computational fluid dynamics (CFD).
 
 The **Reynolds number** (Re) determines whether a flow is laminar or turbulent:
 
-```
-         ρ · U · L       U · L
-  Re  =  ─────────  =  ─────────
-             μ              ν
+$$Re = \frac{\rho \cdot U \cdot L}{\mu} = \frac{U \cdot L}{\nu}$$
 
-  where:
-    ρ  = fluid density         [kg/m³]
-    U  = characteristic velocity [m/s]
-    L  = characteristic length   [m]
-    μ  = dynamic viscosity       [Pa·s]
-    ν  = kinematic viscosity     [m²/s]
-```
+where:
+- $\rho$ = fluid density [kg/m³]
+- $U$ = characteristic velocity [m/s]
+- $L$ = characteristic length [m]
+- $\mu$ = dynamic viscosity [Pa·s]
+- $\nu$ = kinematic viscosity [m²/s]
 
 | Flow Type     | Typical Re Range | Example                          |
 |---------------|------------------|----------------------------------|
-| Laminar       | Re < 2,300       | Honey pouring, microfluidics     |
-| Transitional  | 2,300 < Re < 4,000 | Pipe flow near critical Re    |
-| Turbulent     | Re > 4,000       | Most engineering flows           |
-| Highly turbulent | Re > 1,000,000 | Aircraft in flight, rivers     |
+| Laminar       | $Re < 2,300$       | Honey pouring, microfluidics     |
+| Transitional  | $2,300 < Re < 4,000$ | Pipe flow near critical $Re$    |
+| Turbulent     | $Re > 4,000$       | Most engineering flows           |
+| Highly turbulent | $Re > 1,000,000$ | Aircraft in flight, rivers     |
 
 > **💡 Tip:** Our lid-driven cavity project (`projects/01_lid_driven_cavity/`) uses
 > `ν = 0.001 m²/s` with a lid velocity of 1 m/s and cavity size ~1 m, giving
-> Re ≈ 1,000 — firmly laminar, which is why it uses `icoFoam` with no turbulence
-> model. The NACA airfoil project uses `ν = 1e-05 m²/s`, yielding Re ≈ 100,000 —
-> turbulent, requiring a k-ε model with `simpleFoam`.
+> $Re \approx 1,000$ — firmly laminar, which is why it uses `icoFoam` with no turbulence
+> model. The NACA airfoil project uses `ν = 1e-05 m²/s`, yielding $Re \approx 100,000$ —
+> turbulent, requiring a $k$-$\varepsilon$ model with `simpleFoam`.
 
 ### Laminar-to-Turbulent Transition
 
@@ -97,23 +93,27 @@ described by Richardson (1922) and formalized by Kolmogorov (1941).
 
 ### Kolmogorov Scales
 
-The smallest turbulent scales are set by viscosity and the dissipation rate ε:
+The smallest turbulent scales are set by viscosity and the dissipation rate $\varepsilon$:
 
-```
-  Length scale:    η = (ν³/ε)^(1/4)
-  Time scale:      τ = (ν/ε)^(1/2)
-  Velocity scale:  v = (ν·ε)^(1/4)
-```
+Length scale:
+
+$$\eta = (\nu^{3}/\varepsilon)^{1/4}$$
+
+Time scale:
+
+$$\tau = (\nu/\varepsilon)^{1/2}$$
+
+Velocity scale:
+
+$$v = (\nu \cdot \varepsilon)^{1/4}$$
 
 The ratio of the largest to smallest scales grows with Reynolds number:
 
-```
-  L / η  ~  Re^(3/4)
-```
+$$L / \eta \sim Re^{3/4}$$
 
-This is why we cannot resolve all scales directly — even a moderate Re = 10,000
+This is why we cannot resolve all scales directly — even a moderate $Re = 10,000$
 flow would need approximately `(10,000)^(9/4) ≈ 10^9.75` grid points for a 3D DNS.
-For Re = 1,000,000 (a car on a highway), you would need ~10²⁷ cells. This is why
+For $Re = 1,000,000$ (a car on a highway), you would need $\sim 10^{27}$ cells. This is why
 turbulence **modeling** exists.
 
 > **⚠️ Key insight:** The entire field of turbulence modeling exists because we
@@ -164,11 +164,11 @@ turbulence **modeling** exists.
 
 | Approach | Grid Points (3D) | Time Steps | Typical Use Case |
 |----------|-------------------|------------|------------------|
-| Laminar  | 10³ - 10⁵         | ~10²       | Microfluidics, creeping flows |
-| RANS     | 10⁵ - 10⁷         | Steady or ~10³ | Most engineering design |
-| DES      | 10⁶ - 10⁸         | ~10⁴       | Separated flows, bluff bodies |
-| LES      | 10⁷ - 10⁹         | ~10⁴-10⁵  | Combustion, acoustics, mixing |
-| DNS      | 10⁹ - 10¹²        | ~10⁵-10⁶  | Fundamental research only |
+| Laminar  | $10^{3} - 10^{5}$         | $\sim 10^{2}$       | Microfluidics, creeping flows |
+| RANS     | $10^{5} - 10^{7}$         | Steady or $\sim 10^{3}$ | Most engineering design |
+| DES      | $10^{6} - 10^{8}$         | $\sim 10^{4}$       | Separated flows, bluff bodies |
+| LES      | $10^{7} - 10^{9}$         | $\sim 10^{4} - 10^{5}$  | Combustion, acoustics, mixing |
+| DNS      | $10^{9} - 10^{12}$        | $\sim 10^{5} - 10^{6}$  | Fundamental research only |
 
 ---
 
@@ -177,9 +177,7 @@ turbulence **modeling** exists.
 RANS (Reynolds-Averaged Navier-Stokes) models decompose every flow variable into
 a **mean** part and a **fluctuating** part:
 
-```
-  u(x,t) = Ū(x) + u'(x,t)
-```
+$$u(x,t) = \bar{U}(x) + u'(x,t)$$
 
 Averaging the Navier-Stokes equations produces the **Reynolds stress tensor**
 `-ρ⟨u'ᵢu'ⱼ⟩` — six unknown quantities that must be modeled. This is the famous
@@ -187,7 +185,7 @@ Averaging the Navier-Stokes equations produces the **Reynolds stress tensor**
 
 ### 4.1 Spalart-Allmaras (SA)
 
-**Equations solved:** 1 (modified turbulent viscosity ν̃)
+**Equations solved:** 1 (modified turbulent viscosity $\tilde{\nu}$)
 
 The Spalart-Allmaras model solves a single transport equation for a quantity
 related to the turbulent (eddy) viscosity. It was designed specifically for
@@ -199,23 +197,21 @@ aerospace boundary layer flows.
 - **OpenFOAM name**: `SpalartAllmaras`
 - **Required fields**: `nuTilda`, `nut`
 
-### 4.2 k-ε Standard
+### 4.2 $k$-$\varepsilon$ Standard
 
-**Equations solved:** 2 (turbulent kinetic energy k, dissipation rate ε)
+**Equations solved:** 2 (turbulent kinetic energy $k$, dissipation rate $\varepsilon$)
 
-The standard k-ε model by Launder & Spalding (1974) is the most widely used
+The standard $k$-$\varepsilon$ model by Launder & Spalding (1974) is the most widely used
 turbulence model in industrial CFD. It computes the eddy viscosity as:
 
-```
-  νₜ = Cμ · k² / ε
+$$\nu_t = C_\mu \cdot k^{2} / \varepsilon$$
 
-  Standard coefficients:
-    Cμ   = 0.09
-    C₁   = 1.44
-    C₂   = 1.92
-    σ_k  = 1.0
-    σ_ε  = 1.3
-```
+Standard coefficients:
+- $C_\mu = 0.09$
+- $C_1 = 1.44$
+- $C_2 = 1.92$
+- $\sigma_k = 1.0$
+- $\sigma_\varepsilon = 1.3$
 
 > **📌 Note:** These are exactly the coefficients used in our NACA airfoil
 > project — see `projects/03_naca_airfoil_analysis/constant/turbulenceProperties`.
@@ -226,39 +222,39 @@ turbulence model in industrial CFD. It computes the eddy viscosity as:
 - **OpenFOAM name**: `kEpsilon`
 - **Required fields**: `k`, `epsilon`, `nut`
 
-### 4.3 k-ε Realizable
+### 4.3 $k$-$\varepsilon$ Realizable
 
-**Equations solved:** 2 (k, ε)
+**Equations solved:** 2 ($k$, $\varepsilon$)
 
-The realizable k-ε model (Shih et al., 1995) modifies the ε equation and makes
-Cμ a function of the local flow conditions rather than a constant. This ensures
+The realizable $k$-$\varepsilon$ model (Shih et al., 1995) modifies the $\varepsilon$ equation and makes
+$C_\mu$ a function of the local flow conditions rather than a constant. This ensures
 the "realizability" constraint (normal Reynolds stresses must be positive).
 
 - **Strengths**: Better for rotation, boundary layers with strong adverse pressure gradients, separation, recirculation
-- **Weaknesses**: Slightly less robust than standard k-ε
+- **Weaknesses**: Slightly less robust than standard $k$-$\varepsilon$
 - **Best for**: Flows with strong streamline curvature, vortices, rotation
 - **OpenFOAM name**: `realizableKE`
 - **Required fields**: `k`, `epsilon`, `nut`
 
-### 4.4 k-ω (Wilcox)
+### 4.4 $k$-$\omega$ (Wilcox)
 
-**Equations solved:** 2 (k, specific dissipation rate ω)
+**Equations solved:** 2 ($k$, specific dissipation rate $\omega$)
 
-The k-ω model solves for ω = ε/(Cμ·k) instead of ε. This reformulation provides
+The $k$-$\omega$ model solves for $\omega = \varepsilon/(C_\mu \cdot k)$ instead of $\varepsilon$. This reformulation provides
 superior performance near solid walls.
 
-- **Strengths**: Excellent near-wall behavior, no wall functions needed (can integrate to y⁺ ≈ 1), good for transitional flows
-- **Weaknesses**: Sensitive to freestream ω values, can give different results depending on freestream BC
+- **Strengths**: Excellent near-wall behavior, no wall functions needed (can integrate to $y^{+} \approx 1$), good for transitional flows
+- **Weaknesses**: Sensitive to freestream $\omega$ values, can give different results depending on freestream BC
 - **Best for**: Boundary layer flows, low-Re turbulence
 - **OpenFOAM name**: `kOmega`
 - **Required fields**: `k`, `omega`, `nut`
 
-### 4.5 k-ω SST (Menter)
+### 4.5 $k$-$\omega$ SST (Menter)
 
-**Equations solved:** 2 (k, ω) with a blending function
+**Equations solved:** 2 ($k$, $\omega$) with a blending function
 
 The **Shear Stress Transport (SST)** model by Menter (1994) is widely considered
-the best general-purpose RANS model. It blends k-ω (near walls) with k-ε
+the best general-purpose RANS model. It blends $k$-$\omega$ (near walls) with $k$-$\varepsilon$
 (in the free stream), getting the best of both:
 
 ```
@@ -279,17 +275,17 @@ the best general-purpose RANS model. It blends k-ω (near walls) with k-ε
 
 Additionally, the SST model includes a **shear stress limiter** that prevents
 over-prediction of eddy viscosity in adverse pressure gradient flows, which
-plagues both standard k-ε and k-ω.
+plagues both standard $k$-$\varepsilon$ and $k$-$\omega$.
 
 - **Strengths**: Best all-around RANS model, excellent for adverse pressure gradients, separation prediction, no freestream sensitivity
-- **Weaknesses**: Slightly more expensive than k-ε, still RANS limitations for massive separation
+- **Weaknesses**: Slightly more expensive than $k$-$\varepsilon$, still RANS limitations for massive separation
 - **Best for**: Almost everything — default choice for RANS
 - **OpenFOAM name**: `kOmegaSST`
 - **Required fields**: `k`, `omega`, `nut`
 
 ### 4.6 Reynolds Stress Models (RSM)
 
-**Equations solved:** 7 (six Reynolds stress components + ε or ω)
+**Equations solved:** 7 (six Reynolds stress components + $\varepsilon$ or $\omega$)
 
 Instead of assuming isotropic eddy viscosity, RSM solves transport equations
 for each component of the Reynolds stress tensor directly.
@@ -305,13 +301,13 @@ for each component of the Reynolds stress tensor directly.
 | Model | Eqns | Best For | Wall Treatment | Relative Cost | Accuracy |
 |-------|------|----------|----------------|---------------|----------|
 | Spalart-Allmaras | 1 | Aerospace external aero | Low-Re or wall fn | ★☆☆☆☆ | Attached BL: ★★★★☆ |
-| k-ε standard | 2 | General industrial | Wall functions | ★★☆☆☆ | General: ★★★☆☆ |
-| k-ε realizable | 2 | Rotation, separation | Wall functions | ★★☆☆☆ | Separation: ★★★★☆ |
-| k-ω Wilcox | 2 | Near-wall flows | Resolves BL | ★★☆☆☆ | Near-wall: ★★★★☆ |
-| **k-ω SST** | **2** | **Almost everything** | **Both options** | **★★★☆☆** | **General: ★★★★☆** |
+| $k$-$\varepsilon$ standard | 2 | General industrial | Wall functions | ★★☆☆☆ | General: ★★★☆☆ |
+| $k$-$\varepsilon$ realizable | 2 | Rotation, separation | Wall functions | ★★☆☆☆ | Separation: ★★★★☆ |
+| $k$-$\omega$ Wilcox | 2 | Near-wall flows | Resolves BL | ★★☆☆☆ | Near-wall: ★★★★☆ |
+| **$k$-$\omega$ SST** | **2** | **Almost everything** | **Both options** | **★★★☆☆** | **General: ★★★★☆** |
 | RSM (LRR/SSG) | 7 | Anisotropic flows | Wall functions | ★★★★☆ | Anisotropy: ★★★★★ |
 
-> **💡 Recommendation:** If you are unsure which model to use, **start with k-ω SST**.
+> **💡 Recommendation:** If you are unsure which model to use, **start with $k$-$\omega$ SST**.
 > It is the best general-purpose RANS model and the default recommendation by most
 > CFD experts. Only switch to another model if you have a specific reason.
 
@@ -344,66 +340,64 @@ treatment wrong is the #1 source of error in RANS simulations.
   ══════════════════════════════════════════════ WALL  (y⁺ = 0)
 ```
 
-### What Is y⁺?
+### What Is $y^{+}$?
 
-The dimensionless wall distance y⁺ is defined as:
+The dimensionless wall distance $y^{+}$ is defined as:
 
-```
-         y · u_τ
-  y⁺  =  ───────
-            ν
+$$y^{+} = \frac{y \cdot u_\tau}{\nu}$$
 
-  where u_τ = √(τ_w / ρ)  is the friction velocity
-        τ_w = wall shear stress
-        y   = distance from wall to cell center
-        ν   = kinematic viscosity
-```
+where $u_\tau = \sqrt{\tau_w / \rho}$ is the friction velocity, $\tau_w$ = wall shear stress, $y$ = distance from wall to cell center, $\nu$ = kinematic viscosity
 
-### y⁺ Requirements by Approach
+### $y^{+}$ Requirements by Approach
 
-| Wall Treatment | y⁺ of First Cell | Description |
+| Wall Treatment | $y^{+}$ of First Cell | Description |
 |----------------|-------------------|-------------|
-| **Wall functions** | 30 < y⁺ < 300 | Bridges the viscous sublayer with empirical functions. Cheaper mesh. Used with standard k-ε. |
-| **Low-Re / Resolve** | y⁺ ≈ 1 | Resolves the entire boundary layer. More cells needed. Used with k-ω, SST. |
-| **Enhanced wall treatment** | y⁺ ≈ 1 (ideal), tolerates higher | Blends both approaches. Most flexible. |
+| **Wall functions** | $30 < y^{+} < 300$ | Bridges the viscous sublayer with empirical functions. Cheaper mesh. Used with standard $k$-$\varepsilon$. |
+| **Low-Re / Resolve** | $y^{+} \approx 1$ | Resolves the entire boundary layer. More cells needed. Used with $k$-$\omega$, SST. |
+| **Enhanced wall treatment** | $y^{+} \approx 1$ (ideal), tolerates higher | Blends both approaches. Most flexible. |
 
 > **⚠️ Warning — The Buffer Layer Trap:** Never place your first cell center in the
-> buffer layer (5 < y⁺ < 30). Neither wall functions nor direct resolution work well
-> there. Either aim for y⁺ ≈ 1 (resolve) or y⁺ ≈ 30-100 (wall functions). The buffer
+> buffer layer ($5 < y^{+} < 30$). Neither wall functions nor direct resolution work well
+> there. Either aim for $y^{+} \approx 1$ (resolve) or $y^{+} \approx 30\text{-}100$ (wall functions). The buffer
 > layer is a no-man's-land.
 
-### Estimating First Cell Height from y⁺
+### Estimating First Cell Height from $y^{+}$
 
-To design your mesh, estimate the first cell height Δy:
+To design your mesh, estimate the first cell height $\Delta y$:
 
-```
-  Step 1:  Estimate Re_L = U · L / ν
+Step 1: Estimate $Re_L = U \cdot L / \nu$
 
-  Step 2:  Estimate skin friction coefficient:
-           c_f ≈ 0.058 · Re_L^(-0.2)    (turbulent flat plate)
+Step 2: Estimate skin friction coefficient:
 
-  Step 3:  Estimate wall shear stress:
-           τ_w = 0.5 · c_f · ρ · U²
+$$c_f \approx 0.058 \cdot Re_L^{-0.2} \quad \text{(turbulent flat plate)}$$
 
-  Step 4:  Friction velocity:
-           u_τ = √(τ_w / ρ)
+Step 3: Estimate wall shear stress:
 
-  Step 5:  First cell height:
-           Δy = y⁺_target · ν / u_τ
-```
+$$\tau_w = 0.5 \cdot c_f \cdot \rho \cdot U^{2}$$
+
+Step 4: Friction velocity:
+
+$$u_\tau = \sqrt{\tau_w / \rho}$$
+
+Step 5: First cell height:
+
+$$\Delta y = y^{+}_{target} \cdot \nu / u_\tau$$
 
 **Example for our NACA airfoil project:**
-```
-  U = 1 m/s,  L = 1 m,  ν = 1e-05 m²/s
-  Re = 1 × 1 / 1e-05 = 100,000
 
-  c_f ≈ 0.058 × (100,000)^(-0.2) = 0.058 × 0.1 = 0.0058
-  τ_w ≈ 0.5 × 0.0058 × 1.225 × 1² ≈ 0.00355 Pa
-  u_τ  = √(0.00355 / 1.225) ≈ 0.0538 m/s
+$$U = 1 \text{ m/s}, \quad L = 1 \text{ m}, \quad \nu = 1\text{e-05 m}^{2}\text{/s}$$
 
-  For y⁺ = 30 (wall functions):   Δy ≈ 30 × 1e-05 / 0.0538 ≈ 0.0056 m
-  For y⁺ = 1  (resolve BL):       Δy ≈ 1  × 1e-05 / 0.0538 ≈ 0.000186 m
-```
+$$Re = 1 \times 1 / 1\text{e-05} = 100{,}000$$
+
+$$c_f \approx 0.058 \times (100{,}000)^{-0.2} = 0.058 \times 0.1 = 0.0058$$
+
+$$\tau_w \approx 0.5 \times 0.0058 \times 1.225 \times 1^{2} \approx 0.00355 \text{ Pa}$$
+
+$$u_\tau = \sqrt{0.00355 / 1.225} \approx 0.0538 \text{ m/s}$$
+
+For $y^{+} = 30$ (wall functions): $\Delta y \approx 30 \times 1\text{e-05} / 0.0538 \approx 0.0056$ m
+
+For $y^{+} = 1$ (resolve BL): $\Delta y \approx 1 \times 1\text{e-05} / 0.0538 \approx 0.000186$ m
 
 ### Wall Functions in OpenFOAM
 
@@ -417,8 +411,8 @@ OpenFOAM provides several wall function boundary conditions:
 | `omega` | `omegaWallFunction` | `fixedValue` (large) | Specific dissipation |
 
 > **📌 Note:** Our NACA airfoil project uses wall functions (`nutkWallFunction`,
-> `kqRWallFunction`, `epsilonWallFunction`) — consistent with the k-ε model
-> and a mesh designed for y⁺ ≈ 30-100.
+> `kqRWallFunction`, `epsilonWallFunction`) — consistent with the $k$-$\varepsilon$ model
+> and a mesh designed for $y^{+} \approx 30\text{-}100$.
 
 ---
 
@@ -466,9 +460,9 @@ streamwise directions:
 
 | Direction | RANS (wall functions) | LES |
 |-----------|----------------------|-----|
-| Wall-normal (y⁺₁) | 30-100 | 1-2 |
-| Streamwise (Δx⁺) | ~1000 | 50-100 |
-| Spanwise (Δz⁺) | N/A (often 2D) | 15-40 |
+| Wall-normal ($y^{+}_1$) | 30-100 | 1-2 |
+| Streamwise ($\Delta x^{+}$) | ~1000 | 50-100 |
+| Spanwise ($\Delta z^{+}$) | N/A (often 2D) | 15-40 |
 
 > **⚠️ Warning:** Running LES on a RANS-quality mesh gives results that are
 > **worse** than RANS — you get the cost of LES with the accuracy of neither.
@@ -511,17 +505,15 @@ Kolmogorov microscale. No turbulence model is used at all.
 
 The number of grid points required scales as:
 
-```
-  N ~ Re^(9/4)     (in 3D)
-```
+$$N \sim Re^{9/4} \quad \text{(in 3D)}$$
 
 | Re | Grid Points | Feasibility |
 |----|-------------|-------------|
-| 100 | ~10⁴ | Laptop |
-| 1,000 | ~10⁷ | Workstation |
-| 10,000 | ~10¹⁰ | Supercomputer |
-| 100,000 | ~10¹³ | Beyond current capability |
-| 1,000,000 | ~10¹⁶ | Science fiction |
+| 100 | $\sim 10^{4}$ | Laptop |
+| 1,000 | $\sim 10^{7}$ | Workstation |
+| 10,000 | $\sim 10^{10}$ | Supercomputer |
+| 100,000 | $\sim 10^{13}$ | Beyond current capability |
+| 1,000,000 | $\sim 10^{16}$ | Science fiction |
 
 DNS is a **research tool**, not an engineering tool. It is used to:
 - Validate RANS and LES models
@@ -529,8 +521,8 @@ DNS is a **research tool**, not an engineering tool. It is used to:
 - Generate reference data for model development
 
 > **💡 Perspective:** The highest-Re DNS ever performed (as of ~2023) reached
-> Re_τ ≈ 10,000 in a channel flow, requiring billions of grid points and months
-> on top-tier supercomputers. A typical aircraft operates at Re ≈ 10⁷-10⁸.
+> $Re_\tau \approx 10,000$ in a channel flow, requiring billions of grid points and months
+> on top-tier supercomputers. A typical aircraft operates at $Re \approx 10^{7}\text{-}10^{8}$.
 > DNS of full aircraft is decades away.
 
 ---
@@ -589,18 +581,18 @@ RAS
 
 | OpenFOAM Name | Model | Equations |
 |---------------|-------|-----------|
-| `kEpsilon` | Standard k-ε | k, ε |
-| `realizableKE` | Realizable k-ε | k, ε |
-| `RNGkEpsilon` | RNG k-ε | k, ε |
-| `kOmega` | Wilcox k-ω | k, ω |
-| `kOmegaSST` | Menter SST | k, ω |
-| `SpalartAllmaras` | Spalart-Allmaras | ν̃ |
-| `LRR` | Launder-Reece-Rodi RSM | Rij, ε |
-| `SSG` | Speziale-Sarkar-Gatski RSM | Rij, ε |
-| `LaunderSharmaKE` | Low-Re k-ε | k, ε |
-| `LamBremhorstKE` | Low-Re k-ε variant | k, ε |
-| `v2f` | v²-f model | k, ε, v², f |
-| `kOmegaSSTLM` | SST with Langtry-Menter transition | k, ω, γ, Re_θ |
+| `kEpsilon` | Standard $k$-$\varepsilon$ | $k$, $\varepsilon$ |
+| `realizableKE` | Realizable $k$-$\varepsilon$ | $k$, $\varepsilon$ |
+| `RNGkEpsilon` | RNG $k$-$\varepsilon$ | $k$, $\varepsilon$ |
+| `kOmega` | Wilcox $k$-$\omega$ | $k$, $\omega$ |
+| `kOmegaSST` | Menter SST | $k$, $\omega$ |
+| `SpalartAllmaras` | Spalart-Allmaras | $\tilde{\nu}$ |
+| `LRR` | Launder-Reece-Rodi RSM | $R_{ij}$, $\varepsilon$ |
+| `SSG` | Speziale-Sarkar-Gatski RSM | $R_{ij}$, $\varepsilon$ |
+| `LaunderSharmaKE` | Low-Re $k$-$\varepsilon$ | $k$, $\varepsilon$ |
+| `LamBremhorstKE` | Low-Re $k$-$\varepsilon$ variant | $k$, $\varepsilon$ |
+| `v2f` | $v^{2}$-$f$ model | $k$, $\varepsilon$, $v^{2}$, $f$ |
+| `kOmegaSSTLM` | SST with Langtry-Menter transition | $k$, $\omega$, $\gamma$, $Re_\theta$ |
 
 ### 8.2 Turbulent Field Initialization (Boundary & Initial Conditions)
 
@@ -747,7 +739,7 @@ boundaryField
 
 ### 8.3 Transport Properties
 
-The kinematic viscosity ν is critical for determining the Reynolds number
+The kinematic viscosity $\nu$ is critical for determining the Reynolds number
 and must be consistent with your turbulence model assumptions.
 
 **From `projects/03_naca_airfoil_analysis/constant/transportProperties`:**
@@ -776,8 +768,8 @@ transportModel  Newtonian;
 nu              [0 2 -1 0 0 0 0] 0.001;  // Higher viscosity → lower Re → laminar
 ```
 
-> **💡 Key difference:** The NACA airfoil uses ν = 1e-05 (air-like), giving Re ≈ 100,000
-> (turbulent). The cavity uses ν = 0.001, giving Re ≈ 1,000 (laminar). The viscosity
+> **💡 Key difference:** The NACA airfoil uses $\nu = 1\text{e-05}$ (air-like), giving $Re \approx 100,000$
+> (turbulent). The cavity uses $\nu = 0.001$, giving $Re \approx 1,000$ (laminar). The viscosity
 > choice drives the entire turbulence modeling strategy.
 
 ### 8.4 Solver and Numerical Scheme Requirements
@@ -785,7 +777,7 @@ nu              [0 2 -1 0 0 0 0] 0.001;  // Higher viscosity → lower Re → la
 Turbulence models require matching solver settings in `system/fvSolution` and
 discretization schemes in `system/fvSchemes`.
 
-**From `projects/03_naca_airfoil_analysis/system/fvSchemes` (div schemes for k-ε):**
+**From `projects/03_naca_airfoil_analysis/system/fvSchemes` (div schemes for $k$-$\varepsilon$):**
 
 ```c
 divSchemes
@@ -844,28 +836,25 @@ relaxationFactors
 }
 ```
 
-### 8.5 Calculating Initial Values of k and ε
+### 8.5 Calculating Initial Values of $k$ and $\varepsilon$
 
-The inlet values of k and ε should not be arbitrary. Calculate them from
-the **turbulence intensity** (I) and a **length scale** (l):
+The inlet values of $k$ and $\varepsilon$ should not be arbitrary. Calculate them from
+the **turbulence intensity** ($I$) and a **length scale** ($l$):
 
-```
-  k = 1.5 · (U · I)²
+$$k = 1.5 \cdot (U \cdot I)^{2}$$
 
-  ε = Cμ^(3/4) · k^(3/2) / l
+$$\varepsilon = C_\mu^{3/4} \cdot k^{3/2} / l$$
 
-  where:
-    I = turbulence intensity (typically 0.01 to 0.10 for external flows)
-    l = turbulence length scale (often 0.07 × hydraulic diameter)
-    Cμ = 0.09
-```
+where:
+- $I$ = turbulence intensity (typically 0.01 to 0.10 for external flows)
+- $l$ = turbulence length scale (often $0.07 \times$ hydraulic diameter)
+- $C_\mu = 0.09$
 
-**Example for our NACA airfoil (U = 1 m/s, I = 5%, l = 0.07 m):**
+**Example for our NACA airfoil ($U = 1$ m/s, $I = 5\%$, $l = 0.07$ m):**
 
-```
-  k = 1.5 × (1.0 × 0.05)² = 1.5 × 0.0025 = 0.00375 m²/s²
-  ε = 0.09^0.75 × 0.00375^1.5 / 0.07 = 0.0302 × 0.000230 / 0.07 ≈ 0.0001 m²/s³
-```
+$$k = 1.5 \times (1.0 \times 0.05)^{2} = 1.5 \times 0.0025 = 0.00375 \text{ m}^{2}\text{/s}^{2}$$
+
+$$\varepsilon = 0.09^{0.75} \times 0.00375^{1.5} / 0.07 = 0.0302 \times 0.000230 / 0.07 \approx 0.0001 \text{ m}^{2}\text{/s}^{3}$$
 
 > **⚠️ Caution:** The values `k = 0.01` and `ε = 0.01` used in our project files
 > are reasonable initial estimates but not precisely calculated from turbulence
@@ -912,7 +901,7 @@ Use this decision tree to choose the right turbulence modeling approach:
                                                   Consider DES instead
 ```
 
-> **💡 The golden rule:** When in doubt, use **k-ω SST** for RANS. It works
+> **💡 The golden rule:** When in doubt, use **$k$-$\omega$ SST** for RANS. It works
 > well for the widest range of flows and is the default recommendation in
 > most OpenFOAM tutorials and industrial practice.
 
@@ -927,7 +916,7 @@ couple strongly with turbulence.
 ### Volume-of-Fluid (VOF) Method
 
 The VOF method tracks the interface between immiscible fluids using a scalar
-volume fraction field α:
+volume fraction field $\alpha$:
 
 ```
   ┌──────────────────────────────────────────────────────┐
@@ -951,9 +940,7 @@ volume fraction field α:
 
 The VOF transport equation is:
 
-```
-  ∂α/∂t + ∇·(α·U) = 0
-```
+$$\frac{\partial \alpha}{\partial t} + \nabla \cdot (\alpha \cdot U) = 0$$
 
 ### interFoam Solver
 
@@ -1009,7 +996,7 @@ Turbulence modeling in multiphase flows requires special care:
 
 - The turbulence model applies to the **mixture**, not individual phases
 - Interface dynamics can generate or suppress turbulence
-- Most RANS models work with interFoam (k-ε, k-ω SST)
+- Most RANS models work with interFoam ($k$-$\varepsilon$, $k$-$\omega$ SST)
 - LES of multiphase flows is an active research area
 - Surface tension and buoyancy effects interact with turbulence
 
@@ -1021,16 +1008,16 @@ Turbulence modeling in multiphase flows requires special care:
 
 | # | Mistake | Consequence | Fix |
 |---|---------|-------------|-----|
-| 1 | Wrong y⁺ for wall treatment | Wildly incorrect wall shear stress | Check y⁺ after meshing, before trusting results |
-| 2 | y⁺ in buffer layer (5-30) | Neither wall functions nor resolve works | Redesign mesh for y⁺ ≈ 1 or y⁺ ≈ 30-100 |
-| 3 | Arbitrary k, ε inlet values | Wrong turbulence levels propagate | Calculate from turbulence intensity and length scale |
+| 1 | Wrong $y^{+}$ for wall treatment | Wildly incorrect wall shear stress | Check $y^{+}$ after meshing, before trusting results |
+| 2 | $y^{+}$ in buffer layer (5-30) | Neither wall functions nor resolve works | Redesign mesh for $y^{+} \approx 1$ or $y^{+} \approx 30\text{-}100$ |
+| 3 | Arbitrary $k$, $\varepsilon$ inlet values | Wrong turbulence levels propagate | Calculate from turbulence intensity and length scale |
 | 4 | 2D LES | LES requires 3D — turbulence is inherently 3D | Always run LES in 3D with spanwise extent |
 | 5 | LES on RANS mesh | Resolves neither large nor small eddies | Generate LES-quality mesh first |
 | 6 | Steady-state for massively separated flow | RANS cannot capture unsteady shedding | Use transient RANS (URANS) or DES/LES |
-| 7 | Ignoring convergence of turbulence eqns | k and ε not converged → wrong νₜ | Monitor residuals for ALL equations |
-| 8 | Using k-ε for adverse pressure gradient | Over-predicts attached flow, misses separation | Use k-ω SST |
+| 7 | Ignoring convergence of turbulence eqns | $k$ and $\varepsilon$ not converged → wrong $\nu_t$ | Monitor residuals for ALL equations |
+| 8 | Using $k$-$\varepsilon$ for adverse pressure gradient | Over-predicts attached flow, misses separation | Use $k$-$\omega$ SST |
 | 9 | Wrong relaxation factors | Divergence or extremely slow convergence | Start with 0.3-0.7, reduce if diverging |
-| 10 | Not checking turbulence ratio νₜ/ν | Unrealistically high values indicate problems | Should be O(10¹)-O(10³) for most flows |
+| 10 | Not checking turbulence ratio $\nu_t/\nu$ | Unrealistically high values indicate problems | Should be $O(10^{1})$-$O(10^{3})$ for most flows |
 
 ### Convergence Tips for Turbulence Simulations
 
@@ -1048,7 +1035,7 @@ Turbulence modeling in multiphase flows requires special care:
 ```
 
 > **💡 Tip:** If your simulation diverges, try these steps in order:
-> 1. Reduce relaxation factors (especially for k/ε/ω)
+> 1. Reduce relaxation factors (especially for $k$/$\varepsilon$/$\omega$)
 > 2. Switch turbulence convection to `upwind` (first-order) temporarily
 > 3. Initialize with a potential flow solution (`potentialFoam`)
 > 4. Start with a coarser mesh, then map the solution to a finer mesh
@@ -1057,9 +1044,9 @@ Turbulence modeling in multiphase flows requires special care:
 
 Always verify these quantities after a turbulence simulation:
 
-1. **y⁺ distribution**: Run `yPlus` utility — values should be appropriate for your wall treatment
-2. **Residuals**: All equations should be converged (typically < 10⁻⁴)
-3. **Turbulence ratio** (νₜ/ν): Should be reasonable (not > 10⁵)
+1. **$y^{+}$ distribution**: Run `yPlus` utility — values should be appropriate for your wall treatment
+2. **Residuals**: All equations should be converged (typically $< 10^{-4}$)
+3. **Turbulence ratio** ($\nu_t/\nu$): Should be reasonable (not $> 10^{5}$)
 4. **Mass balance**: Check that mass is conserved
 5. **Grid independence**: Run at least 2-3 mesh levels to check convergence
 
@@ -1094,15 +1081,15 @@ Always verify these quantities after a turbulence simulation:
 
 | Field | Dimensions `[kg m s K mol A cd]` | Unit |
 |-------|----------------------------------|------|
-| k | `[0 2 -2 0 0 0 0]` | m²/s² |
-| epsilon | `[0 2 -3 0 0 0 0]` | m²/s³ |
+| k | `[0 2 -2 0 0 0 0]` | $\text{m}^{2}\text{/s}^{2}$ |
+| epsilon | `[0 2 -3 0 0 0 0]` | $\text{m}^{2}\text{/s}^{3}$ |
 | omega | `[0 0 -1 0 0 0 0]` | 1/s |
-| nut | `[0 2 -1 0 0 0 0]` | m²/s |
-| nuTilda | `[0 2 -1 0 0 0 0]` | m²/s |
+| nut | `[0 2 -1 0 0 0 0]` | $\text{m}^{2}\text{/s}$ |
+| nuTilda | `[0 2 -1 0 0 0 0]` | $\text{m}^{2}\text{/s}$ |
 
-### Switching from k-ε to k-ω SST (Migration Checklist)
+### Switching from $k$-$\varepsilon$ to $k$-$\omega$ SST (Migration Checklist)
 
-If you want to switch from k-ε (as used in our NACA project) to k-ω SST:
+If you want to switch from $k$-$\varepsilon$ (as used in our NACA project) to $k$-$\omega$ SST:
 
 ```
   1. constant/turbulenceProperties:
@@ -1164,4 +1151,4 @@ If you want to switch from k-ε (as used in our NACA project) to k-ω SST:
 
 *This document is part of the [OpenFOAM Tutorials](../README.md) series.
 See `projects/03_naca_airfoil_analysis/` for a complete working example of
-turbulent flow simulation using the k-ε model with simpleFoam.*
+turbulent flow simulation using the $k$-$\varepsilon$ model with simpleFoam.*
