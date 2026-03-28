@@ -201,14 +201,14 @@ dimensions  [ kg  m  s  K  mol  A  cd ];
 | Field      | Dimensions              | Meaning                        |
 |------------|-------------------------|--------------------------------|
 | U          | `[0 1 -1 0 0 0 0]`     | m/s (velocity)                 |
-| p (incomp) | `[0 2 -2 0 0 0 0]`    | m²/s² (kinematic pressure)     |
-| p (comp)   | `[1 -1 -2 0 0 0 0]`   | kg/(m·s²) = Pa                 |
-| k          | `[0 2 -2 0 0 0 0]`     | m²/s² (turbulent KE)           |
-| epsilon    | `[0 2 -3 0 0 0 0]`     | m²/s³ (dissipation rate)       |
-| nut        | `[0 2 -1 0 0 0 0]`     | m²/s (turbulent viscosity)     |
+| p (incomp) | `[0 2 -2 0 0 0 0]`    | $m^{2}/s^{2}$ (kinematic pressure)     |
+| p (comp)   | `[1 -1 -2 0 0 0 0]`   | $kg/(m \cdot s^{2})$ = Pa      |
+| k          | `[0 2 -2 0 0 0 0]`     | $m^{2}/s^{2}$ (turbulent KE)           |
+| epsilon    | `[0 2 -3 0 0 0 0]`     | $m^{2}/s^{3}$ (dissipation rate)       |
+| nut        | `[0 2 -1 0 0 0 0]`     | $m^{2}/s$ (turbulent viscosity)     |
 | omega      | `[0 0 -1 0 0 0 0]`     | 1/s (specific dissipation)     |
 
-> **💡 Tip**: OpenFOAM uses **kinematic** pressure (p/ρ) for incompressible solvers. This is why
+> **💡 Tip**: OpenFOAM uses **kinematic** pressure ($p/\rho$) for incompressible solvers. This is why
 > the dimensions are `[0 2 -2 ...]` rather than `[1 -1 -2 ...]` (Pascals).
 
 ---
@@ -314,7 +314,7 @@ value in the adjacent cell. The field "floats" to whatever value the interior so
 | Property        | Detail                                         |
 |-----------------|-------------------------------------------------|
 | **Type**        | Neumann (zero)                                  |
-| **Sets**        | ∂φ/∂n = 0 at the boundary                       |
+| **Sets**        | $\partial\phi/\partial n = 0$ at the boundary    |
 | **Used for**    | Outlet velocity, inlet pressure, wall pressure   |
 | **Variables**   | U, p, T, k, epsilon                             |
 
@@ -336,7 +336,7 @@ known heat flux through a wall) but not the value itself.
 | Property        | Detail                                         |
 |-----------------|-------------------------------------------------|
 | **Type**        | Neumann (non-zero)                              |
-| **Sets**        | ∂φ/∂n = specified gradient                       |
+| **Sets**        | $\partial\phi/\partial n$ = specified gradient    |
 | **Used for**    | Heat flux walls, specified mass flux              |
 | **Variables**   | T, scalar fields                                 |
 
@@ -914,39 +914,37 @@ formulas based on **turbulence intensity** (I) and **turbulent length scale** (l
 
 ### Formulas
 
-```
-  k       = 1.5 × (U × I)²
+$$k = 1.5 \times (U \times I)^{2}$$
 
-  epsilon  = Cμ^0.75 × k^1.5 / l       where Cμ = 0.09
+$$\varepsilon = \frac{C_{\mu}^{0.75} \times k^{1.5}}{l} \quad \text{where } C_{\mu} = 0.09$$
 
-  omega    = k^0.5 / (Cμ^0.25 × l)
+$$\omega = \frac{k^{0.5}}{C_{\mu}^{0.25} \times l}$$
 
-  nut      = Cμ × k² / epsilon          (or computed automatically)
-```
+$$\nu_t = \frac{C_{\mu} \times k^{2}}{\varepsilon} \quad \text{(or computed automatically)}$$
 
 Where:
-- **U** = mean flow velocity (m/s)
-- **I** = turbulence intensity (fraction, e.g., 0.05 for 5%)
-- **l** = turbulent length scale (m), often estimated as 0.07 × D (D = characteristic length)
+- $U$ = mean flow velocity (m/s)
+- $I$ = turbulence intensity (fraction, e.g., 0.05 for 5%)
+- $l$ = turbulent length scale (m), often estimated as $0.07 \times D$ ($D$ = characteristic length)
 
 ### Typical Values
 
-| Flow Type                  | Turbulence Intensity (I) | Length Scale (l)      |
+| Flow Type                  | Turbulence Intensity ($I$) | Length Scale ($l$)     |
 |----------------------------|--------------------------|------------------------|
-| Low-turbulence wind tunnel | 0.5% – 1%               | 0.01 × D              |
-| Medium turbulence          | 1% – 5%                 | 0.07 × D              |
-| High turbulence (urban)    | 5% – 20%                | 0.1 × D               |
-| Pipe flow (fully dev.)     | ~5%                      | 0.07 × D_pipe         |
-| Free-stream (external)     | 0.1% – 1%               | 0.01 × chord          |
+| Low-turbulence wind tunnel | 0.5% – 1%               | $0.01 \times D$        |
+| Medium turbulence          | 1% – 5%                 | $0.07 \times D$        |
+| High turbulence (urban)    | 5% – 20%                | $0.1 \times D$         |
+| Pipe flow (fully dev.)     | ~5%                      | $0.07 \times D_{pipe}$ |
+| Free-stream (external)     | 0.1% – 1%               | $0.01 \times chord$    |
 
 ### Example Calculation
 
-For the NACA airfoil case with U = 1 m/s, I = 10%, l = 0.01 m:
+For the NACA airfoil case with $U = 1$ m/s, $I = 10\%$, $l = 0.01$ m:
 
-```
-  k       = 1.5 × (1.0 × 0.1)²  = 1.5 × 0.01  = 0.015  m²/s²
-  epsilon  = 0.09^0.75 × 0.015^1.5 / 0.01        ≈ 0.028  m²/s³
-```
+
+$$k = 1.5 \times (1.0 \times 0.1)^{2} = 1.5 \times 0.01 = 0.015 \; m^{2}/s^{2}$$
+
+$$\varepsilon = \frac{0.09^{0.75} \times 0.015^{1.5}}{0.01} \approx 0.028 \; m^{2}/s^{3}$$
 
 > **💡 Tip**: If you are unsure about turbulence intensity, 5% is a reasonable default for
 > most industrial applications. The solution is often not very sensitive to inlet turbulence

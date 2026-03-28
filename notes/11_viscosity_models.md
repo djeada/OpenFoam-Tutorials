@@ -41,50 +41,50 @@ The velocity profile is linear for a Newtonian fluid — this is
 
 | Symbol | Name                 | Definition | SI Units     | Physical Meaning                         |
 |--------|----------------------|------------|--------------|------------------------------------------|
-| μ      | Dynamic viscosity    | —          | Pa·s (kg/m·s)| Shear stress per unit shear rate         |
-| ν      | Kinematic viscosity  | ν = μ / ρ  | m²/s         | Momentum diffusivity                     |
+| $\mu$      | Dynamic viscosity    | —          | Pa·s (kg/m·s)| Shear stress per unit shear rate         |
+| $\nu$      | Kinematic viscosity  | $\nu = \mu / \rho$  | m²/s         | Momentum diffusivity                     |
 
-**Dynamic viscosity (μ)** relates shear stress to shear rate directly:
+**Dynamic viscosity ($\mu$)** relates shear stress to shear rate directly:
 
-```
-  τ = μ · (du/dy)
+$$
+\tau = \mu \cdot \frac{du}{dy}
+$$
 
-  where:
-    τ   = shear stress        [Pa]
-    μ   = dynamic viscosity   [Pa·s]
-    du/dy = velocity gradient  [1/s]
-```
+where:
+- $\tau$ = shear stress [Pa]
+- $\mu$ = dynamic viscosity [Pa·s]
+- $du/dy$ = velocity gradient [1/s]
 
-**Kinematic viscosity (ν)** is dynamic viscosity divided by density.
+**Kinematic viscosity ($\nu$)** is dynamic viscosity divided by density.
 It appears naturally in the incompressible Navier-Stokes equations:
 
-```
-  ∂u/∂t + (u · ∇)u = −(1/ρ)∇p + ν ∇²u
+$$
+\frac{\partial u}{\partial t} + (u \cdot \nabla)u = -\frac{1}{\rho}\nabla p + \nu \nabla^{2}u
+$$
 
-  Here ν = μ/ρ controls how fast momentum diffuses through the fluid.
-```
+Here $\nu = \mu/\rho$ controls how fast momentum diffuses through the fluid.
 
 ### Why OpenFOAM Uses Kinematic Viscosity
 
 Most OpenFOAM incompressible solvers (`icoFoam`, `simpleFoam`, `pimpleFoam`)
-divide the entire momentum equation by density ρ. This means:
+divide the entire momentum equation by density $\rho$. This means:
 
-- Pressure becomes p/ρ (kinematic pressure, units m²/s²)
-- Viscosity becomes ν = μ/ρ (kinematic viscosity, units m²/s)
+- Pressure becomes $p/\rho$ (kinematic pressure, units m²/s²)
+- Viscosity becomes $\nu = \mu/\rho$ (kinematic viscosity, units m²/s)
 
 > **⚠️ Warning:** When you see `nu` in OpenFOAM dictionaries, it is **always**
-> kinematic viscosity ν (m²/s), not dynamic viscosity μ (Pa·s).
-> If a data sheet gives you μ, divide by ρ first!
+> kinematic viscosity $\nu$ (m²/s), not dynamic viscosity $\mu$ (Pa·s).
+> If a data sheet gives you $\mu$, divide by $\rho$ first!
 
 **Typical values:**
 
-| Fluid          | μ (Pa·s)          | ρ (kg/m³)  | ν (m²/s)           |
+| Fluid          | $\mu$ (Pa·s)          | $\rho$ (kg/m³)  | $\nu$ (m²/s)           |
 |----------------|--------------------|------------|---------------------|
-| Air (20 °C)    | 1.825 × 10⁻⁵      | 1.205      | 1.516 × 10⁻⁵       |
-| Water (20 °C)  | 1.002 × 10⁻³      | 998.2      | 1.004 × 10⁻⁶       |
-| Engine oil     | 0.1 – 0.3         | 880        | 1.1 × 10⁻⁴ – 3.4 × 10⁻⁴ |
-| Honey          | 2 – 10            | 1420       | 1.4 × 10⁻³ – 7 × 10⁻³   |
-| Blood (37 °C)  | 3 – 4 × 10⁻³      | 1060       | 2.8 – 3.8 × 10⁻⁶   |
+| Air (20 °C)    | $1.825 \times 10^{-5}$      | 1.205      | $1.516 \times 10^{-5}$       |
+| Water (20 °C)  | $1.002 \times 10^{-3}$      | 998.2      | $1.004 \times 10^{-6}$       |
+| Engine oil     | 0.1 – 0.3         | 880        | $1.1 \times 10^{-4}$ – $3.4 \times 10^{-4}$ |
+| Honey          | 2 – 10            | 1420       | $1.4 \times 10^{-3}$ – $7 \times 10^{-3}$   |
+| Blood (37 °C)  | $3$–$4 \times 10^{-3}$      | 1060       | $2.8$–$3.8 \times 10^{-6}$   |
 
 ---
 
@@ -98,27 +98,27 @@ with shear rate?**
 For a Newtonian fluid, viscosity is constant regardless of how fast the
 fluid is being sheared:
 
-```
-  τ = μ · γ̇       (linear relationship)
+$$
+\tau = \mu \cdot \dot{\gamma} \quad \text{(linear relationship)}
+$$
 
-  where γ̇ = du/dy = shear rate [1/s]
-```
+where $\dot{\gamma} = du/dy$ = shear rate [1/s]
 
 Most common engineering fluids are Newtonian: **water, air, most gases,
 light oils, and simple organic solvents**.
 
 ### Non-Newtonian Fluids
 
-For non-Newtonian fluids, the **apparent viscosity** η changes with
-shear rate γ̇. There are several categories:
+For non-Newtonian fluids, the **apparent viscosity** $\eta$ changes with
+shear rate $\dot{\gamma}$. There are several categories:
 
 | Type                | Behavior                          | Examples                          |
 |---------------------|-----------------------------------|-----------------------------------|
-| Shear-thinning      | η decreases as γ̇ increases       | Blood, paint, polymer melts, ketchup |
-| Shear-thickening    | η increases as γ̇ increases       | Cornstarch in water, wet sand     |
-| Bingham / Yield     | No flow below critical stress τ₀  | Toothpaste, concrete, drilling mud|
-| Thixotropic         | η decreases over time at constant γ̇ | Yogurt, some gels              |
-| Rheopectic          | η increases over time at constant γ̇  | Gypsum paste                   |
+| Shear-thinning      | $\eta$ decreases as $\dot{\gamma}$ increases       | Blood, paint, polymer melts, ketchup |
+| Shear-thickening    | $\eta$ increases as $\dot{\gamma}$ increases       | Cornstarch in water, wet sand     |
+| Bingham / Yield     | No flow below critical stress $\tau_0$  | Toothpaste, concrete, drilling mud|
+| Thixotropic         | $\eta$ decreases over time at constant $\dot{\gamma}$ | Yogurt, some gels              |
+| Rheopectic          | $\eta$ increases over time at constant $\dot{\gamma}$  | Gypsum paste                   |
 
 > **📌 Note:** OpenFOAM's built-in transport models handle the first three
 > categories (shear-thinning, shear-thickening, yield-stress). Thixotropic
@@ -171,7 +171,7 @@ shear rate γ̇. There are several categories:
 
 ### Bingham (Yield-Stress) Fluids
 
-These fluids behave as a **solid** below a critical shear stress τ₀
+These fluids behave as a **solid** below a critical shear stress $\tau_0$
 and flow as a fluid above it:
 
 ```
@@ -194,8 +194,8 @@ and flow as a fluid above it:
     ┼──┼───────────────────────────────────► γ̇
 ```
 
-Real-world examples: toothpaste stays on the brush (τ < τ₀) but flows
-when you squeeze (τ > τ₀). Concrete doesn't flow under its own weight
+Real-world examples: toothpaste stays on the brush ($\tau < \tau_0$) but flows
+when you squeeze ($\tau > \tau_0$). Concrete doesn't flow under its own weight
 until vibrated.
 
 ---
@@ -212,15 +212,15 @@ The simplest model — constant viscosity everywhere.
 
 **Equation:**
 
-```
-  ν = constant
-```
+$$
+\nu = \text{constant}
+$$
 
 **Parameters:**
 
 | Parameter | Symbol | Meaning             | Units |
 |-----------|--------|---------------------|-------|
-| `nu`      | ν      | Kinematic viscosity | m²/s  |
+| `nu`      | $\nu$      | Kinematic viscosity | m²/s  |
 
 **Configuration:**
 
@@ -252,24 +252,24 @@ function.
 
 **Equation:**
 
-```
-  ν(γ̇) = k · γ̇ⁿ⁻¹
+$$
+\nu(\dot{\gamma}) = k \cdot \dot{\gamma}^{n-1}
+$$
 
-  Clamped:  nuMin ≤ ν ≤ nuMax
-```
+Clamped: $\nu_{\min} \leq \nu \leq \nu_{\max}$
 
 **Parameters:**
 
 | Parameter | Symbol | Meaning                        | Units      |
 |-----------|--------|--------------------------------|------------|
-| `nuMax`   | ν_max  | Upper viscosity limit          | m²/s       |
-| `nuMin`   | ν_min  | Lower viscosity limit          | m²/s       |
+| `nuMax`   | $\nu_{\max}$  | Upper viscosity limit          | m²/s       |
+| `nuMin`   | $\nu_{\min}$  | Lower viscosity limit          | m²/s       |
 | `k`       | k      | Consistency index              | m²/s^n     |
 | `n`       | n      | Power-law index                | dimensionless |
 
-- **n < 1** → shear-thinning (pseudoplastic)
-- **n = 1** → Newtonian
-- **n > 1** → shear-thickening (dilatant)
+- **$n < 1$** → shear-thinning (pseudoplastic)
+- **$n = 1$** → Newtonian
+- **$n > 1$** → shear-thickening (dilatant)
 
 **Configuration:**
 
@@ -294,21 +294,21 @@ powerLawCoeffs
 ### 3.3 Cross Power Law
 
 The Cross model handles the transition between a zero-shear-rate plateau
-(η₀) and an infinite-shear-rate plateau (η∞) — more physically realistic
+($\eta_0$) and an infinite-shear-rate plateau ($\eta_\infty$) — more physically realistic
 than the plain power law.
 
 **Equation:**
 
-```
-  ν(γ̇) = ν∞ + (ν₀ − ν∞) / (1 + (m · γ̇)ⁿ)
-```
+$$
+\nu(\dot{\gamma}) = \nu_\infty + \frac{\nu_0 - \nu_\infty}{1 + (m \cdot \dot{\gamma})^n}
+$$
 
 **Parameters:**
 
 | Parameter | Symbol | Meaning                             | Units         |
 |-----------|--------|-------------------------------------|---------------|
-| `nu0`     | ν₀     | Zero-shear-rate kinematic viscosity | m²/s          |
-| `nuInf`   | ν∞     | Infinite-shear-rate viscosity       | m²/s          |
+| `nu0`     | $\nu_0$     | Zero-shear-rate kinematic viscosity | m²/s          |
+| `nuInf`   | $\nu_\infty$     | Infinite-shear-rate viscosity       | m²/s          |
 | `m`       | m      | Consistency time constant           | s             |
 | `n`       | n      | Power-law index                     | dimensionless |
 
@@ -349,16 +349,16 @@ Very popular for polymer solutions and biological fluids.
 
 **Equation:**
 
-```
-  ν(γ̇) = ν∞ + (ν₀ − ν∞) · [1 + (k · γ̇)²]^((n−1)/2)
-```
+$$
+\nu(\dot{\gamma}) = \nu_\infty + (\nu_0 - \nu_\infty) \cdot \left[1 + (k \cdot \dot{\gamma})^{2}\right]^{(n-1)/2}
+$$
 
 **Parameters:**
 
 | Parameter | Symbol | Meaning                             | Units         |
 |-----------|--------|-------------------------------------|---------------|
-| `nu0`     | ν₀     | Zero-shear-rate kinematic viscosity | m²/s          |
-| `nuInf`   | ν∞     | Infinite-shear-rate viscosity       | m²/s          |
+| `nu0`     | $\nu_0$     | Zero-shear-rate kinematic viscosity | m²/s          |
+| `nuInf`   | $\nu_\infty$     | Infinite-shear-rate viscosity       | m²/s          |
 | `k`       | k      | Relaxation time                     | s             |
 | `n`       | n      | Power-law index (< 1 for thinning)  | dimensionless |
 
@@ -390,22 +390,24 @@ a threshold stress and flow like a power-law fluid above it.
 
 **Equation:**
 
-```
-  τ = τ₀ + k · γ̇ⁿ          (for τ > τ₀)
+$$
+\tau = \tau_0 + k \cdot \dot{\gamma}^n \quad (\text{for } \tau > \tau_0)
+$$
 
-  ν(γ̇) = min(ν₀, τ₀/γ̇ + k · γ̇ⁿ⁻¹)
-```
+$$
+\nu(\dot{\gamma}) = \min(\nu_0, \tau_0/\dot{\gamma} + k \cdot \dot{\gamma}^{n-1})
+$$
 
 **Parameters:**
 
 | Parameter | Symbol | Meaning                        | Units         |
 |-----------|--------|--------------------------------|---------------|
-| `nu0`     | ν₀     | Limiting viscosity (yield reg.)| m²/s          |
-| `tau0`    | τ₀     | Yield stress                   | m²/s²  *      |
+| `nu0`     | $\nu_0$     | Limiting viscosity (yield reg.)| m²/s          |
+| `tau0`    | $\tau_0$     | Yield stress                   | m²/s²  *      |
 | `k`       | k      | Consistency index              | m²/s^n        |
 | `n`       | n      | Power-law index                | dimensionless |
 
-> \* Because OpenFOAM works with kinematic quantities (divided by ρ),
+> \* Because OpenFOAM works with kinematic quantities (divided by $\rho$),
 > `tau0` has units of m²/s² (kinematic stress), not Pa.
 
 **Configuration:**
@@ -425,10 +427,10 @@ HerschelBulkleyCoeffs
 ```
 
 **Special cases of Herschel-Bulkley:**
-- **n = 1, τ₀ > 0** → Bingham plastic
-- **n = 1, τ₀ = 0** → Newtonian
-- **n < 1, τ₀ = 0** → Power-law shear-thinning
-- **n < 1, τ₀ > 0** → General Herschel-Bulkley
+- **$n = 1, \tau_0 > 0$** → Bingham plastic
+- **$n = 1, \tau_0 = 0$** → Newtonian
+- **$n < 1, \tau_0 = 0$** → Power-law shear-thinning
+- **$n < 1, \tau_0 > 0$** → General Herschel-Bulkley
 
 ### 3.6 Model Comparison Summary
 
@@ -556,8 +558,8 @@ BirdCarreauCoeffs
 }
 ```
 
-> **💡 Tip:** For blood flow at physiological conditions (37 °C, ρ ≈ 1060 kg/m³),
-> typical values are ν₀ ≈ 3.3 × 10⁻⁶ m²/s and ν∞ ≈ 3.0 × 10⁻⁶ m²/s.
+> **💡 Tip:** For blood flow at physiological conditions (37 °C, $\rho \approx 1060$ kg/m³),
+> typical values are $\nu_0 \approx 3.3 \times 10^{-6}$ m²/s and $\nu_\infty \approx 3.0 \times 10^{-6}$ m²/s.
 > The shear-thinning effect is moderate compared to polymer melts.
 
 #### Example 3: Polymer Melt (Power Law)
@@ -616,14 +618,14 @@ HerschelBulkleyCoeffs
 In turbulent simulations, the **total effective viscosity** is the sum
 of molecular (laminar) and turbulent contributions:
 
-```
-  ν_eff = ν + ν_t
+$$
+\nu_{\text{eff}} = \nu + \nu_t
+$$
 
-  where:
-    ν     = molecular kinematic viscosity  (from transportProperties)
-    ν_t   = turbulent (eddy) viscosity     (computed by turbulence model)
-    ν_eff = total effective viscosity       (used in momentum equation)
-```
+where:
+- $\nu$ = molecular kinematic viscosity (from transportProperties)
+- $\nu_t$ = turbulent (eddy) viscosity (computed by turbulence model)
+- $\nu_{\text{eff}}$ = total effective viscosity (used in momentum equation)
 
 ### How It Works in OpenFOAM
 
@@ -656,22 +658,22 @@ of molecular (laminar) and turbulent contributions:
 | Field   | File | Meaning                        | Source                    |
 |---------|------|--------------------------------|---------------------------|
 | `nu`    | —    | Molecular kinematic viscosity  | `transportProperties`     |
-| `nut`   | `0/nut` | Turbulent kinematic viscosity | Turbulence model (k-ε, k-ω, etc.) |
-| `nuEff` | —    | Effective total viscosity       | ν + ν_t (computed internally) |
+| `nut`   | `0/nut` | Turbulent kinematic viscosity | Turbulence model ($k$-$\varepsilon$, $k$-$\omega$, etc.) |
+| `nuEff` | —    | Effective total viscosity       | $\nu + \nu_t$ (computed internally) |
 
-> **📌 Note:** In laminar simulations (`simulationType laminar;`), ν_t = 0
-> everywhere, so ν_eff = ν. The molecular viscosity from `transportProperties`
+> **📌 Note:** In laminar simulations (`simulationType laminar;`), $\nu_t = 0$
+> everywhere, so $\nu_{\text{eff}} = \nu$. The molecular viscosity from `transportProperties`
 > is the only viscosity that matters.
 
-For detailed coverage of how turbulence models compute ν_t, see
+For detailed coverage of how turbulence models compute $\nu_t$, see
 [Turbulence Models](06_turbulence_models.md).
 
 ### Turbulent Viscosity Ratio
 
-A useful diagnostic: the ratio ν_t / ν tells you how much the turbulence
+A useful diagnostic: the ratio $\nu_t / \nu$ tells you how much the turbulence
 dominates over molecular diffusion:
 
-| ν_t / ν    | Regime                                         |
+| $\nu_t / \nu$    | Regime                                         |
 |------------|-------------------------------------------------|
 | 0          | Laminar (no turbulence model or laminar sim)    |
 | 1 – 10     | Low-turbulence regions (near walls, wake edges) |
@@ -688,23 +690,22 @@ OpenFOAM's standard `transportProperties` models assume **isothermal**
 
 ### When Temperature Matters
 
-| Fluid    | μ at 20 °C (Pa·s) | μ at 80 °C (Pa·s) | Change   |
+| Fluid    | $\mu$ at 20 °C (Pa·s) | $\mu$ at 80 °C (Pa·s) | Change   |
 |----------|--------------------|--------------------|----------|
-| Water    | 1.002 × 10⁻³      | 0.354 × 10⁻³      | −65 %    |
+| Water    | $1.002 \times 10^{-3}$      | $0.354 \times 10^{-3}$      | −65 %    |
 | Engine oil | 0.2              | 0.02               | −90 %    |
-| Air      | 1.825 × 10⁻⁵      | 2.09 × 10⁻⁵       | +15 %    |
+| Air      | $1.825 \times 10^{-5}$      | $2.09 \times 10^{-5}$       | +15 %    |
 
 For **non-isothermal** simulations, you need one of:
 
 1. **Sutherland's law** (gases): built into compressible solvers like
    `buoyantSimpleFoam` and `rhoCentralFoam`
 
-```
-  μ(T) = A_s · T^(3/2) / (T + T_s)
+$$
+\mu(T) = \frac{A_s \cdot T^{3/2}}{T + T_s}
+$$
 
-  For air:  A_s = 1.458 × 10⁻⁶ kg/(m·s·K^0.5)
-            T_s = 110.4 K
-```
+For air: $A_s = 1.458 \times 10^{-6}$ kg/(m·s·K$^{0.5}$), $T_s = 110.4$ K
 
 2. **Custom `coded` function objects** or **custom transport models**
    for liquid-phase temperature dependence
@@ -724,25 +725,25 @@ For **non-isothermal** simulations, you need one of:
 ### Pitfall #1: Dynamic vs Kinematic Viscosity Mix-Up
 
 The most common mistake. Material data sheets typically report **dynamic
-viscosity μ** in Pa·s or cP, but OpenFOAM expects **kinematic viscosity
-ν** in m²/s.
+viscosity $\mu$** in Pa·s or cP, but OpenFOAM expects **kinematic viscosity
+$\nu$** in m²/s.
 
-```
-  ν = μ / ρ
+$$
+\nu = \mu / \rho
+$$
 
-  Example: Water at 20 °C
-    μ = 1.002 × 10⁻³ Pa·s
-    ρ = 998.2 kg/m³
-    ν = 1.002e-3 / 998.2 = 1.004 × 10⁻⁶ m²/s  ✓
+Example: Water at 20 °C
+- $\mu = 1.002 \times 10^{-3}$ Pa·s
+- $\rho = 998.2$ kg/m³
+- $\nu = 1.002 \times 10^{-3} / 998.2 = 1.004 \times 10^{-6}$ m²/s ✓
 
-  Common mistake: using μ = 1e-3 directly as nu → 1000× too high!
-```
+Common mistake: using $\mu$ = 1e-3 directly as nu → 1000× too high!
 
 | Symptom                                   | Likely Cause                     | Fix                              |
 |-------------------------------------------|----------------------------------|----------------------------------|
-| Re is 1000× too low                       | Used μ instead of ν              | Divide by density                |
+| Re is 1000× too low                       | Used $\mu$ instead of $\nu$              | Divide by density                |
 | Flow looks completely laminar when it shouldn't | Viscosity too high          | Check units — should be m²/s     |
-| Wildly wrong drag/lift coefficients       | Wrong viscosity magnitude        | Verify ν against known values    |
+| Wildly wrong drag/lift coefficients       | Wrong viscosity magnitude        | Verify $\nu$ against known values    |
 
 ### Pitfall #2: Wrong Dimensions in the Dictionary
 
@@ -761,15 +762,15 @@ crash with a dimension error.
 
 | Quantity                | Dimensions `[kg m s K mol A cd]` |
 |-------------------------|-----------------------------------|
-| Kinematic viscosity ν   | `[0 2 -1 0 0 0 0]`               |
-| Dynamic viscosity μ     | `[1 -1 -1 0 0 0 0]`              |
-| Kinematic stress τ/ρ    | `[0 2 -2 0 0 0 0]`               |
+| Kinematic viscosity $\nu$   | `[0 2 -1 0 0 0 0]`               |
+| Dynamic viscosity $\mu$     | `[1 -1 -1 0 0 0 0]`              |
+| Kinematic stress $\tau/\rho$    | `[0 2 -2 0 0 0 0]`               |
 | Time constant           | `[0 0  1 0 0 0 0]`               |
 | Dimensionless           | `[0 0  0 0 0 0 0]`               |
 
 ### Pitfall #3: Non-Newtonian Models Diverging
 
-Non-Newtonian viscosity models compute ν as a function of the local
+Non-Newtonian viscosity models compute $\nu$ as a function of the local
 shear rate. Extreme values of shear rate can cause:
 
 - **Very high viscosity** in near-stagnant regions → stiff system, slow convergence
@@ -801,7 +802,7 @@ or crash with an unhelpful error message.
 
 When combining non-Newtonian models with turbulence:
 
-- The molecular viscosity ν varies spatially → ν_eff = ν(γ̇) + ν_t
+- The molecular viscosity $\nu$ varies spatially → $\nu_{\text{eff}} = \nu(\dot{\gamma}) + \nu_t$
 - This can cause convergence issues, especially with RANS models
 - Standard wall functions assume Newtonian behavior near the wall
 - Consider using low-Re turbulence models or resolving the viscous sublayer
@@ -855,14 +856,14 @@ Then visualize in ParaView to check for unphysical values.
 
 Before running, mentally verify your Reynolds number:
 
-```
-  Re = U · L / ν
+$$
+Re = U \cdot L / \nu
+$$
 
-  Example: Lid-driven cavity, U = 1 m/s, L = 0.1 m, ν = 1e-6 m²/s
-  Re = 1 × 0.1 / 1e-6 = 100,000  (turbulent!)
+Example: Lid-driven cavity, $U = 1$ m/s, $L = 0.1$ m, $\nu = 10^{-6}$ m²/s
+$Re = 1 \times 0.1 / 10^{-6} = 100{,}000$ (turbulent!)
 
-  If that's not what you intended, check your ν value.
-```
+If that's not what you intended, check your $\nu$ value.
 
 ---
 
@@ -920,7 +921,7 @@ Before running, mentally verify your Reynolds number:
 | Dictionary syntax & dimensions     | `notes/03_openfoam_dictionaries.md`          |
 | Meshing                            | `notes/04_meshing.md`                        |
 | Boundary conditions & wall funcs   | `notes/05_boundary_conditions.md`            |
-| Turbulence models & ν_t            | `notes/06_turbulence_models.md`              |
+| Turbulence models & $\nu_t$            | `notes/06_turbulence_models.md`              |
 | Parallel computing                 | `notes/07_parallelization.md`                |
 | CFL number & time stepping         | `notes/08_cfl_number.md`                     |
 | Linear solvers                     | `notes/09_linear_solvers.md`                 |

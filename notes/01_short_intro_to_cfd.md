@@ -33,7 +33,7 @@ pressures, velocities, temperatures, and forces with remarkable accuracy.
 - **1960s:** With the arrival of digital computers, researchers at Los Alamos and NASA
   developed the first practical CFD codes (MAC method, SIMPLE algorithm).
 - **1980s–1990s:** Commercial CFD software emerged (Fluent, CFX, STAR-CD). Turbulence
-  modeling matured (k-ε, k-ω SST).
+  modeling matured ($k$-$\varepsilon$, $k$-$\omega$ SST).
 - **2004:** OpenFOAM was released as open-source, democratizing CFD for researchers and
   students worldwide.
 - **Today:** GPU-accelerated solvers, machine-learning-augmented turbulence models, and
@@ -270,13 +270,13 @@ Common turbulence models (see note 06 for details):
 
 | Model      | Type    | Best For                                    |
 |------------|---------|---------------------------------------------|
-| k-ε        | RANS    | General industrial flows, free-shear layers |
-| k-ω SST    | RANS    | Boundary layers, adverse pressure gradients  |
+| $k$-$\varepsilon$        | RANS    | General industrial flows, free-shear layers |
+| $k$-$\omega$ SST    | RANS    | Boundary layers, adverse pressure gradients  |
 | Spalart-Allmaras | RANS | Aerospace external flows                |
 | LES        | Scale-resolving | Unsteady flows needing eddy resolution |
 
 > **📂 Repo reference:** The NACA airfoil project (`projects/03_naca_airfoil_analysis/`)
-> uses the k-ε turbulence model with `simpleFoam`, while the lid-driven cavity
+> uses the $k$-$\varepsilon$ turbulence model with `simpleFoam`, while the lid-driven cavity
 > (`projects/01_lid_driven_cavity/`) is solved as laminar.
 
 ---
@@ -447,7 +447,7 @@ $$\frac{d}{dt} \int_V \phi \, dV + \oint_{\partial V} (\mathbf{u} \phi) \cdot \m
 | **Cell-centered** | At the centroid of each cell | **OpenFOAM**, Fluent, STAR-CCM+ |
 | Vertex-centered | At the vertices (corners) of each cell | SU2, some FEM-based codes |
 
-OpenFOAM stores all field values (p, U, k, ε, etc.) at cell centers. When fluxes are
+OpenFOAM stores all field values (p, U, k, $\varepsilon$, etc.) at cell centers. When fluxes are
 needed at faces, values are **interpolated** from the cell centers to the face using
 interpolation schemes (linear, upwind, etc.).
 
@@ -549,7 +549,7 @@ because it can introduce numerical oscillations (wiggles) or excessive smearing
 
 > **📂 Repo reference:** The cavity project uses `Gauss linearUpwind grad(U)` for
 > velocity convection — a good compromise of accuracy and stability. The airfoil project
-> uses `Gauss upwind` for turbulence quantities (k, ε) because turbulence fields need
+> uses `Gauss upwind` for turbulence quantities ($k$, $\varepsilon$) because turbulence fields need
 > extra stability.
 
 ### 6.3 Gradient Schemes
@@ -634,9 +634,9 @@ constraint are satisfied simultaneously.
 | **Outer loops** | Many iterations to convergence | 1 per time step | Configurable (1 = PISO, >1 = SIMPLE-like) |
 | **Pressure correctors** | 1 | 2 (typically) | Configurable |
 | **Under-relaxation** | Required (e.g., 0.3 for p, 0.7 for U) | Not needed | Optional |
-| **Time step** | N/A (no real time) | Limited by CFL | Can use larger Δt |
+| **Time step** | N/A (no real time) | Limited by CFL | Can use larger $\Delta t$ |
 | **OpenFOAM solver** | `simpleFoam` | `icoFoam`, `pisoFoam` | `pimpleFoam` |
-| **Best for** | Steady-state flows | Small Δt transient | Large Δt transient |
+| **Best for** | Steady-state flows | Small $\Delta t$ transient | Large $\Delta t$ transient |
 
 > **📂 Repo reference:** Our cavity project uses **PISO** (see
 > `projects/01_lid_driven_cavity/system/fvSolution`) with `nCorrectors 2`, while the
@@ -698,10 +698,10 @@ $$\text{CFL} = \frac{u \, \Delta t}{\Delta x}$$
 where $u$ is the local velocity, $\Delta t$ is the time step, and $\Delta x$ is the
 local cell size.
 
-- **Explicit schemes:** require CFL < 1 for stability (information must not travel more
+- **Explicit schemes:** require $\text{CFL} < 1$ for stability (information must not travel more
   than one cell per time step).
 - **Implicit schemes:** unconditionally stable in theory, but accuracy degrades for
-  CFL >> 1.
+  $\text{CFL} \gg 1$.
 
 > **📖 See also:** Note 08 (`notes/08_cfl_number.md`) provides an in-depth treatment
 > of the CFL number, including practical guidelines for choosing time steps in OpenFOAM.

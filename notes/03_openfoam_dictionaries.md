@@ -242,16 +242,16 @@ inconsistency error — this is a powerful safety net.
 
 | Quantity | Dimensions | SI Unit | OpenFOAM notation |
 |----------|-----------|---------|-------------------|
-| Velocity | m/s | m·s⁻¹ | `[0 1 -1 0 0 0 0]` |
-| Kinematic pressure (p/ρ) | m²/s² | m²·s⁻² | `[0 2 -2 0 0 0 0]` |
-| Absolute pressure | kg/(m·s²) | Pa | `[1 -1 -2 0 0 0 0]` |
-| Kinematic viscosity (ν) | m²/s | m²·s⁻¹ | `[0 2 -1 0 0 0 0]` |
-| Dynamic viscosity (μ) | kg/(m·s) | Pa·s | `[1 -1 -1 0 0 0 0]` |
-| Density | kg/m³ | kg·m⁻³ | `[1 -3 0 0 0 0 0]` |
-| Turbulent kinetic energy (k) | m²/s² | m²·s⁻² | `[0 2 -2 0 0 0 0]` |
-| Turbulent dissipation (ε) | m²/s³ | m²·s⁻³ | `[0 2 -3 0 0 0 0]` |
-| Specific turbulent dissipation (ω) | 1/s | s⁻¹ | `[0 0 -1 0 0 0 0]` |
-| Turbulent viscosity (νt) | m²/s | m²·s⁻¹ | `[0 2 -1 0 0 0 0]` |
+| Velocity | $m/s$ | $m \cdot s^{-1}$ | `[0 1 -1 0 0 0 0]` |
+| Kinematic pressure ($p/\rho$) | $m^{2}/s^{2}$ | $m^{2} \cdot s^{-2}$ | `[0 2 -2 0 0 0 0]` |
+| Absolute pressure | $kg/(m \cdot s^{2})$ | Pa | `[1 -1 -2 0 0 0 0]` |
+| Kinematic viscosity ($\nu$) | $m^{2}/s$ | $m^{2} \cdot s^{-1}$ | `[0 2 -1 0 0 0 0]` |
+| Dynamic viscosity ($\mu$) | $kg/(m \cdot s)$ | $Pa \cdot s$ | `[1 -1 -1 0 0 0 0]` |
+| Density | $kg/m^{3}$ | $kg \cdot m^{-3}$ | `[1 -3 0 0 0 0 0]` |
+| Turbulent kinetic energy ($k$) | $m^{2}/s^{2}$ | $m^{2} \cdot s^{-2}$ | `[0 2 -2 0 0 0 0]` |
+| Turbulent dissipation ($\varepsilon$) | $m^{2}/s^{3}$ | $m^{2} \cdot s^{-3}$ | `[0 2 -3 0 0 0 0]` |
+| Specific turbulent dissipation ($\omega$) | $1/s$ | $s^{-1}$ | `[0 0 -1 0 0 0 0]` |
+| Turbulent viscosity ($\nu_t$) | $m^{2}/s$ | $m^{2} \cdot s^{-1}$ | `[0 2 -1 0 0 0 0]` |
 | Temperature | K | K | `[0 0 0 1 0 0 0]` |
 | Dimensionless | — | — | `[0 0 0 0 0 0 0]` |
 | Force per unit volume | N/m³ | kg·m⁻²·s⁻² | `[1 -2 -2 0 0 0 0]` |
@@ -559,17 +559,17 @@ fluxRequired
 > transport equations (`div(phi,k)`, `div(phi,epsilon)`) and the effective viscosity stress
 > tensor terms.
 
-### 6.4 — ddtSchemes (Time Derivative ∂/∂t)
+### 6.4 — ddtSchemes (Time Derivative $\partial/\partial t$)
 
 | Scheme | Order | Type | Description |
 |--------|-------|------|-------------|
 | `steadyState` | — | Steady | Sets time derivative to zero; for SIMPLE-based solvers |
 | `Euler` | 1st | Implicit | First-order backward Euler; stable, diffusive |
 | `backward` | 2nd | Implicit | Second-order backward differencing; less diffusive |
-| `CrankNicolson <α>` | 2nd | Implicit | Blends Euler (α=0) and Crank-Nicolson (α=1); α=0.9 typical |
+| `CrankNicolson <α>` | 2nd | Implicit | Blends Euler ($\alpha=0$) and Crank-Nicolson ($\alpha=1$); $\alpha=0.9$ typical |
 | `localEuler` | 1st | Local | Local time stepping for steady-state acceleration |
 
-### 6.5 — gradSchemes (Gradient ∇)
+### 6.5 — gradSchemes (Gradient $\nabla$)
 
 | Scheme | Description | Typical use |
 |--------|-------------|-------------|
@@ -578,7 +578,7 @@ fluxRequired
 | `cellLimited Gauss linear <k>` | Limits gradient to prevent overshoots; k=1 is full limiting | High-gradient regions |
 | `faceLimited Gauss linear <k>` | Limits at faces rather than cells | Alternative limiting |
 
-### 6.6 — divSchemes (Divergence ∇·)
+### 6.6 — divSchemes (Divergence $\nabla \cdot$)
 
 This is the most important category for **convection** (advection) terms. The choice
 of divergence scheme controls numerical diffusion and stability.
@@ -597,7 +597,7 @@ of divergence scheme controls numerical diffusion and stability.
 > `Gauss linearUpwind grad(U)` for velocity. Only move to higher-order schemes once the
 > simulation is stable.
 
-### 6.7 — laplacianSchemes (Laplacian ∇²)
+### 6.7 — laplacianSchemes (Laplacian $\nabla^{2}$)
 
 General format: `Gauss <interpolation> <snGrad>`
 
@@ -777,8 +777,8 @@ relaxationFactors
 | Solver | Full Name | Matrix Type | Best for |
 |--------|-----------|-------------|----------|
 | `PCG` | Preconditioned Conjugate Gradient | Symmetric | Pressure (incompressible) |
-| `PBiCGStab` | Preconditioned Bi-Conjugate Gradient Stabilized | Asymmetric | U, k, ε, ω (general purpose) |
-| `smoothSolver` | Iterative smoother | Any | U, k, ε — simple and robust |
+| `PBiCGStab` | Preconditioned Bi-Conjugate Gradient Stabilized | Asymmetric | U, k, $\varepsilon$, $\omega$ (general purpose) |
+| `smoothSolver` | Iterative smoother | Any | U, k, $\varepsilon$ — simple and robust |
 | `GAMG` | Geometric-Algebraic Multi-Grid | Any | Large cases; fastest for pressure |
 | `diagonal` | Diagonal solver | Diagonal | Trivial systems only |
 | `PBiCG` | Preconditioned Bi-Conjugate Gradient (legacy) | Asymmetric | Older synonym; prefer PBiCGStab |
@@ -797,7 +797,7 @@ relaxationFactors
 
 | Keyword | Description | Typical value |
 |---------|-------------|---------------|
-| `tolerance` | Absolute residual to stop iterating | `1e-06` (p), `1e-05` (U, k, ε) |
+| `tolerance` | Absolute residual to stop iterating | `1e-06` (p), `1e-05` (U, k, $\varepsilon$) |
 | `relTol` | Relative drop from initial residual | `0.05`–`0.1` (SIMPLE), `0` (final corrector in PISO) |
 | `minIter` | Minimum iterations before checking convergence | `1` |
 | `maxIter` | Maximum iterations per time step | `1000` (default) |
@@ -915,8 +915,8 @@ nu              nu [ 0 2 -1 0 0 0 0 ] 1e-05;
 | `powerLaw` | Simple power-law viscosity | Basic non-Newtonian |
 
 > **Note:** The viscosity value differs greatly between the two projects:
-> - Cavity: ν = 0.001 m²/s → Re = UL/ν = 1·0.1/0.001 = 100 (laminar)
-> - Airfoil: ν = 1e-05 m²/s → Re ≈ 1·1/1e-05 = 100,000 (turbulent — needs k-ε model)
+> - Cavity: $\nu = 0.001$ $m^{2}/s$ $\rightarrow$ $Re = UL/\nu = 1 \cdot 0.1/0.001 = 100$ (laminar)
+> - Airfoil: $\nu = 1 \times 10^{-5}$ $m^{2}/s$ $\rightarrow$ $Re \approx 1 \cdot 1/10^{-5} = 100{,}000$ (turbulent — needs $k$-$\varepsilon$ model)
 
 ---
 
@@ -1160,17 +1160,17 @@ boundaryField
 | BC Type | Category | Description |
 |---------|----------|-------------|
 | `fixedValue` | Dirichlet | Fixed value at the boundary |
-| `zeroGradient` | Neumann | Zero normal gradient (∂φ/∂n = 0) |
+| `zeroGradient` | Neumann | Zero normal gradient ($\partial\phi/\partial n = 0$) |
 | `noSlip` | Dirichlet | Velocity = 0 at walls (shorthand for fixedValue (0 0 0)) |
 | `empty` | Constraint | 2D cases — no solution on front/back faces |
 | `symmetry` | Constraint | Symmetry plane — zero normal component |
-| `totalPressure` | Mixed | p₀ = p + ½ρ|U|² — adjusts with velocity |
+| `totalPressure` | Mixed | $p_0 = p + \frac{1}{2}\rho|U|^{2}$ — adjusts with velocity |
 | `fixedGradient` | Neumann | Specified normal gradient (e.g., heat flux) |
 | `inletOutlet` | Mixed | Switches between fixedValue (inflow) and zeroGradient (outflow) |
-| `calculated` | Derived | Value computed from other fields (e.g., nut from k, ε) |
+| `calculated` | Derived | Value computed from other fields (e.g., nut from k, $\varepsilon$) |
 | `kqRWallFunction` | Wall func. | Wall function for k, q, R fields |
-| `epsilonWallFunction` | Wall func. | Wall function for ε near walls |
-| `nutkWallFunction` | Wall func. | Wall function for νt based on k |
+| `epsilonWallFunction` | Wall func. | Wall function for $\varepsilon$ near walls |
+| `nutkWallFunction` | Wall func. | Wall function for $\nu_t$ based on k |
 
 > **Tip:** For a complete treatment of boundary conditions, including inlet turbulence
 > estimation and wall function theory, see [05_boundary_conditions.md](05_boundary_conditions.md).
