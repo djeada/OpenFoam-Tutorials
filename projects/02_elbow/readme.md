@@ -154,7 +154,7 @@ ratio, the channel geometry, and the Reynolds number.
 
 ### Reynolds Number Estimate
 
-With ν = 0.01 m²/s, a characteristic velocity of ~3 m/s (the faster inlet), and a
+With $\nu = 0.01$ m²/s, a characteristic velocity of ~3 m/s (the faster inlet), and a
 channel width on the order of 1 m, the Reynolds number is roughly:
 
 ```
@@ -339,7 +339,7 @@ nu    [0 2 -1 0 0 0 0]    0.01;
 | Kinematic viscosity | ν      | 0.01    | m²/s       | [0 2 -1 0 0 0 0]          |
 
 This is a relatively high viscosity (for context, water at 20 °C has
-ν ≈ 1 × 10⁻⁶ m²/s). The large value keeps the Reynolds number low (~300),
+$\nu \approx 1 \times 10^{-6}$ m²/s). The large value keeps the Reynolds number low (~300),
 ensuring the flow remains laminar and the simulation converges without a
 turbulence model.
 
