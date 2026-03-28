@@ -35,7 +35,7 @@ Despite its geometric simplicity, the lid-driven cavity produces rich flow physi
                   noSlip (fixedWalls)
 ```
 
-At the Reynolds number used in this tutorial (Re = 100), the flow is laminar and steady-state is reached quickly. The primary vortex fills most of the cavity, with its center shifted slightly toward the upper-right quadrant. At higher Reynolds numbers (Re > 1000), the corner vortices become more prominent and the flow eventually transitions to unsteady behavior.
+At the Reynolds number used in this tutorial ($Re = 100$), the flow is laminar and steady-state is reached quickly. The primary vortex fills most of the cavity, with its center shifted slightly toward the upper-right quadrant. At higher Reynolds numbers ($Re > 1000$), the corner vortices become more prominent and the flow eventually transitions to unsteady behavior.
 
 ---
 
@@ -81,11 +81,11 @@ For this case:
 Re = 1 × 0.1 / 0.001 = 100
 ```
 
-At Re = 100, the flow is well within the laminar regime. The primary vortex forms quickly and the solution reaches a quasi-steady state within the 0.5 s simulation window.
+At $Re = 100$, the flow is well within the laminar regime. The primary vortex forms quickly and the solution reaches a quasi-steady state within the 0.5 s simulation window.
 
 ### Expected Flow Features
 
-- **Primary vortex**: A large clockwise recirculation filling most of the cavity. At Re = 100, the vortex center is located approximately at (x/L ≈ 0.62, y/L ≈ 0.74) based on the Ghia et al. (1982) benchmark data.
+- **Primary vortex**: A large clockwise recirculation filling most of the cavity. At $Re = 100$, the vortex center is located approximately at ($x/L \approx 0.62$, $y/L \approx 0.74$) based on the Ghia et al. (1982) benchmark data.
 - **Bottom corner vortices**: Small, weak counter-rotating vortices in the bottom-left and bottom-right corners. These become increasingly prominent at higher Reynolds numbers.
 - **Boundary layers**: Thin regions of high velocity gradient along all walls, particularly beneath the moving lid.
 
@@ -351,11 +351,11 @@ rm -rf 0.* [1-9]* VTK/ constant/polyMesh
 
 ### Flow Field at Steady State (t ≈ 0.5 s)
 
-At Re = 100, the flow reaches a quasi-steady state well within the 0.5 s simulation window. You should observe:
+At $Re = 100$, the flow reaches a quasi-steady state well within the 0.5 s simulation window. You should observe:
 
 - **Primary vortex**: A large clockwise recirculation filling most of the cavity. The vortex center is located near (x = 0.062 m, y = 0.074 m), approximately (x/L = 0.62, y/L = 0.74).
 - **Maximum velocity**: Close to 1 m/s near the top wall (the lid).
-- **Corner vortices**: Very small and weak at Re = 100; they become visible at higher Reynolds numbers.
+- **Corner vortices**: Very small and weak at $Re = 100$; they become visible at higher Reynolds numbers.
 - **Pressure field**: Low pressure near the vortex center, higher pressure at the upper corners where the flow decelerates.
 
 ### Vertical Centerline Velocity Profile (Ux along x = 0.05 m)
@@ -454,7 +454,7 @@ Modify `constant/transportProperties` to change `ν` and observe different flow 
 | 0.0001 | 1000 | Stronger vortex, visible corner vortices, longer to converge |
 | 0.00001 | 10000 | Unsteady flow, requires finer mesh and smaller time step |
 
-> **Note:** At Re > 1000, you may need to reduce `deltaT` and refine the mesh to maintain stability and accuracy. See [CFL number](../../notes/08_cfl_number.md).
+> **Note:** At $Re > 1000$, you may need to reduce `deltaT` and refine the mesh to maintain stability and accuracy. See [CFL number](../../notes/08_cfl_number.md).
 
 ### 2. Increase Mesh Resolution
 
@@ -481,7 +481,7 @@ This concentrates cells near the high-gradient regions at the walls.
 
 ### 4. Compare with Ghia et al. (1982) Benchmark
 
-Extract the vertical centerline velocity profile and compare with the tabulated data from Ghia, Ghia, and Shin (1982). Key reference values for Re = 100:
+Extract the vertical centerline velocity profile and compare with the tabulated data from Ghia, Ghia, and Shin (1982). Key reference values for $Re = 100$:
 
 | y/L | Ux (Ghia et al.) |
 |---|---|
