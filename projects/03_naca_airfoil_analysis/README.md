@@ -58,11 +58,11 @@ validation studies.
 ### Key Aerodynamic Concepts
 
 - **Lift** — the net force perpendicular to the free-stream direction. For a symmetric
-  airfoil at 0° angle of attack, the theoretical lift coefficient Cl = 0.
+  airfoil at 0° angle of attack, the theoretical lift coefficient $C_l = 0$.
 - **Drag** — the net force parallel to the free-stream direction, arising from both
   pressure (form drag) and viscous (skin friction) contributions.
-- **Angle of Attack (α)** — the angle between the chord line and the incoming flow. This
-  case is set up at α = 0°; see [Exercises](#exercises) for varying α.
+- **Angle of Attack ($\alpha$)** — the angle between the chord line and the incoming flow. This
+  case is set up at $\alpha = 0°$; see [Exercises](#exercises) for varying $\alpha$.
 - **Pressure Coefficient (Cp)** — the non-dimensional pressure distribution over the
   airfoil surface, a primary quantity for validation.
 
@@ -109,7 +109,7 @@ Re = U∞ × c / ν = 1.0 × 1.0 / 1×10⁻⁵ = 100,000
 | Kinematic viscosity| ν      | 1 × 10⁻⁵ m²/s |
 | Reynolds number    | Re     | 100,000      |
 
-At Re = 100,000 the flow is in the **transitional-to-turbulent** regime. A fully
+At $Re = 100{,}000$ the flow is in the **transitional-to-turbulent** regime. A fully
 turbulent RANS model (k-epsilon) is used here as a first approximation; see the
 [Exercises](#exercises) section for exploring laminar or transition-sensitive models.
 
@@ -122,7 +122,7 @@ sublayer, avoiding the need for an extremely fine near-wall mesh.
 
 ### Expected Aerodynamic Coefficients
 
-For NACA 0012 at α = 0° and Re ≈ 100,000:
+For NACA 0012 at $\alpha = 0°$ and $Re \approx 100{,}000$:
 
 | Coefficient              | Expected Range | Notes                          |
 |--------------------------|----------------|--------------------------------|
@@ -553,7 +553,7 @@ tail -f log.simpleFoam
 ### Pressure Field
 
 The pressure distribution around the airfoil should show:
-- **Stagnation point** at the leading edge (highest pressure, Cp ≈ 1.0)
+- **Stagnation point** at the leading edge (highest pressure, $C_p \approx 1.0$)
 - **Suction peaks** on both upper and lower surfaces near the leading edge
   (since the airfoil is symmetric at 0° AoA, both peaks are equal)
 - **Pressure recovery** toward the trailing edge
@@ -568,9 +568,9 @@ The pressure distribution around the airfoil should show:
 
 ### Pressure Coefficient Distribution
 
-For NACA 0012 at α = 0° and Re = 100,000:
+For NACA 0012 at $\alpha = 0°$ and $Re = 100{,}000$:
 - Cp should be symmetric about the chord line
-- Maximum Cp ≈ 1.0 at the stagnation point
+- Maximum $C_p \approx 1.0$ at the stagnation point
 - Minimum Cp ≈ −0.4 to −0.6 near the leading edge suction peak
 
 ```
@@ -592,8 +592,8 @@ For NACA 0012 at α = 0° and Re = 100,000:
 ### Force Coefficients
 
 At convergence you should observe:
-- **Cl ≈ 0** (symmetric airfoil, zero angle of attack)
-- **Cd ≈ 0.010 – 0.020** (primarily skin friction drag)
+- **$C_l \approx 0$** (symmetric airfoil, zero angle of attack)
+- **$C_d \approx 0.010 – 0.020$** (primarily skin friction drag)
 - Residuals below the targets defined in `fvSolution`
 
 ---
@@ -678,7 +678,7 @@ inlet
 }
 ```
 
-Run cases at α = 0°, 2°, 5°, 8°, 10°, 12° and plot the lift curve (Cl vs α).
+Run cases at $\alpha = 0°, 2°, 5°, 8°, 10°, 12°$ and plot the lift curve ($C_l$ vs $\alpha$).
 Compare with experimental data from Abbott & Von Doenhoff.
 
 ### Exercise 2: Mesh Refinement Study
