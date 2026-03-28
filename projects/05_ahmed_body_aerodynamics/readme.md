@@ -101,7 +101,7 @@ body data at some point. Its value comes from:
 ### Flow Regime
 
 The standard test condition uses a freestream velocity of **U∞ = 40 m/s** in
-air (ν = 1.5 × 10⁻⁵ m²/s). Based on the body height H = 0.288 m:
+air ($\nu = 1.5 \times 10^{-5}$ m²/s). Based on the body height $H = 0.288$ m:
 
 ```
 Re_H = U∞ · H / ν = 40 × 0.288 / 1.5e-5 ≈ 768,000
@@ -622,7 +622,7 @@ mergeTolerance 1e-6;
 | Total cell count | ~2–5 million |
 
 For wall-function meshes (y+ ≈ 30), the first cell height should be
-approximately 0.8 mm at Re = 768,000. The 5-layer prism stack with expansion
+approximately 0.8 mm at $Re = 768{,}000$. The 5-layer prism stack with expansion
 ratio 1.2 captures the inner portion of the boundary layer while relying on
 `omegaWallFunction` and `kqRWallFunction` for the near-wall treatment.
 
@@ -1292,7 +1292,7 @@ relaxationFactors
   faster than Krylov solvers for this type of elliptic equation.
 - **Relaxation factors**: 0.7 for momentum/turbulence and 0.3 for pressure are
   good starting values. Reduce if convergence is unstable.
-- **Residual targets**: 1 × 10⁻⁵ for all fields should give well-converged
+- **Residual targets**: $1 \times 10^{-5}$ for all fields should give well-converged
   force coefficients (< 1 % variation in last 200 iterations).
 
 ---
@@ -1523,7 +1523,7 @@ gnuplot -persist -e "
 
 Convergence criteria:
 
-- All residuals below 1 × 10⁻⁵
+- All residuals below $1 \times 10^{-5}$
 - Force coefficients stable to within 0.1 % over the last 200 iterations
 - Typically requires 1500–3000 iterations
 
@@ -1535,8 +1535,8 @@ Convergence criteria:
 
 For a well-resolved mesh (~3 M cells) with k-ω SST:
 
-- **25° slant**: Cd ≈ 0.285 ± 0.015 (experimental: 0.285)
-- **35° slant**: Cd ≈ 0.255 ± 0.020 (experimental: 0.260)
+- **25° slant**: $C_d \approx 0.285 \pm 0.015$ (experimental: 0.285)
+- **35° slant**: $C_d \approx 0.255 \pm 0.020$ (experimental: 0.260)
 
 ### Wake Structure
 
@@ -1557,7 +1557,7 @@ The simulation should capture:
   slant, recovering toward ambient at the trailing edge.
 - **Rear base**: large region of negative Cp (the primary source of pressure
   drag).
-- **Front stagnation**: Cp ≈ 1.0 at the nose centreline.
+- **Front stagnation**: $C_p \approx 1.0$ at the nose centreline.
 
 ### Wall Shear Stress
 
