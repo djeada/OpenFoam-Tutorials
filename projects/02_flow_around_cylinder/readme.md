@@ -41,7 +41,7 @@ CFD codes and learning simulation techniques.
   80°–90° from the front stagnation point.
 - **Wake region** — The low-pressure recirculation zone downstream of the cylinder. The wake
   structure depends strongly on Reynolds number and drives the drag force.
-- **Von Kármán vortex street** — At moderate Reynolds numbers (roughly Re = 47–200), vortices
+- **Von Kármán vortex street** — At moderate Reynolds numbers (roughly $Re = 47$–$200$), vortices
   shed alternately from the top and bottom of the cylinder, producing a periodic oscillating
   wake pattern. This generates oscillating lift forces and a dominant shedding frequency.
 - **Drag and lift forces** — The cylinder experiences a mean drag force (pressure drag dominates
@@ -95,8 +95,8 @@ St = f · D / U∞
 ```
 
 where `f` is the vortex shedding frequency. For a circular cylinder in the subcritical
-regime, St ≈ 0.2 is remarkably constant over a wide range of Reynolds numbers
-(roughly 300 < Re < 300,000). This is one of the most well-established empirical results
+regime, $St \approx 0.2$ is remarkably constant over a wide range of Reynolds numbers
+(roughly $300 < Re < 300{,}000$). This is one of the most well-established empirical results
 in fluid mechanics.
 
 ### Drag Coefficient
@@ -783,8 +783,8 @@ boundaryField
 
 #### `constant/transportProperties`
 
-Set the kinematic viscosity to achieve your target Reynolds number. For Re = 1000 with
-U∞ = 1 m/s and D = 1 m, we need ν = U∞ · D / Re = 1e-3 m²/s:
+Set the kinematic viscosity to achieve your target Reynolds number. For $Re = 1000$ with
+$U_\infty = 1$ m/s and $D = 1$ m, we need $\nu = U_\infty \cdot D / Re = 10^{-3}$ m²/s:
 
 ```
 FoamFile
@@ -1122,9 +1122,9 @@ ddtSchemes
 }
 ```
 
-> **💡 Tip:** For vortex shedding at Re = 100 (laminar), you can use `pimpleFoam` with
+> **💡 Tip:** For vortex shedding at $Re = 100$ (laminar), you can use `pimpleFoam` with
 > `simulationType laminar` in `turbulenceProperties`. The Strouhal number should converge
-> to St ≈ 0.164. For guidance on choosing time steps using the CFL condition, see
+> to $St \approx 0.164$. For guidance on choosing time steps using the CFL condition, see
 > [`notes/08_cfl_number.md`](../../notes/08_cfl_number.md).
 
 ---
@@ -1218,7 +1218,7 @@ For a steady-state `simpleFoam` run:
 
 - **Divergence at startup** — Reduce relaxation factors (e.g., p → 0.2, U → 0.5) and
   increase `nNonOrthogonalCorrectors` if mesh quality is poor.
-- **Asymmetric steady solution** — At Re > 47, the flow naturally wants to shed vortices.
+- **Asymmetric steady solution** — At $Re > 47$, the flow naturally wants to shed vortices.
   A steady solver will find one of the two possible asymmetric solutions or oscillate.
   Switch to `pimpleFoam` if you need the physical transient behavior.
 - **High y+ values** — Check with `yPlus` function object. For wall functions, aim for
@@ -1228,7 +1228,7 @@ For a steady-state `simpleFoam` run:
 
 ## Exercises
 
-1. **Reynolds Number Study** — Run the simulation at Re = 20, 100, 200, 1000, and 10000
+1. **Reynolds Number Study** — Run the simulation at $Re = 20, 100, 200, 1000$, and $10000$
    by adjusting the kinematic viscosity (`nu` in `transportProperties`). Compare drag
    coefficients with published data and observe the different flow regimes.
 
@@ -1241,11 +1241,11 @@ For a steady-state `simpleFoam` run:
 
 4. **3D Extension** — Remove the `empty` boundary condition on `frontAndBack`, extend the
    domain to 4D in the spanwise direction, and add cells in z. Observe 3D wake instabilities
-   (mode A and mode B) that appear at Re > 190.
+   (mode A and mode B) that appear at $Re > 190$.
 
-5. **Vortex Shedding Frequency** — Run a transient simulation at Re = 100 using `pimpleFoam`
+5. **Vortex Shedding Frequency** — Run a transient simulation at $Re = 100$ using `pimpleFoam`
    with laminar flow. Measure the vortex shedding frequency from the lift coefficient
-   time history and compute the Strouhal number. Compare with St ≈ 0.164 from literature.
+   time history and compute the Strouhal number. Compare with $St \approx 0.164$ from literature.
 
 6. **Domain Size Sensitivity** — Test the effect of domain boundaries by running with
    smaller (10D downstream) and larger (40D downstream) domains. How does the outlet
