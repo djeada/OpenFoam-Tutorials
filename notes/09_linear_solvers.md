@@ -857,7 +857,7 @@ relaxationFactors
 - `consistent yes` enables SIMPLEC, which is more stable and allows larger relaxation factors
 - `residualControl` tells the SIMPLE loop when to stop the entire simulation
 - All turbulence quantities use the same solver configuration (common practice)
-- Relaxation factors are **essential** — p=0.3, U=k=ε=0.7 are standard starting values
+- Relaxation factors are **essential** — $p$=0.3, $U$=$k$=$\varepsilon$=0.7 are standard starting values
 
 ---
 

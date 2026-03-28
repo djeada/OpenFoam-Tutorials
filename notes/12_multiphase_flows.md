@@ -128,8 +128,8 @@ the domain. Each particle has its own position, velocity, and properties.
 
 ### 2.3 Level-Set Method
 
-Uses a signed distance function φ to represent the interface (φ = 0 at the
-interface, φ > 0 in one phase, φ < 0 in the other). The interface is always
+Uses a signed distance function $\phi$ to represent the interface ($\phi = 0$ at the
+interface, $\phi > 0$ in one phase, $\phi < 0$ in the other). The interface is always
 sharp, but mass conservation is not guaranteed without special corrections.
 Less common in OpenFOAM than VOF.
 
@@ -806,7 +806,7 @@ Recommended settings:
 
 **Key settings:**
 - Solver: `interFoam`
-- Phases: water (ρ = 1000, ν = 1e-06) and air (ρ = 1, ν = 1.48e-05)
+- Phases: water ($\rho$ = 1000, $\nu$ = 1e-06) and air ($\rho$ = 1, $\nu$ = 1.48e-05)
 - Time: adaptive, maxCo = 0.5, maxAlphaCo = 0.5
 - Mesh: structured (blockMesh)
 
