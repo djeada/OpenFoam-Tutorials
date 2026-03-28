@@ -79,8 +79,8 @@ simulations alike.
 > **Note on Reynolds number:** Different researchers define Re using different
 > reference lengths (step height H, hydraulic diameter, or upstream channel height).
 > Re_H ≈ 8,467 based on step height is common; using the full downstream channel
-> height gives Re ≈ 16,933. Some references cite Re based on upstream centreline
-> velocity and channel height which can give Re ≈ 36,000.
+> height gives $Re \approx 16{,}933$. Some references cite $Re$ based on upstream centreline
+> velocity and channel height which can give $Re \approx 36{,}000$.
 
 ---
 
@@ -771,7 +771,7 @@ The skin friction coefficient on the bottom wall:
 Cf = τ_w / (0.5 ρ U∞²)
 ```
 
-Plot Cf vs x/H. The reattachment point is at Cf = 0. Negative Cf indicates
+Plot $C_f$ vs $x/H$. The reattachment point is at $C_f = 0$. Negative $C_f$ indicates
 reverse flow.
 
 ### Pressure Coefficient
@@ -892,7 +892,7 @@ Replace the uniform inlet velocity with a fully developed turbulent channel prof
 1. **Driver, D.M. & Seegmiller, H.L.** (1985). "Features of a reattaching turbulent
    shear layer in divergent channel flow." *AIAA Journal*, 23(2), pp.163–171.
    — The definitive experimental study. Provides detailed velocity profiles,
-   turbulence statistics, and skin friction measurements at Re = 37,400.
+   turbulence statistics, and skin friction measurements at $Re = 37{,}400$.
 
 2. **Kim, J., Kline, S.J. & Johnston, J.P.** (1980). "Investigation of a reattaching
    turbulent shear layer: flow over a backward-facing step." *Journal of Fluids
