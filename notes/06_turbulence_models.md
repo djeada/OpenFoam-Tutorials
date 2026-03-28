@@ -346,7 +346,11 @@ The dimensionless wall distance $y^{+}$ is defined as:
 
 $$y^{+} = \frac{y \cdot u_\tau}{\nu}$$
 
-where $u_\tau = \sqrt{\tau_w / \rho}$ is the friction velocity, $\tau_w$ = wall shear stress, $y$ = distance from wall to cell center, $\nu$ = kinematic viscosity
+where:
+- $u_\tau = \sqrt{\tau_w / \rho}$ is the friction velocity
+- $\tau_w$ = wall shear stress
+- $y$ = distance from wall to cell center
+- $\nu$ = kinematic viscosity
 
 ### $y^{+}$ Requirements by Approach
 
@@ -358,7 +362,7 @@ where $u_\tau = \sqrt{\tau_w / \rho}$ is the friction velocity, $\tau_w$ = wall 
 
 > **⚠️ Warning — The Buffer Layer Trap:** Never place your first cell center in the
 > buffer layer ($5 < y^{+} < 30$). Neither wall functions nor direct resolution work well
-> there. Either aim for $y^{+} \approx 1$ (resolve) or $y^{+} \approx 30\text{-}100$ (wall functions). The buffer
+> there. Either aim for $y^{+} \approx 1$ (resolve) or $y^{+} \approx 30\text{--}100$ (wall functions). The buffer
 > layer is a no-man's-land.
 
 ### Estimating First Cell Height from $y^{+}$
@@ -412,7 +416,7 @@ OpenFOAM provides several wall function boundary conditions:
 
 > **📌 Note:** Our NACA airfoil project uses wall functions (`nutkWallFunction`,
 > `kqRWallFunction`, `epsilonWallFunction`) — consistent with the $k$-$\varepsilon$ model
-> and a mesh designed for $y^{+} \approx 30\text{-}100$.
+> and a mesh designed for $y^{+} \approx 30\text{--}100$.
 
 ---
 
@@ -1009,7 +1013,7 @@ Turbulence modeling in multiphase flows requires special care:
 | # | Mistake | Consequence | Fix |
 |---|---------|-------------|-----|
 | 1 | Wrong $y^{+}$ for wall treatment | Wildly incorrect wall shear stress | Check $y^{+}$ after meshing, before trusting results |
-| 2 | $y^{+}$ in buffer layer (5-30) | Neither wall functions nor resolve works | Redesign mesh for $y^{+} \approx 1$ or $y^{+} \approx 30\text{-}100$ |
+| 2 | $y^{+}$ in buffer layer (5--30) | Neither wall functions nor resolve works | Redesign mesh for $y^{+} \approx 1$ or $y^{+} \approx 30\text{--}100$ |
 | 3 | Arbitrary $k$, $\varepsilon$ inlet values | Wrong turbulence levels propagate | Calculate from turbulence intensity and length scale |
 | 4 | 2D LES | LES requires 3D — turbulence is inherently 3D | Always run LES in 3D with spanwise extent |
 | 5 | LES on RANS mesh | Resolves neither large nor small eddies | Generate LES-quality mesh first |
