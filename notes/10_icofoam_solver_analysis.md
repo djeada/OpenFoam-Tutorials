@@ -41,7 +41,7 @@ the **PISO** (Pressure-Implicit with Splitting of Operators) algorithm.
   model is needed or included. See [06 — Turbulence Models](06_turbulence_models.md)
   for what to use when turbulence matters.
 - **Newtonian** — Shear stress is linearly proportional to strain rate. The viscosity
-  ν is a constant. Water, air, and most common fluids are Newtonian. Blood, polymers,
+  $\nu$ is a constant. Water, air, and most common fluids are Newtonian. Blood, polymers,
   and ketchup are *not*.
 
 **When to use icoFoam:** Teaching, validation cases, low-Re flows (pipe flow at
@@ -57,30 +57,20 @@ icoFoam solves two coupled equations — the **continuity** (mass conservation) 
 
 ### Continuity Equation (mass conservation)
 
-```
-∇ · u = 0
-```
+$$\nabla \cdot u = 0$$
 
 This says: the velocity field is **divergence-free**. Fluid is neither created nor
 destroyed. For an incompressible fluid, this replaces the full mass conservation
-equation since ρ = constant.
+equation since $\rho$ = constant.
 
 ### Momentum Equation
 
-```
-  ∂u                                   1
- ──── + ∇·(uu) − ∇·(ν ∇u)  =  − ─── ∇p
-  ∂t                                   ρ
-```
+$$\frac{\partial u}{\partial t} + \nabla \cdot (uu) - \nabla \cdot (\nu \nabla u) = -\frac{1}{\rho} \nabla p$$
 
-In OpenFOAM's "kinematic" form (dividing through by ρ), pressure `p` has units
-of m²/s² (kinematic pressure = p/ρ), so:
+In OpenFOAM's "kinematic" form (dividing through by $\rho$), pressure `p` has units
+of $\text{m}^{2}/\text{s}^{2}$ (kinematic pressure = $p/\rho$), so:
 
-```
-  ∂u
- ──── + ∇·(uu) − ∇·(ν ∇u) = −∇p
-  ∂t
-```
+$$\frac{\partial u}{\partial t} + \nabla \cdot (uu) - \nabla \cdot (\nu \nabla u) = -\nabla p$$
 
 ### Physical Meaning of Each Term
 
@@ -109,8 +99,8 @@ of m²/s² (kinematic pressure = p/ρ), so:
 
 **Why no time derivative for pressure?**
 In incompressible flow, pressure is *not* a thermodynamic variable — it is a
-**constraint field** that enforces ∇·u = 0 at every time step. There is no
-pressure wave propagation (speed of sound → ∞). Pressure adjusts
+**constraint field** that enforces $\nabla \cdot u = 0$ at every time step. There is no
+pressure wave propagation (speed of sound $\to \infty$). Pressure adjusts
 instantaneously to maintain divergence-free velocity. This is why we need a
 special algorithm (PISO) to couple p and u.
 
@@ -208,7 +198,7 @@ PISO is efficient for transient problems because it performs **no outer iteratio
 within a time step. It relies on a small time step (CFL < 1, see
 [08 — CFL Number](08_cfl_number.md)) so that the change per step is small enough
 that one momentum prediction + a few corrections suffice. This makes it faster
-per-time-step than iterative methods like SIMPLE, but it demands small Δt.
+per-time-step than iterative methods like SIMPLE, but it demands small $\Delta t$.
 
 ---
 
@@ -314,18 +304,14 @@ dimensionedScalar nu(...);
 
 `CourantNo.H` computes the CFL number (see [08 — CFL Number](08_cfl_number.md)):
 
-```
-             |φ_f|
-Co = max  ───────────  · Δt
-      f    |d| · |S_f|
+$$Co = \max_f \frac{|\phi_f|}{|d| \cdot |S_f|} \cdot \Delta t$$
 
 where:
-  φ_f  = face flux (phi)
-  d    = distance between neighboring cell centers
-  S_f  = face area
-```
+- $\phi_f$ = face flux (phi)
+- $d$ = distance between neighboring cell centers
+- $S_f$ = face area
 
-For PISO to be stable, **Co must be < 1** (typically ≤ 0.5). This is the main
+For PISO to be stable, **Co must be < 1** (typically $\leq 0.5$). This is the main
 restriction of the PISO algorithm — it requires small time steps.
 
 ### 4e. Momentum Predictor — Deep Dive
@@ -420,14 +406,14 @@ This is the heart of icoFoam. Each sub-step is annotated:
 
 **Decomposition of the momentum equation:**
 
-```
-    A · U = H − ∇p
+$$A \cdot U = H - \nabla p$$
 
-    Therefore:  U = H/A − (1/A) · ∇p
-                U = HbyA − rAU · ∇p
+Therefore:
 
-    This is the KEY IDENTITY that connects velocity and pressure!
-```
+$$U = \frac{H}{A} - \frac{1}{A} \cdot \nabla p$$
+$$U = HbyA - rAU \cdot \nabla p$$
+
+This is the KEY IDENTITY that connects velocity and pressure!
 
 #### Step 2c–2d: Flux calculation
 
