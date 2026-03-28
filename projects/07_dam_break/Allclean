@@ -1,0 +1,36 @@
+#!/bin/bash
+#------------------------------------------------------------------------------
+# Allclean script for dam break simulation
+# Removes all generated files to restore the case to its original state.
+#------------------------------------------------------------------------------
+cd "${0%/*}" || exit 1
+
+# Source OpenFOAM run functions
+. ${WM_PROJECT_DIR:?}/bin/tools/CleanFunctions
+
+echo "Cleaning dam break case..."
+
+# Clean time directories (except 0/)
+cleanCase
+
+# Remove mesh
+rm -rf constant/polyMesh/boundary
+rm -rf constant/polyMesh/faces
+rm -rf constant/polyMesh/neighbour
+rm -rf constant/polyMesh/owner
+rm -rf constant/polyMesh/points
+rm -rf constant/polyMesh/sets
+
+# Remove log files
+rm -f log.*
+
+# Remove processor directories (parallel runs)
+rm -rf processor*
+
+# Remove postProcessing directory
+rm -rf postProcessing
+
+# Remove ParaView files
+rm -f *.OpenFOAM *.foam
+
+echo "Case cleaned successfully."

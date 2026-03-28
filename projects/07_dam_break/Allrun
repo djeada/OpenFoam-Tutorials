@@ -1,0 +1,38 @@
+#!/bin/bash
+#------------------------------------------------------------------------------
+# Allrun script for dam break simulation (interFoam)
+#
+# Steps:
+#   1. blockMesh  - Generate the structured mesh
+#   2. setFields  - Initialize the water column (alpha.water)
+#   3. interFoam  - Run the VOF multiphase solver
+#------------------------------------------------------------------------------
+cd "${0%/*}" || exit 1
+
+# Source OpenFOAM run functions
+. ${WM_PROJECT_DIR:?}/bin/tools/RunFunctions
+
+echo "========================================"
+echo "  Dam Break Simulation (interFoam)"
+echo "========================================"
+
+# Step 1: Generate mesh
+echo ""
+echo "Step 1: Generating mesh with blockMesh..."
+runApplication blockMesh
+
+# Step 2: Initialize water column
+echo ""
+echo "Step 2: Setting initial water column with setFields..."
+runApplication setFields
+
+# Step 3: Run solver
+echo ""
+echo "Step 3: Running interFoam solver..."
+runApplication interFoam
+
+echo ""
+echo "========================================"
+echo "  Simulation complete!"
+echo "  Use paraFoam to visualize results."
+echo "========================================"

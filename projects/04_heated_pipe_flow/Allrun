@@ -1,0 +1,28 @@
+#!/bin/bash
+#------------------------------------------------------------------------------
+# Allrun script for heated pipe flow (conjugate heat transfer)
+# Solver: buoyantSimpleFoam
+#------------------------------------------------------------------------------
+cd "${0%/*}" || exit
+
+# Source OpenFOAM run functions
+. ${WM_PROJECT_DIR:?}/bin/tools/RunFunctions
+
+echo "============================================"
+echo "  Heated Pipe Flow - buoyantSimpleFoam"
+echo "============================================"
+
+# Generate the mesh
+echo ""
+echo ">>> Generating mesh with blockMesh..."
+runApplication blockMesh
+
+# Run the solver
+echo ""
+echo ">>> Running buoyantSimpleFoam..."
+runApplication buoyantSimpleFoam
+
+echo ""
+echo ">>> Simulation complete!"
+echo "    Use paraFoam or ParaView to visualize results."
+echo "============================================"

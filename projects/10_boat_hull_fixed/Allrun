@@ -1,0 +1,27 @@
+#!/bin/bash
+# Allrun — Complete workflow for fixed boat hull in calm water (interFoam)
+cd "${0%/*}" || exit
+. ${WM_PROJECT_DIR:?}/bin/tools/RunFunctions
+
+# Copy and scale STL from repo root (mm → m)
+cp ../../boat_hull.stl constant/triSurface/boat_hull.stl
+runApplication surfaceTransformPoints -scale '(0.001 0.001 0.001)' \
+    constant/triSurface/boat_hull.stl constant/triSurface/boat_hull.stl
+
+# Generate background mesh
+runApplication blockMesh
+
+# Extract surface features for snapping
+runApplication surfaceFeatureExtract
+
+# Refine mesh around hull
+runApplication snappyHexMesh -overwrite
+
+# Check mesh quality
+runApplication checkMesh
+
+# Initialize water phase (alpha.water = 1 below z = 0)
+runApplication setFields
+
+# Run the solver
+runApplication interFoam

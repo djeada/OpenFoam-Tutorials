@@ -1,0 +1,32 @@
+#!/bin/bash
+#------------------------------------------------------------------------------
+# Allrun script for simplified wind turbine MRF simulation
+#
+# Steps:
+#   1. blockMesh  — Generate the rectangular background mesh
+#   2. topoSet    — Create the cylindrical cellZone for the MRF region
+#   3. simpleFoam — Run the steady-state SIMPLE solver with MRF
+#------------------------------------------------------------------------------
+cd "${0%/*}" || exit
+. ${WM_PROJECT_DIR:?}/bin/tools/RunFunctions
+
+echo "=========================================="
+echo "  Wind Turbine MRF Simulation"
+echo "=========================================="
+echo ""
+
+echo "Step 1: Generating mesh with blockMesh..."
+runApplication blockMesh
+
+echo "Step 2: Creating MRF cell zone with topoSet..."
+runApplication topoSet
+
+echo "Step 3: Running simpleFoam with MRF..."
+runApplication simpleFoam
+
+echo ""
+echo "=========================================="
+echo "  Simulation Complete!"
+echo "=========================================="
+echo "  Post-process with: paraFoam"
+echo "=========================================="

@@ -1,0 +1,37 @@
+#!/bin/bash
+# ============================================================================
+# Allrun — floating boat hull simulation with interDyMFoam
+# ============================================================================
+cd "${0%/*}" || exit
+. "${WM_PROJECT_DIR:?}"/bin/tools/RunFunctions
+
+# ---- Copy and scale STL (mm → m) ------------------------------------------
+echo "Copying STL from repository root..."
+cp ../../boat_hull.stl constant/triSurface/boat_hull.stl
+
+echo "Scaling STL from millimeters to meters..."
+runApplication surfaceTransformPoints \
+    -scale '(0.001 0.001 0.001)' \
+    constant/triSurface/boat_hull.stl \
+    constant/triSurface/boat_hull.stl
+
+# ---- Mesh generation -------------------------------------------------------
+runApplication blockMesh
+
+runApplication surfaceFeatureExtract
+
+runApplication snappyHexMesh -overwrite
+
+runApplication checkMesh
+
+# ---- Field initialisation --------------------------------------------------
+runApplication setFields
+
+# ---- Run solver ------------------------------------------------------------
+runApplication interDyMFoam
+
+echo ""
+echo "========================================="
+echo "  Simulation complete."
+echo "  Post-process with: paraFoam"
+echo "========================================="

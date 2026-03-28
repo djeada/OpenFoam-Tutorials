@@ -1,0 +1,180 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2312                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      blockMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Backward-facing step geometry
+// Step height H = 0.0127 m
+// Upstream channel:  length = 4H, height = H (above step level)
+// Downstream channel: length = 30H, height = 2H
+// Expansion ratio: 2:1
+//
+//  Geometry (side view, 2D in x-z plane):
+//
+//    v3──────────────v4──────────────────────────v5
+//    │               │                            │
+//    │   Block 0     │       Block 1              │
+//    │  (upstream)   │   (downstream top)         │
+//    v0──────────────v1                           v2
+//                    │                            │
+//                    │       Block 2              │
+//                    │  (downstream bottom)       │
+//                    v6───────────────────────────v7
+//
+
+convertToMeters 0.0127;  // H = 0.0127 m, coordinates in units of H
+
+vertices
+(
+    // Upstream block vertices
+    (-4  0  -0.5)   // 0: upstream inlet bottom (at step level)
+    ( 0  0  -0.5)   // 1: step top-right corner
+    (30  0  -0.5)   // 2: downstream outlet at step level
+    (-4  1  -0.5)   // 3: upstream inlet top
+    ( 0  1  -0.5)   // 4: top wall at step
+    (30  1  -0.5)   // 5: downstream outlet top
+
+    // Downstream bottom block vertices
+    ( 0 -1  -0.5)   // 6: step bottom-right (downstream floor at step)
+    (30 -1  -0.5)   // 7: downstream outlet bottom
+
+    // Front plane (z = +0.5)
+    (-4  0   0.5)   // 8
+    ( 0  0   0.5)   // 9
+    (30  0   0.5)   // 10
+    (-4  1   0.5)   // 11
+    ( 0  1   0.5)   // 12
+    (30  1   0.5)   // 13
+    ( 0 -1   0.5)   // 14
+    (30 -1   0.5)   // 15
+);
+
+blocks
+(
+    // Block 0: upstream channel (4H x 1H)
+    hex (0 1 4 3 8 9 12 11)
+    (80 40 1)
+    simpleGrading
+    (
+        0.25        // x: refine toward step edge
+        (
+            (0.5 0.5 4)    // bottom half: grade toward bottom
+            (0.5 0.5 0.25) // top half: grade toward top
+        )
+        1           // z: uniform (2D)
+    )
+
+    // Block 1: downstream top (30H x 1H)
+    hex (1 2 5 4 9 10 13 12)
+    (300 40 1)
+    simpleGrading
+    (
+        4           // x: expand downstream
+        (
+            (0.5 0.5 4)    // bottom half: grade toward step level
+            (0.5 0.5 0.25) // top half: grade toward top wall
+        )
+        1           // z: uniform (2D)
+    )
+
+    // Block 2: downstream bottom (30H x 1H, behind step)
+    hex (6 7 2 1 14 15 10 9)
+    (300 40 1)
+    simpleGrading
+    (
+        4           // x: expand downstream
+        (
+            (0.5 0.5 4)    // bottom half: grade toward bottom wall
+            (0.5 0.5 0.25) // top half: grade toward step level
+        )
+        1           // z: uniform (2D)
+    )
+);
+
+edges
+(
+);
+
+boundary
+(
+    inlet
+    {
+        type patch;
+        faces
+        (
+            (0 3 11 8)     // upstream inlet face
+        );
+    }
+
+    outlet
+    {
+        type patch;
+        faces
+        (
+            (2 5 13 10)    // downstream top outlet
+            (7 2 10 15)    // downstream bottom outlet
+        );
+    }
+
+    topWall
+    {
+        type wall;
+        faces
+        (
+            (3 4 12 11)    // upstream top wall
+            (4 5 13 12)    // downstream top wall
+        );
+    }
+
+    bottomWall
+    {
+        type wall;
+        faces
+        (
+            (6 7 15 14)    // downstream bottom wall
+        );
+    }
+
+    step
+    {
+        type wall;
+        faces
+        (
+            (0 1 9 8)      // step top face (upstream floor)
+            (1 6 14 9)     // step vertical face
+        );
+    }
+
+    frontAndBack
+    {
+        type empty;
+        faces
+        (
+            // Back faces (z = -0.5)
+            (0 1 4 3)
+            (1 2 5 4)
+            (6 7 2 1)
+            // Front faces (z = +0.5)
+            (8 9 12 11)
+            (9 10 13 12)
+            (14 15 10 9)
+        );
+    }
+);
+
+mergePatchPairs
+(
+);
+
+// ************************************************************************* //
