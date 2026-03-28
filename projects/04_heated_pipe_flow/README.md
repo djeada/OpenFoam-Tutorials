@@ -134,16 +134,16 @@ Re = (U × D_h) / ν
 
 For this case:
 - U = 0.5 m/s (inlet velocity)
-- D_h = 2×H×W/(H+W) ≈ 2×0.1×0.01/(0.1+0.01) ≈ 0.018 m (hydraulic diameter for 2D duct ≈ 2H = 0.2 m)
-- ν = 1.5×10⁻⁵ m²/s (kinematic viscosity of air at 300K)
+- $D_h = 2 \times H \times W/(H+W) \approx 2 \times 0.1 \times 0.01/(0.1+0.01) \approx 0.018$ m (hydraulic diameter for 2D duct $\approx 2H = 0.2$ m)
+- $\nu = 1.5 \times 10^{-5}$ m²/s (kinematic viscosity of air at 300K)
 
-For the 2D approximation (infinite width): D_h ≈ 2H = 0.2 m
+For the 2D approximation (infinite width): $D_h \approx 2H = 0.2$ m
 
 ```
 Re = (0.5 × 0.2) / 1.5e-5 ≈ 6667
 ```
 
-This is in the **transitional-to-turbulent** regime (Re > 2300 for pipe flow), justifying
+This is in the **transitional-to-turbulent** regime ($Re > 2300$ for pipe flow), justifying
 the use of a turbulence model.
 
 #### Prandtl Number (Pr)
@@ -179,7 +179,7 @@ Dittus-Boelter correlation (heating):
 Nu = 0.023 × Re^0.8 × Pr^0.4
 ```
 
-For our case: Nu ≈ 0.023 × 6667^0.8 × 0.71^0.4 ≈ **24.8**
+For our case: $Nu \approx 0.023 \times 6667^{0.8} \times 0.71^{0.4} \approx$ **24.8**
 
 Gnielinski correlation (more accurate for transitional flow):
 ```
@@ -432,12 +432,12 @@ non-physical oscillations — critical for stability in compressible SIMPLE solv
 
 **Pressure solver (p_rgh):**
 - **GAMG** (Geometric-Algebraic Multi-Grid) with Gauss-Seidel smoother
-- Tolerance: 1×10⁻⁶, relative tolerance: 0.01
+- Tolerance: $1 \times 10^{-6}$, relative tolerance: 0.01
 - GAMG is optimal for pressure equations due to their elliptic nature
 
 **Momentum, energy, turbulence (U, h, k, epsilon):**
 - **smoothSolver** with symmetric Gauss-Seidel (symGaussSeidel) smoother
-- Tolerance: 1×10⁻⁶, relative tolerance: 0.1
+- Tolerance: $1 \times 10^{-6}$, relative tolerance: 0.1
 - Efficient for hyperbolic/parabolic transport equations
 
 **SIMPLE algorithm settings:**
@@ -448,7 +448,7 @@ non-physical oscillations — critical for stability in compressible SIMPLE solv
   - rho: 1.0 (no under-relaxation for density)
 
 **Convergence criteria:**
-- All residuals must fall below 1×10⁻⁴
+- All residuals must fall below $1 \times 10^{-4}$
 
 > **Further reading on linear solvers:**
 > - [Linear Solvers and Convergence](../../notes/09_linear_solvers.md)
@@ -532,7 +532,7 @@ tail -f log.buoyantSimpleFoam
 
 You should see residuals for `Ux`, `Uy`, `h`, `k`, `epsilon`, and `p_rgh` decreasing
 over iterations. The simulation converges when all residuals fall below the target
-values (1×10⁻⁴) or when the solution no longer changes.
+values ($1 \times 10^{-4}$) or when the solution no longer changes.
 
 ---
 
@@ -543,7 +543,7 @@ values (1×10⁻⁴) or when the solution no longer changes.
 - Initial residuals may be high (especially for pressure and energy)
 - Expect convergence within **300–800 iterations** for this case
 - The energy equation (`h`) typically converges slower than momentum
-- Residuals should reach O(10⁻⁴) or lower
+- Residuals should reach $O(10^{-4})$ or lower
 
 ### 8.2 Temperature Field
 
@@ -824,7 +824,7 @@ They are ordered from simple parameter changes to more significant modifications
 - For **laminar flow** (reduce Re by lowering velocity to ~0.01 m/s and turning off
   turbulence: `simulationType laminar`):
   - Compare the velocity profile with the analytical parabolic Poiseuille flow profile
-  - Compare the Nusselt number with Nu = 7.54 (constant wall T, parallel plates, fully developed)
+  - Compare the Nusselt number with $Nu = 7.54$ (constant wall T, parallel plates, fully developed)
 - For **turbulent flow**:
   - Compare with the Dittus-Boelter and Gnielinski correlations
   - Plot Nu vs x/D_h and compare with correlations for the thermal entry region
