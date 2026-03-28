@@ -1,0 +1,16 @@
+#!/bin/bash
+#------------------------------------------------------------------------------
+# Allclean script for backward-facing step case
+#------------------------------------------------------------------------------
+cd "${0%/*}" || exit 1
+
+# Source OpenFOAM run functions
+. ${WM_PROJECT_DIR:?}/bin/tools/CleanFunctions
+
+cleanCase
+rm -rf processor*
+rm -f log.*
+
+echo "Case cleaned."
+
+#------------------------------------------------------------------------------

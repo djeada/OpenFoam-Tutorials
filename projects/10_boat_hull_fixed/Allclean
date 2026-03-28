@@ -1,0 +1,9 @@
+#!/bin/bash
+# Allclean — Remove generated files for fixed boat hull case
+cd "${0%/*}" || exit
+. ${WM_PROJECT_DIR:?}/bin/tools/CleanFunctions
+
+cleanCase
+rm -rf constant/triSurface/boat_hull.stl
+rm -rf constant/extendedFeatureEdgeMesh
+rm -f constant/triSurface/boat_hull.eMesh

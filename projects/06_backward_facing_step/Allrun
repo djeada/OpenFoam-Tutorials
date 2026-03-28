@@ -1,0 +1,31 @@
+#!/bin/bash
+#------------------------------------------------------------------------------
+# Allrun script for backward-facing step case
+# Solver: simpleFoam (steady-state, incompressible, turbulent)
+# Turbulence: k-omega SST
+#------------------------------------------------------------------------------
+cd "${0%/*}" || exit 1
+
+# Source OpenFOAM run functions
+. ${WM_PROJECT_DIR:?}/bin/tools/RunFunctions
+
+echo "=============================================="
+echo "  Backward-Facing Step - simpleFoam"
+echo "  Re ≈ 36,000 | k-omega SST"
+echo "=============================================="
+
+# Generate mesh
+runApplication blockMesh
+
+# Check mesh quality
+runApplication checkMesh
+
+# Run solver
+runApplication simpleFoam
+
+echo "=============================================="
+echo "  Case complete!"
+echo "  View results with: paraFoam"
+echo "=============================================="
+
+#------------------------------------------------------------------------------

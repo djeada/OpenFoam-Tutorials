@@ -1,0 +1,58 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+|  \\    /   O peration     | Website:  https://openfoam.org
+|   \\  /    A nd           | Version:  6
+|    \\/     M anipulation  |
+\*---------------------------------------------------------------------------*/
+
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "system";
+    object      controlDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+application     icoFoam;
+
+// Start time of the simulation
+startFrom       startTime;
+startTime       0;
+
+// Stop time of the simulation
+stopAt          endTime;
+endTime         0.5;
+
+// Time step size
+deltaT          0.001;
+
+// Control output based on time step
+writeControl    timeStep;
+
+// Write interval for output data
+writeInterval   1;
+
+// Purge older time directories
+purgeWrite      0;
+
+// Output format
+writeFormat     ascii;
+
+// Precision of the output data
+writePrecision  6;
+
+// Compression for output data
+writeCompression off;
+
+// Format of time in output files
+timeFormat      general;
+timePrecision   6;
+
+// Allow runtime modifications
+runTimeModifiable true;
+
+// ************************************************************************* //
+

@@ -1,0 +1,12 @@
+# OpenFOAM generated results
+projects/**/postProcessing/
+projects/**/processor*/
+projects/**/log.*
+projects/**/constant/polyMesh/
+projects/**/constant/extendedFeatureEdgeMesh/
+
+# Project 10 generated geometry artifacts
+projects/10_boat_hull_fixed/0.[0-9]*/
+projects/10_boat_hull_fixed/[1-9]*/
+projects/10_boat_hull_fixed/constant/triSurface/boat_hull.stl
+projects/10_boat_hull_fixed/constant/triSurface/boat_hull.eMesh

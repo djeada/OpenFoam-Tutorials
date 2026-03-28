@@ -1,0 +1,42 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2312                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      MRFProperties;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Multiple Reference Frame (MRF) — Frozen Rotor Approach
+//
+// The MRF zone simulates rotation by adding Coriolis and centripetal
+// source terms to the momentum equation within the specified cellZone.
+// No mesh motion occurs — this is a steady-state approximation.
+//
+// omega = 100 RPM = 100 * 2*pi/60 = 10.472 rad/s
+// Rotation axis: z-axis (0 0 1) for 2D simulation in x-y plane
+
+MRF1
+{
+    cellZone        rotatingZone;
+
+    active          yes;
+
+    // Patches within the MRF zone that should NOT rotate
+    // (e.g., stator surfaces). Empty for this simplified case.
+    nonRotatingPatches ();
+
+    origin          (1.0 0.5 0);
+    axis            (0 0 1);
+
+    omega           10.472;  // 100 RPM in rad/s
+}
+
+// ************************************************************************* //
