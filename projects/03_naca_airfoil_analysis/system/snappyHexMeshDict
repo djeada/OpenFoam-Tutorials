@@ -27,6 +27,13 @@ geometry
         type triSurfaceMesh;
         name airfoil;
     }
+
+    wakeBox
+    {
+        type searchableBox;
+        min (-0.5 -1.0 -0.05);
+        max (4.0  1.0  0.05);
+    }
 };
 
 castellatedMeshControls
@@ -39,13 +46,22 @@ castellatedMeshControls
 
     features
     (
+        {
+            file "airfoil.eMesh";
+            level 4;
+        }
     );
 
     refinementSurfaces
     {
         airfoil
         {
-            level (3 3);
+            level (4 4);
+
+            patchInfo
+            {
+                type wall;
+            }
         }
     }
 
@@ -53,9 +69,14 @@ castellatedMeshControls
 
     refinementRegions
     {
+        wakeBox
+        {
+            mode inside;
+            levels ((1E15 2));
+        }
     }
 
-    locationInMesh (0 0 0);
+    locationInMesh (5 0 0);
 
     allowFreeStandingZoneFaces true;
 }
@@ -64,8 +85,12 @@ snapControls
 {
     nSmoothPatch 3;
     tolerance 2.0;
-    nSolveIter 30;
+    nSolveIter 100;
     nRelaxIter 5;
+    nFeatureSnapIter 10;
+    implicitFeatureSnap false;
+    explicitFeatureSnap true;
+    multiRegionFeatureSnap false;
 }
 
 addLayersControls
@@ -114,4 +139,3 @@ debug 0;
 mergeTolerance 1E-6;
 
 // ************************************************************************* //
-

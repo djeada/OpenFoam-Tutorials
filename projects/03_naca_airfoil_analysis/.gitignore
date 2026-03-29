@@ -1,0 +1,29 @@
+# Case outputs
+/0.[0-9]*/
+/[1-9]*/
+/postProcessing/
+/processor*/
+/VTK/
+/log.*
+/airfoil.foam
+
+# Generated mesh/feature artifacts
+/constant/airfoil_benchmark.geo
+/constant/airfoil_benchmark.msh
+/constant/airfoil_benchmark_split.msh
+/constant/triSurface/airfoil.stl
+/constant/triSurface/airfoil.eMesh
+
+# Generated ParaView artifacts
+/airfoil_view*.png
+/airfoil_view*.pvsm
+
+# Transient subcase outputs
+/transient_animation/0.[0-9]*/
+/transient_animation/[1-9]*/
+/transient_animation/postProcessing/
+/transient_animation/processor*/
+/transient_animation/VTK/
+/transient_animation/log.*
+/transient_animation/airfoil.foam
+/transient_animation/airfoil_transient_view.png

@@ -17,70 +17,69 @@ FoamFile
 
 solvers
 {
+    Phi
+    {
+        solver          GAMG;
+        tolerance       1e-08;
+        relTol          0.01;
+        smoother        GaussSeidel;
+    }
+
     p
     {
-        solver          PCG;
-        preconditioner  DIC;
-        tolerance       1e-06;
-        relTol          0.05;
+        solver          GAMG;
+        tolerance       1e-08;
+        relTol          0.01;
+        smoother        GaussSeidel;
     }
 
     U
     {
         solver          smoothSolver;
-        smoother        symGaussSeidel;
-        tolerance       1e-05;
+        smoother        GaussSeidel;
+        nSweeps         2;
+        tolerance       1e-08;
         relTol          0.1;
     }
 
-    k
+    nuTilda
     {
         solver          smoothSolver;
-        smoother        symGaussSeidel;
-        tolerance       1e-05;
-        relTol          0.1;
-    }
-
-    epsilon
-    {
-        solver          smoothSolver;
-        smoother        symGaussSeidel;
-        tolerance       1e-05;
+        smoother        GaussSeidel;
+        nSweeps         2;
+        tolerance       1e-08;
         relTol          0.1;
     }
 }
 
 SIMPLE
 {
-    nNonOrthogonalCorrectors 0;
-    consistent yes;
+    nNonOrthogonalCorrectors 2;
+
     residualControl
     {
-        p       1e-3;
-        U       1e-4;
-        "(k|epsilon)" 1e-4;
+        p               1e-6;
+        U               1e-6;
+        nuTilda         1e-6;
     }
 }
 
-PISO
+potentialFlow
 {
-    nCorrectors     2;
-    nNonOrthogonalCorrectors 0;
+    nNonOrthogonalCorrectors 10;
 }
 
 relaxationFactors
 {
     fields
     {
-        p       0.3;
+        p               0.2;
     }
     equations
     {
-        U       0.7;
-        k       0.7;
-        epsilon 0.7;
+        U               0.3;
+        nuTilda         0.2;
     }
 }
 
 // ************************************************************************* //
-

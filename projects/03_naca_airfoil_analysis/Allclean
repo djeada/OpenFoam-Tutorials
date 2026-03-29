@@ -1,0 +1,34 @@
+#!/bin/bash
+set -eu
+
+cd "${0%/*}" || exit 1
+
+ensure_openfoam() {
+    if [ -n "${WM_PROJECT_DIR:-}" ]; then
+        return
+    fi
+
+    for bashrc in \
+        /opt/openfoam*/etc/bashrc \
+        /usr/lib/openfoam*/etc/bashrc \
+        /usr/lib/openfoam/*/etc/bashrc \
+        /usr/local/openfoam*/etc/bashrc \
+        "$HOME"/OpenFOAM/*/etc/bashrc
+    do
+        if [ -f "$bashrc" ]; then
+            # shellcheck disable=SC1090
+            . "$bashrc"
+            break
+        fi
+    done
+
+    : "${WM_PROJECT_DIR:?OpenFOAM not found. Source it first, then rerun ./Allclean.}"
+}
+
+ensure_openfoam
+. "$WM_PROJECT_DIR"/bin/tools/CleanFunctions
+
+cleanCase
+rm -f log.*
+rm -f *.OpenFOAM *.foam
+rm -f 0/Phi 0/phi

@@ -1,7 +1,12 @@
 # OpenFOAM generated results
 projects/**/postProcessing/
 projects/**/processor*/
+projects/**/VTK/
+projects/**/0.[0-9]*/
+projects/**/[1-9]*/
 projects/**/log.*
+projects/**/*.foam
+projects/**/*.OpenFOAM
 projects/**/constant/polyMesh/
 projects/**/constant/extendedFeatureEdgeMesh/
 
