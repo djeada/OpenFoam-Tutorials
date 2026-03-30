@@ -2,12 +2,12 @@
 
 ![Difficulty: Advanced](https://img.shields.io/badge/difficulty-advanced-red)
 ![Solver: simpleFoam](https://img.shields.io/badge/solver-simpleFoam-blue)
-![Turbulence: k--ω SST](https://img.shields.io/badge/turbulence-k--ω_SST-green)
+![Turbulence: k--$\omega$ SST](https://img.shields.io/badge/turbulence-k--ω_SST-green)
 ![Mesh: snappyHexMesh](https://img.shields.io/badge/mesh-snappyHexMesh-orange)
 ![Parallel: MPI](https://img.shields.io/badge/parallel-MPI-purple)
 
 Steady-state RANS simulation of turbulent flow around the Ahmed reference body
-using **simpleFoam** with **k-ω SST** turbulence modelling. This tutorial walks
+using **simpleFoam** with **k-$\omega$ SST** turbulence modelling. This tutorial walks
 through every file you need to reproduce the classic automotive-aerodynamics
 benchmark and validate against published experimental data.
 
@@ -21,7 +21,7 @@ benchmark and validate against published experimental data.
 4. [Geometry — Obtaining the Ahmed Body STL](#geometry--obtaining-the-ahmed-body-stl)
 5. [Mesh Strategy](#mesh-strategy)
 6. [Boundary Conditions](#boundary-conditions)
-7. [Turbulence Setup — k-ω SST](#turbulence-setup--k-ω-sst)
+7. [Turbulence Setup — k-$\omega$ SST](#turbulence-setup--k-ω-sst)
 8. [Solver Configuration](#solver-configuration)
 9. [Parallel Decomposition](#parallel-decomposition)
 10. [Force Coefficient Monitoring](#force-coefficient-monitoring)
@@ -100,12 +100,10 @@ body data at some point. Its value comes from:
 
 ### Flow Regime
 
-The standard test condition uses a freestream velocity of **U∞ = 40 m/s** in
-air ($\nu = 1.5 \times 10^{-5}$ m²/s). Based on the body height $H = 0.288$ m:
+The standard test condition uses a freestream velocity of **$U_\infty$ = 40 m/s** in
+air ($\nu = 1.5 \times 10^{-5}$ m$^2$/s). Based on the body height $H = 0.288$ m:
 
-```
-Re_H = U∞ · H / ν = 40 × 0.288 / 1.5e-5 ≈ 768,000
-```
+$$Re_H = U_\infty \cdot H / \nu = 40 \times 0.288 / (1.5 \times 10^{-5}) \approx 768{,}000$$
 
 This is a **fully turbulent external flow** in the subcritical Reynolds-number
 range for bluff bodies.
@@ -159,15 +157,15 @@ drag and wake symmetry.
 
 ### Turbulence Model Selection
 
-**k-ω SST** (Menter 1994) is the recommended turbulence model for this case:
+**k-$\omega$ SST** (Menter 1994) is the recommended turbulence model for this case:
 
-- Blends k-ω near walls (superior for adverse-pressure-gradient boundary layers)
-  with k-ε in the freestream (avoids the freestream sensitivity of standard k-ω).
+- Blends k-$\omega$ near walls (superior for adverse-pressure-gradient boundary layers)
+  with k-$\varepsilon$ in the freestream (avoids the freestream sensitivity of standard k-$\omega$).
 - Includes a shear-stress-transport limiter that prevents over-prediction of
   turbulent shear stress in adverse-pressure-gradient flows — critical for
   predicting separation on the rear slant.
 - Extensively validated for external vehicle aerodynamics.
-- **k-ε models** tend to over-predict the attachment on the slant (under-predict
+- **k-$\varepsilon$ models** tend to over-predict the attachment on the slant (under-predict
   drag) because they over-estimate turbulent mixing.
 
 ---
@@ -220,7 +218,7 @@ along **z**.
 ### Option 2 — Create in FreeCAD
 
 1. Open FreeCAD → Part workbench.
-2. Create a box: 1044 × 389 × 288 mm.
+2. Create a box: 1044 $\times$ 389 $\times$ 288 mm.
 3. Fillet the front face edges with radius = 100 mm.
 4. Cut the rear-top edge at 25° to form the slant.
 5. Add four cylindrical stilts (Ø 30 mm, length 50 mm).
@@ -388,7 +386,7 @@ mergePatchPairs
 // ************************************************************************* //
 ```
 
-This gives a base mesh of roughly 106,000 cells (85 × 50 × 25). The cell size
+This gives a base mesh of roughly 106,000 cells (85 $\times$ 50 $\times$ 25). The cell size
 is approximately 0.2 m, which snappyHexMesh will refine down to the required
 resolution.
 
@@ -621,7 +619,7 @@ mergeTolerance 1e-6;
 | Boundary layers on body | 5 layers, expansion ratio 1.2 |
 | Total cell count | ~2–5 million |
 
-For wall-function meshes (y+ ≈ 30), the first cell height should be
+For wall-function meshes (y+ $\approx$ 30), the first cell height should be
 approximately 0.8 mm at $Re = 768{,}000$. The 5-layer prism stack with expansion
 ratio 1.2 captures the inner portion of the boundary layer while relying on
 `omegaWallFunction` and `kqRWallFunction` for the near-wall treatment.
@@ -769,9 +767,7 @@ boundaryField
 Inlet values are calculated from freestream turbulence intensity I = 1 % and
 length scale l = 0.01 m:
 
-```
-k = 1.5 * (U∞ * I)² = 1.5 * (40 * 0.01)² = 0.24 m²/s²
-```
+$$k = 1.5 \cdot (U_\infty \cdot I)^2 = 1.5 \cdot (40 \cdot 0.01)^2 = 0.24 \text{ m}^2/\text{s}^2$$
 
 ```cpp
 /*--------------------------------*- C++ -*----------------------------------*\
@@ -840,11 +836,9 @@ boundaryField
 
 ### Specific Dissipation Rate — `0/omega`
 
-```
-omega = k^0.5 / (C_mu^0.25 * l) = 0.24^0.5 / (0.09^0.25 * 0.01) ≈ 89.4 s⁻¹
-```
+$$\omega = k^{0.5} / (C_\mu^{0.25} \cdot l) = 0.24^{0.5} / (0.09^{0.25} \cdot 0.01) \approx 89.4 \text{ s}^{-1}$$
 
-Rounding to **90 s⁻¹** for the inlet value.
+Rounding to **90 s$^{-1}$** for the inlet value.
 
 ```cpp
 /*--------------------------------*- C++ -*----------------------------------*\
@@ -993,20 +987,20 @@ boundaryField
 
 ---
 
-## Turbulence Setup — k-ω SST
+## Turbulence Setup — k-$\omega$ SST
 
-### Why k-ω SST for External Aerodynamics
+### Why k-$\omega$ SST for External Aerodynamics
 
-The Menter k-ω SST model is preferred over the standard k-ε model for the
+The Menter k-$\omega$ SST model is preferred over the standard k-$\varepsilon$ model for the
 Ahmed body for several reasons:
 
 1. **Adverse-pressure-gradient performance** — the shear-stress-transport
    limiter prevents the over-prediction of turbulent shear stress that causes
-   k-ε to delay separation on the rear slant.
-2. **Near-wall treatment** — k-ω formulation in the inner boundary layer is
-   more accurate than k-ε wall functions for non-equilibrium boundary layers.
-3. **Freestream behaviour** — the blending function switches to k-ε in the
-   outer flow, avoiding the known freestream sensitivity of the Wilcox k-ω
+   k-$\varepsilon$ to delay separation on the rear slant.
+2. **Near-wall treatment** — k-$\omega$ formulation in the inner boundary layer is
+   more accurate than k-$\varepsilon$ wall functions for non-equilibrium boundary layers.
+3. **Freestream behaviour** — the blending function switches to k-$\varepsilon$ in the
+   outer flow, avoiding the known freestream sensitivity of the Wilcox k-$\omega$
    model.
 
 ### `constant/turbulenceProperties`
@@ -1073,10 +1067,10 @@ l = 0.01 m (approximately 3 % of body height):
 
 | Quantity | Formula | Value |
 |---|---|---|
-| k | 1.5 × (U∞ × I)² | 0.24 m²/s² |
-| ω | k^0.5 / (C_μ^0.25 × l) | ≈ 90 s⁻¹ |
-| ν_t | k / ω | ≈ 2.7 × 10⁻³ m²/s |
-| ν_t / ν | — | ≈ 178 |
+| k | 1.5 $\times$ ($U_\infty$ $\times$ I)$^2$ | 0.24 m$^2$/s$^2$ |
+| $\omega$ | k^0.5 / (C_$\mu$^0.25 $\times$ l) | $\approx$ 90 s$^{-1}$ |
+| $\nu$_t | k / $\omega$ | $\approx$ 2.7 $\times$ 10$^{-3}$ m$^2$/s |
+| $\nu$_t / $\nu$ | — | $\approx$ 178 |
 
 These values give a turbulent viscosity ratio of about 178, which is reasonable
 for a low-turbulence wind-tunnel freestream.
@@ -1445,10 +1439,10 @@ forceCoeffs
 |---|---|---|
 | Ahmed et al. (1984) experiment | 25° | 0.285 |
 | Ahmed et al. (1984) experiment | 35° | 0.260 |
-| k-ω SST RANS (typical) | 25° | 0.28 – 0.30 |
-| k-ω SST RANS (typical) | 35° | 0.25 – 0.27 |
+| k-$\omega$ SST RANS (typical) | 25° | 0.28 – 0.30 |
+| k-$\omega$ SST RANS (typical) | 35° | 0.25 – 0.27 |
 
-The k-ω SST model typically predicts Cd within 5 % of the experimental value
+The k-$\omega$ SST model typically predicts Cd within 5 % of the experimental value
 for the 25° slant case. Accuracy for the 35° case (fully separated) depends
 heavily on mesh resolution in the wake.
 
@@ -1533,7 +1527,7 @@ Convergence criteria:
 
 ### Drag Coefficient
 
-For a well-resolved mesh (~3 M cells) with k-ω SST:
+For a well-resolved mesh (~3 M cells) with k-$\omega$ SST:
 
 - **25° slant**: $C_d \approx 0.285 \pm 0.015$ (experimental: 0.285)
 - **35° slant**: $C_d \approx 0.255 \pm 0.020$ (experimental: 0.260)
@@ -1601,9 +1595,7 @@ touch case.foam && paraview case.foam
 1. Apply **Filters → Alphabetical → GradientOfUnstructuredDataSet** on `U`.
 2. Use a **Calculator** to compute Q-criterion:
 
-   ```
-   Q = 0.5 * (||Ω||² - ||S||²)
-   ```
+   $$Q = 0.5 \cdot (\|\Omega\|^2 - \|S\|^2)$$
 
    Or use the built-in `Q Criterion` filter if available.
 
@@ -1615,11 +1607,9 @@ touch case.foam && paraview case.foam
 1. Apply an **ExtractBlock** filter to isolate the `ahmed_body` patch.
 2. Use a **Calculator** to compute Cp:
 
-   ```
-   Cp = p / (0.5 * 40 * 40)
-   ```
+   $$Cp = p / (0.5 \cdot 40 \cdot 40)$$
 
-   (Note: OpenFOAM pressure `p` is kinematic, p/ρ, in m²/s².)
+   (Note: OpenFOAM pressure `p` is kinematic, p/$\rho$, in m$^2$/s$^2$.)
 
 3. Color the body surface by Cp.
 
@@ -1638,7 +1628,7 @@ cat postProcessing/forceCoeffs/0/coefficient.dat | tail -20
 Use the `sample` utility or ParaView's **Plot Over Line** filter:
 
 1. In ParaView: **Filters → Data Analysis → Plot Over Line**
-2. Set line from (−0.5, 0, 0.194) to (2.0, 0, 0.194) — centreline at
+2. Set line from ($-$0.5, 0, 0.194) to (2.0, 0, 0.194) — centreline at
    mid-height of the body.
 3. Plot Cp along this line and compare with Lienhart et al. (2003) data.
 
@@ -1676,14 +1666,14 @@ Assess the influence of mesh resolution on the predicted drag:
 
 Repeat the 25° simulation with different turbulence models:
 
-1. **k-ε (standard)** — `kEpsilon` in turbulenceProperties
-2. **k-ε (realizable)** — `realizableKE`
-3. **k-ω SST** — baseline
+1. **k-$\varepsilon$ (standard)** — `kEpsilon` in turbulenceProperties
+2. **k-$\varepsilon$ (realizable)** — `realizableKE`
+3. **k-$\omega$ SST** — baseline
 4. **Spalart-Allmaras** — `SpalartAllmaras` (single-equation model)
 
 Compare the predicted Cd, slant separation pattern, and wake structure. You
-should find that k-ε models tend to under-predict drag (delayed separation)
-while k-ω SST gives the best agreement with experiments.
+should find that k-$\varepsilon$ models tend to under-predict drag (delayed separation)
+while k-$\omega$ SST gives the best agreement with experiments.
 
 > **Note**: When switching turbulence models, you must update the `0/` boundary
 > condition files to match the new model's required fields (e.g., `epsilon`
@@ -1730,7 +1720,7 @@ For faster turnaround, exploit the geometric symmetry:
 3. **Menter, F.R.** (1994). "Two-Equation Eddy-Viscosity Turbulence Models for
    Engineering Applications." *AIAA Journal*, 32(8), pp. 1598–1605.
    DOI: [10.2514/3.12149](https://doi.org/10.2514/3.12149).
-   — *The paper introducing the k-ω SST turbulence model used in this tutorial.*
+   — *The paper introducing the k-$\omega$ SST turbulence model used in this tutorial.*
 
 4. **Hinterberger, C., Garcia-Villalba, M., and Rodi, W.** (2004). "Large Eddy
    Simulation of Flow around the Ahmed Body." *The Aerodynamics of Heavy
@@ -1742,7 +1732,7 @@ For faster turnaround, exploit the geometric symmetry:
    Car Body." *Journal of Wind Engineering and Industrial Aerodynamics*, 96(6–7),
    pp. 1207–1217.
    DOI: [10.1016/j.jweia.2007.06.041](https://doi.org/10.1016/j.jweia.2007.06.041).
-   — *Systematic comparison of k-ω SST and k-ε for the Ahmed body at 25° and
+   — *Systematic comparison of k-$\omega$ SST and k-$\varepsilon$ for the Ahmed body at 25° and
    35° slant angles.*
 
 ---

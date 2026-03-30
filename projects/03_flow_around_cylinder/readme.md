@@ -59,9 +59,7 @@ CFD codes and learning simulation techniques.
 
 The Reynolds number is the single most important parameter governing this flow:
 
-```
-Re = U∞ · D / ν
-```
+$$Re = U_\infty \cdot D / \nu$$
 
 where `U∞` is the free-stream velocity, `D` is the cylinder diameter, and `ν` is the
 kinematic viscosity of the fluid.
@@ -73,7 +71,7 @@ kinematic viscosity of the fluid.
 | Re < 5 | Creeping flow | Viscous forces dominate. Flow remains attached and symmetric fore-and-aft (nearly). No separation. |
 | 5 – 40 | Attached vortex pair | A symmetric pair of steady recirculation vortices forms behind the cylinder. Flow is still steady and laminar. |
 | 40 – 200 | Laminar vortex shedding | The wake becomes unstable. Vortices shed alternately from each side — the Von Kármán vortex street. Flow is periodic and laminar. |
-| 200 – 300,000 | Subcritical turbulent | The wake is turbulent but the boundary layer on the cylinder remains laminar. Separation occurs before the top of the cylinder (~80°). Cd ≈ 1.0–1.2. |
+| 200 – 300,000 | Subcritical turbulent | The wake is turbulent but the boundary layer on the cylinder remains laminar. Separation occurs before the top of the cylinder (~80°). Cd $\approx$ 1.0–1.2. |
 | > 300,000 | Supercritical | The boundary layer transitions to turbulent before separation, which delays separation to ~120°. Dramatic drop in drag (the "drag crisis"). Cd drops to ~0.3. |
 
 ```
@@ -90,9 +88,7 @@ kinematic viscosity of the fluid.
 For vortex shedding flows, the Strouhal number relates the shedding frequency to the
 flow velocity and cylinder diameter:
 
-```
-St = f · D / U∞
-```
+$$St = f \cdot D / U_\infty$$
 
 where `f` is the vortex shedding frequency. For a circular cylinder in the subcritical
 regime, $St \approx 0.2$ is remarkably constant over a wide range of Reynolds numbers
@@ -103,9 +99,7 @@ in fluid mechanics.
 
 The drag coefficient is defined as:
 
-```
-Cd = F_D / (0.5 · ρ · U∞² · A)
-```
+$$Cd = F_D / (0.5 \cdot \rho \cdot U_\infty^2 \cdot A)$$
 
 where `F_D` is the drag force, `ρ` is the fluid density, and `A` is the projected area
 (A = D · L for a cylinder of span L). Key reference values:
@@ -257,7 +251,7 @@ cylinder/
 
 The background mesh is a simple rectangular box that encloses the entire computational domain.
 `snappyHexMesh` will later refine this mesh around the cylinder. The domain extends from
--5D upstream to 20D downstream, and ±5D in the cross-stream direction, which is standard
+-5D upstream to 20D downstream, and $\pm$5D in the cross-stream direction, which is standard
 practice for external flow simulations.
 
 Create `system/blockMeshDict`:
@@ -615,9 +609,7 @@ boundaryField
 The inlet values for `k` and `epsilon` are estimated from a turbulence intensity of 1%
 and a turbulent length scale of 0.07D:
 
-```
-k = 1.5 · (U∞ · I)² = 1.5 · (1 · 0.01)² = 1.5e-4 m²/s²
-```
+$$k = 1.5 \cdot (U_\infty \cdot I)^2 = 1.5 \cdot (1 \cdot 0.01)^2 = 1.5 \times 10^{-4} \text{ m}^2/\text{s}^2$$
 
 ```
 FoamFile
@@ -670,9 +662,7 @@ boundaryField
 
 #### Turbulent Dissipation Rate — `0/epsilon`
 
-```
-epsilon = Cμ^0.75 · k^1.5 / l = 0.09^0.75 · (1.5e-4)^1.5 / 0.07 ≈ 4.85e-7 m²/s³
-```
+$$\varepsilon = C_\mu^{0.75} \cdot k^{1.5} / l = 0.09^{0.75} \cdot (1.5 \times 10^{-4})^{1.5} / 0.07 \approx 4.85 \times 10^{-7} \text{ m}^2/\text{s}^3$$
 
 For simplicity we use a rounded value:
 
@@ -784,7 +774,7 @@ boundaryField
 #### `constant/transportProperties`
 
 Set the kinematic viscosity to achieve your target Reynolds number. For $Re = 1000$ with
-$U_\infty = 1$ m/s and $D = 1$ m, we need $\nu = U_\infty \cdot D / Re = 10^{-3}$ m²/s:
+$U_\infty = 1$ m/s and $D = 1$ m, we need $\nu = U_\infty \cdot D / Re = 10^{-3}$ m$^2$/s:
 
 ```
 FoamFile
@@ -821,7 +811,7 @@ RAS
 }
 ```
 
-> **💡 Tip:** For a comparison of available turbulence models (k-ε, k-ω SST,
+> **💡 Tip:** For a comparison of available turbulence models (k-$\varepsilon$, k-$\omega$ SST,
 > Spalart-Allmaras) and guidance on which to choose, see
 > [`notes/06_turbulence_models.md`](../../notes/06_turbulence_models.md).
 
@@ -1198,13 +1188,13 @@ paraview cylinder.foam &
 
 ### What to Look For
 
-| Quantity | Expected Value (Re ≈ 1000) | Notes |
+| Quantity | Expected Value (Re $\approx$ 1000) | Notes |
 |----------|---------------------------|-------|
 | Drag coefficient (Cd) | ~1.0 – 1.2 | Compare with Wieselsberger (1922) data |
 | Separation angle | ~80° from stagnation point | Laminar boundary layer separation |
 | Wake length (steady) | ~1–2 D | Recirculation zone behind cylinder |
 | Strouhal number (if transient) | ~0.2 | Vortex shedding frequency |
-| Lift coefficient (Cl) | ~0 (mean), oscillating | Mean ≈ 0 by symmetry; amplitude depends on Re |
+| Lift coefficient (Cl) | ~0 (mean), oscillating | Mean $\approx$ 0 by symmetry; amplitude depends on Re |
 
 ### Convergence Criteria
 
@@ -1236,7 +1226,7 @@ For a steady-state `simpleFoam` run:
    levels 3, 4, and 5 in `snappyHexMeshDict`). Plot Cd vs. cell count to assess mesh
    independence. The Richardson extrapolation can give an estimate of the grid-converged value.
 
-3. **Turbulence Model Comparison** — Run the same case with k-ε, k-ω SST, and
+3. **Turbulence Model Comparison** — Run the same case with k-$\varepsilon$, k-$\omega$ SST, and
    Spalart-Allmaras models. Compare predicted Cd, separation angle, and wake structure.
 
 4. **3D Extension** — Remove the `empty` boundary condition on `frontAndBack`, extend the
