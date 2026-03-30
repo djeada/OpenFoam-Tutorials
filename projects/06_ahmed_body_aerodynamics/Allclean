@@ -1,0 +1,15 @@
+#!/bin/bash
+#------------------------------------------------------------------------------
+# Allclean script for Ahmed body aerodynamics
+#------------------------------------------------------------------------------
+cd "${0%/*}" || exit
+. ${WM_PROJECT_DIR:?}/bin/tools/CleanFunctions
+
+cleanCase
+rm -rf processor*
+rm -rf constant/extendedFeatureEdgeMesh
+rm -f constant/triSurface/*.eMesh
+rm -rf postProcessing
+rm -f *.foam
+
+echo "Case cleaned."

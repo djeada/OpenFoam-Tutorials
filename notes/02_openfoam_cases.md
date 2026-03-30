@@ -274,7 +274,7 @@ boundaryField
 
 ### 2.5 Real Example — Turbulent Case: NACA Airfoil `0/U`
 
-*Source: `projects/03_naca_airfoil_analysis/0/U`*
+*Source: `projects/04_naca_airfoil_analysis/0/U`*
 
 ```c++
 FoamFile
@@ -321,7 +321,7 @@ boundaryField
 
 A turbulent case also requires **additional field files**. Here is `0/k` (turbulent kinetic energy):
 
-*Source: `projects/03_naca_airfoil_analysis/0/k`*
+*Source: `projects/04_naca_airfoil_analysis/0/k`*
 
 ```c++
 dimensions      [0 2 -2 0 0 0 0];
@@ -357,7 +357,7 @@ boundaryField
 
 And `0/nut` (turbulent eddy viscosity):
 
-*Source: `projects/03_naca_airfoil_analysis/0/nut`*
+*Source: `projects/04_naca_airfoil_analysis/0/nut`*
 
 ```c++
 dimensions      [0 2 -1 0 0 0 0];
@@ -436,7 +436,7 @@ transportModel  Newtonian;
 nu              [0 2 -1 0 0 0 0] 0.001;
 ```
 
-Compare with the NACA airfoil case (`projects/03_naca_airfoil_analysis/constant/transportProperties`):
+Compare with the NACA airfoil case (`projects/04_naca_airfoil_analysis/constant/transportProperties`):
 
 ```c++
 transportModel  Newtonian;
@@ -452,7 +452,7 @@ nu              nu [ 0 2 -1 0 0 0 0 ] 1e-05;
 
 This file selects the turbulence modeling approach. It is only needed for turbulent cases.
 
-*Source: `projects/03_naca_airfoil_analysis/constant/turbulenceProperties`*
+*Source: `projects/04_naca_airfoil_analysis/constant/turbulenceProperties`*
 
 ```c++
 FoamFile
@@ -606,7 +606,7 @@ timePrecision   6;
 runTimeModifiable true;
 ```
 
-**Turbulent (steady-state) case** — `projects/03_naca_airfoil_analysis/system/controlDict`:
+**Turbulent (steady-state) case** — `projects/04_naca_airfoil_analysis/system/controlDict`:
 
 ```c++
 application     simpleFoam;
@@ -694,7 +694,7 @@ snGradSchemes
 }
 ```
 
-**Turbulent (steady-state) case** — `projects/03_naca_airfoil_analysis/system/fvSchemes`:
+**Turbulent (steady-state) case** — `projects/04_naca_airfoil_analysis/system/fvSchemes`:
 
 ```c++
 ddtSchemes
@@ -796,7 +796,7 @@ PISO
 }
 ```
 
-**Turbulent (steady-state) case** — `projects/03_naca_airfoil_analysis/system/fvSolution`:
+**Turbulent (steady-state) case** — `projects/04_naca_airfoil_analysis/system/fvSolution`:
 
 ```c++
 solvers
@@ -992,7 +992,7 @@ on the physics being simulated:
 ╔══════════════════════════════════════════════════════════════════════════════╗
 ║              LAMINAR vs. TURBULENT CASE COMPARISON                         ║
 ╠════════════════════╦════════════════════════╦════════════════════════════╣
-║                    ║ 01_lid_driven_cavity   ║ 03_naca_airfoil_analysis   ║
+║                    ║ 01_lid_driven_cavity   ║ 04_naca_airfoil_analysis   ║
 ╠════════════════════╬════════════════════════╬════════════════════════════╣
 ║ Flow type          ║ Laminar                ║ Turbulent (RANS)           ║
 ╠════════════════════╬════════════════════════╬════════════════════════════╣

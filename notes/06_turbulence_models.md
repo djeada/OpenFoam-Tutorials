@@ -214,7 +214,7 @@ Standard coefficients:
 - $\sigma_\varepsilon = 1.3$
 
 > **📌 Note:** These are exactly the coefficients used in our NACA airfoil
-> project — see `projects/03_naca_airfoil_analysis/constant/turbulenceProperties`.
+> project — see `projects/04_naca_airfoil_analysis/constant/turbulenceProperties`.
 
 - **Strengths**: Robust, well-validated, fast convergence, enormous body of literature
 - **Weaknesses**: Poor in adverse pressure gradients, over-predicts spreading in round jets, requires wall functions (cannot integrate to wall)
@@ -541,7 +541,7 @@ turbulence is configured.
 This file lives in `constant/turbulenceProperties` and controls which turbulence
 model is active.
 
-**From `projects/03_naca_airfoil_analysis/constant/turbulenceProperties`:**
+**From `projects/04_naca_airfoil_analysis/constant/turbulenceProperties`:**
 
 ```c
 FoamFile
@@ -602,7 +602,7 @@ RAS
 
 Every turbulence model requires specific field files in the `0/` directory.
 
-**From `projects/03_naca_airfoil_analysis/0/k` (turbulent kinetic energy):**
+**From `projects/04_naca_airfoil_analysis/0/k` (turbulent kinetic energy):**
 
 ```c
 FoamFile
@@ -648,7 +648,7 @@ boundaryField
 }
 ```
 
-**From `projects/03_naca_airfoil_analysis/0/epsilon` (dissipation rate):**
+**From `projects/04_naca_airfoil_analysis/0/epsilon` (dissipation rate):**
 
 ```c
 FoamFile
@@ -694,7 +694,7 @@ boundaryField
 }
 ```
 
-**From `projects/03_naca_airfoil_analysis/0/nut` (turbulent viscosity):**
+**From `projects/04_naca_airfoil_analysis/0/nut` (turbulent viscosity):**
 
 ```c
 FoamFile
@@ -746,7 +746,7 @@ boundaryField
 The kinematic viscosity $\nu$ is critical for determining the Reynolds number
 and must be consistent with your turbulence model assumptions.
 
-**From `projects/03_naca_airfoil_analysis/constant/transportProperties`:**
+**From `projects/04_naca_airfoil_analysis/constant/transportProperties`:**
 
 ```c
 FoamFile
@@ -781,7 +781,7 @@ nu              [0 2 -1 0 0 0 0] 0.001;  // Higher viscosity → lower Re → la
 Turbulence models require matching solver settings in `system/fvSolution` and
 discretization schemes in `system/fvSchemes`.
 
-**From `projects/03_naca_airfoil_analysis/system/fvSchemes` (div schemes for $k$-$\varepsilon$):**
+**From `projects/04_naca_airfoil_analysis/system/fvSchemes` (div schemes for $k$-$\varepsilon$):**
 
 ```c
 divSchemes
@@ -795,7 +795,7 @@ divSchemes
 }
 ```
 
-**From `projects/03_naca_airfoil_analysis/system/fvSolution` (turbulence solvers & relaxation):**
+**From `projects/04_naca_airfoil_analysis/system/fvSolution` (turbulence solvers & relaxation):**
 
 ```c
 solvers
@@ -1154,5 +1154,5 @@ If you want to switch from $k$-$\varepsilon$ (as used in our NACA project) to $k
 ---
 
 *This document is part of the [OpenFOAM Tutorials](../README.md) series.
-See `projects/03_naca_airfoil_analysis/` for a complete working example of
+See `projects/04_naca_airfoil_analysis/` for a complete working example of
 turbulent flow simulation using the $k$-$\varepsilon$ model with simpleFoam.*

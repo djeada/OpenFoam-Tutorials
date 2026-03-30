@@ -1,0 +1,177 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2312                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      snappyHexMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+castellatedMesh true;
+snap            true;
+addLayers       true;
+
+geometry
+{
+    ahmed_body.stl
+    {
+        type triSurfaceMesh;
+        name ahmed_body;
+    }
+
+    refinementBox_body
+    {
+        type searchableBox;
+        min ( -0.5  -0.4   0.0 );
+        max (  2.0   0.4   0.6 );
+    }
+
+    refinementBox_wake
+    {
+        type searchableBox;
+        min (  1.0  -0.6   0.0 );
+        max (  4.0   0.6   0.6 );
+    }
+
+    refinementBox_near
+    {
+        type searchableBox;
+        min ( -0.2  -0.3   0.0 );
+        max (  1.5   0.3   0.5 );
+    }
+}
+
+castellatedMeshControls
+{
+    maxLocalCells       1000000;
+    maxGlobalCells      5000000;
+    minRefinementCells  10;
+    maxLoadUnbalance    0.10;
+    nCellsBetweenLevels 3;
+
+    features
+    (
+        {
+            file "ahmed_body.eMesh";
+            level 6;
+        }
+    );
+
+    refinementSurfaces
+    {
+        ahmed_body
+        {
+            level (5 6);
+
+            patchInfo
+            {
+                type wall;
+            }
+        }
+    }
+
+    resolveFeatureAngle 30;
+
+    refinementRegions
+    {
+        refinementBox_near
+        {
+            mode inside;
+            levels ((1e15 4));
+        }
+
+        refinementBox_body
+        {
+            mode inside;
+            levels ((1e15 3));
+        }
+
+        refinementBox_wake
+        {
+            mode inside;
+            levels ((1e15 3));
+        }
+    }
+
+    locationInMesh (3.0 0.0 2.5);
+
+    allowFreeStandingZoneFaces true;
+}
+
+snapControls
+{
+    nSmoothPatch    3;
+    tolerance       2.0;
+    nSolveIter      100;
+    nRelaxIter      5;
+
+    nFeatureSnapIter 10;
+    implicitFeatureSnap false;
+    explicitFeatureSnap true;
+    multiRegionFeatureSnap false;
+}
+
+addLayersControls
+{
+    relativeSizes   true;
+
+    layers
+    {
+        "ahmed_body.*"
+        {
+            nSurfaceLayers 5;
+        }
+        ground
+        {
+            nSurfaceLayers 3;
+        }
+    }
+
+    expansionRatio          1.2;
+    finalLayerThickness     0.5;
+    minThickness            0.1;
+    nGrow                   0;
+    featureAngle            130;
+    slipFeatureAngle        30;
+    nRelaxIter              5;
+    nSmoothSurfaceNormals   1;
+    nSmoothNormals          3;
+    nSmoothThickness        10;
+    maxFaceThicknessRatio   0.5;
+    maxThicknessToMedialRatio 0.3;
+    minMedialAxisAngle      90;
+    nBufferCellsNoExtrude   0;
+    nLayerIter              50;
+}
+
+meshQualityControls
+{
+    maxNonOrtho     65;
+    maxBoundarySkewness 20;
+    maxInternalSkewness 4;
+    maxConcave      80;
+    minVol          1e-13;
+    minTetQuality   -1e30;
+    minArea         -1;
+    minTwist        0.02;
+    minDeterminant  0.001;
+    minFaceWeight   0.02;
+    minVolRatio     0.01;
+    minTriangleTwist -1;
+
+    nSmoothScale    4;
+    errorReduction  0.75;
+}
+
+writeFormat ascii;
+
+mergeTolerance 1e-6;
+
+// ************************************************************************* //

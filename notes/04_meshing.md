@@ -295,7 +295,7 @@ boundary
 
 ### 2.4  Real Example — Airfoil Background Mesh
 
-From `projects/03_naca_airfoil_analysis/system/blockMeshDict` — used as the
+From `projects/04_naca_airfoil_analysis/system/blockMeshDict` — used as the
 background mesh for `snappyHexMesh`:
 
 ```c
@@ -487,7 +487,7 @@ The dictionary has five major sections:
 
 ### 3.4  Real Example — NACA Airfoil snappyHexMeshDict
 
-From `projects/03_naca_airfoil_analysis/system/snappyHexMeshDict`:
+From `projects/04_naca_airfoil_analysis/system/snappyHexMeshDict`:
 
 ```c
 castellatedMesh true;
@@ -505,7 +505,7 @@ geometry
 ```
 
 > **Note:** The STL file lives at
-> `projects/03_naca_airfoil_analysis/constant/triSurface/airfoil.stl`.
+> `projects/04_naca_airfoil_analysis/constant/triSurface/airfoil.stl`.
 > snappyHexMesh expects surface files in the `constant/triSurface/` directory.
 
 #### castellatedMeshControls
@@ -910,7 +910,7 @@ the mesh is refined. A grid independence study uses 3+ meshes:
 | Setup complexity         | Low                               | Moderate–High                        |
 | Run time                 | Seconds                           | Minutes–Hours                        |
 | Typical projects         | Cavity, channel, pipe, wedge      | Airfoil, vehicle, building, turbine  |
-| This repo                | `01_lid_driven_cavity`            | `03_naca_airfoil_analysis`           |
+| This repo                | `01_lid_driven_cavity`            | `04_naca_airfoil_analysis`           |
 | External mesh equivalent | —                                 | `02_elbow` (imported from Fluent)    |
 
 ---

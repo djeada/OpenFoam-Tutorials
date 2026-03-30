@@ -37,9 +37,9 @@ interface or boundary between them.
 Multiphase flows are everywhere in engineering and nature:
 
 - **Naval / marine:** Ship hulls moving through water with a free surface
-  (see `projects/10_boat_hull_fixed/` and `projects/11_boat_hull_floating/`)
+  (see `projects/11_boat_hull_fixed/` and `projects/12_boat_hull_floating/`)
 - **Civil / hydraulic:** Dam breaks, spillway flows, river flooding
-  (see `projects/07_dam_break/`)
+  (see `projects/08_dam_break/`)
 - **Chemical engineering:** Bubble columns, stirred reactors, distillation
 - **Energy:** Steam generation in boilers, cavitation in turbines
 - **Automotive:** Fuel injection sprays, water management on windshields
@@ -276,13 +276,13 @@ choose the right tool for your problem.
   │  interFoam                                                           │
   │  ├── The workhorse: 2 incompressible, isothermal, immiscible fluids │
   │  ├── VOF with MULES interface sharpening                            │
-  │  └── Used in: projects/07_dam_break/                                │
-  │              projects/10_boat_hull_fixed/                            │
+  │  └── Used in: projects/08_dam_break/                                │
+  │              projects/11_boat_hull_fixed/                            │
   │                                                                      │
   │  interDyMFoam                                                        │
   │  ├── interFoam + dynamic mesh capability                            │
   │  ├── Mesh moves/deforms each time step                              │
-  │  └── Used in: projects/11_boat_hull_floating/ (6-DoF body motion)  │
+  │  └── Used in: projects/12_boat_hull_floating/ (6-DoF body motion)  │
   │                                                                      │
   │  multiphaseInterFoam                                                 │
   │  ├── More than 2 immiscible phases                                  │
@@ -321,7 +321,7 @@ choose the right tool for your problem.
 
 This section walks through every file you need to configure for a VOF simulation
 with `interFoam`. We use water and air as the two phases — the most common
-combination. Examples are drawn from `projects/07_dam_break/`.
+combination. Examples are drawn from `projects/08_dam_break/`.
 
 ### 5.1 Transport Properties
 
@@ -330,7 +330,7 @@ combination. Examples are drawn from `projects/07_dam_break/`.
 This file defines the two phases and their physical properties:
 
 ```c
-// From: projects/07_dam_break/constant/transportProperties
+// From: projects/08_dam_break/constant/transportProperties
 
 phases (water air);     // Phase names — must match alpha field name
 
@@ -364,7 +364,7 @@ Multiphase flows need gravity — it drives buoyancy and determines which phase
 floats and which sinks.
 
 ```c
-// From: projects/07_dam_break/constant/g
+// From: projects/08_dam_break/constant/g
 
 dimensions      [0 1 -2 0 0 0 0];   // m/s²
 value           (0 -9.81 0);         // Gravity pointing downward (-y)
@@ -384,7 +384,7 @@ Before running the solver, you must define *where* each phase is. The
 accordingly.
 
 ```c
-// From: projects/07_dam_break/system/setFieldsDict
+// From: projects/08_dam_break/system/setFieldsDict
 
 defaultFieldValues
 (
@@ -437,7 +437,7 @@ The workflow:
 **File:** `0/alpha.water`
 
 ```c
-// From: projects/07_dam_break/0/alpha.water
+// From: projects/08_dam_break/0/alpha.water
 
 dimensions      [0 0 0 0 0 0 0];    // Dimensionless (volume fraction)
 internalField   uniform 0;           // Will be overwritten by setFields
@@ -481,7 +481,7 @@ Multiphase simulations almost always use **adaptive time stepping** to keep the
 interface CFL number under control:
 
 ```c
-// From: projects/07_dam_break/system/controlDict
+// From: projects/08_dam_break/system/controlDict
 
 application     interFoam;
 
@@ -519,7 +519,7 @@ The divergence schemes for the α transport equation are critical for interface
 sharpness:
 
 ```c
-// From: projects/07_dam_break/system/fvSchemes
+// From: projects/08_dam_break/system/fvSchemes
 
 ddtSchemes
 {
@@ -578,7 +578,7 @@ The two key divergence entries for VOF:
 **File:** `system/fvSolution`
 
 ```c
-// From: projects/07_dam_break/system/fvSolution
+// From: projects/08_dam_break/system/fvSolution
 
 solvers
 {
@@ -776,7 +776,7 @@ Recommended settings:
 
 ## 8. Real Case Studies from This Repository
 
-### 8.1 Dam Break — `projects/07_dam_break/`
+### 8.1 Dam Break — `projects/08_dam_break/`
 
 ```
   ┌─────────────────────────────────────────────────────────────┐
@@ -814,7 +814,7 @@ Recommended settings:
 scratch, configure all the necessary files, and visualize the free surface
 evolution in ParaView.
 
-### 8.2 Boat Hull (Fixed) — `projects/10_boat_hull_fixed/`
+### 8.2 Boat Hull (Fixed) — `projects/11_boat_hull_fixed/`
 
 **What it demonstrates:**
 - VOF with a complex geometry (boat hull STL)
@@ -834,7 +834,7 @@ evolution in ParaView.
 meshing — the realistic workflow for naval CFD. The interaction between mesh
 refinement at the free surface and VOF accuracy is a key lesson.
 
-### 8.3 Boat Hull (Floating) — `projects/11_boat_hull_floating/`
+### 8.3 Boat Hull (Floating) — `projects/12_boat_hull_floating/`
 
 **What it demonstrates:**
 - Dynamic mesh with VOF: `interDyMFoam`
@@ -856,9 +856,9 @@ basis for seakeeping, wave energy, and offshore engineering simulations.
 >
 > | Project                 | Solver         | Geometry   | Mesh       | Motion  |
 > |-------------------------|----------------|------------|------------|---------|
-> | `07_dam_break`          | `interFoam`    | Simple box | blockMesh  | None    |
-> | `10_boat_hull_fixed`    | `interFoam`    | STL hull   | snappyHex  | None    |
-> | `11_boat_hull_floating` | `interDyMFoam` | STL hull   | snappyHex  | 6-DoF   |
+> | `08_dam_break`          | `interFoam`    | Simple box | blockMesh  | None    |
+> | `11_boat_hull_fixed`    | `interFoam`    | STL hull   | snappyHex  | None    |
+> | `12_boat_hull_floating` | `interDyMFoam` | STL hull   | snappyHex  | 6-DoF   |
 
 ---
 
@@ -1060,9 +1060,9 @@ basis for seakeeping, wave energy, and offshore engineering simulations.
 | CFL number and time stepping | [08 — CFL Number](08_cfl_number.md) |
 | Pressure solvers (p_rgh) | [09 — Linear Solvers](09_linear_solvers.md) |
 | Solver internals (PISO algorithm) | [10 — icoFoam Solver Analysis](10_icofoam_solver_analysis.md) |
-| **Hands-on:** Dam break (VOF basics) | `projects/07_dam_break/` |
-| **Hands-on:** Fixed hull (VOF + snappyHex) | `projects/10_boat_hull_fixed/` |
-| **Hands-on:** Floating hull (dynamic mesh + 6-DoF) | `projects/11_boat_hull_floating/` |
+| **Hands-on:** Dam break (VOF basics) | `projects/08_dam_break/` |
+| **Hands-on:** Fixed hull (VOF + snappyHex) | `projects/11_boat_hull_fixed/` |
+| **Hands-on:** Floating hull (dynamic mesh + 6-DoF) | `projects/12_boat_hull_floating/` |
 
 ---
 

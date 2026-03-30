@@ -65,16 +65,16 @@ OpenFoam-Tutorials/
 ├── projects/                           ← 🔬 Hands-On Simulations (12 projects)
 │   ├── 01_lid_driven_cavity/              Classic benchmark — icoFoam, blockMesh
 │   ├── 02_elbow/                          Curved pipe flow — Fluent mesh import
-│   ├── 02_flow_around_cylinder/           External flow — snappyHexMesh
-│   ├── 03_naca_airfoil_analysis/          Airfoil aerodynamics — k-epsilon
-│   ├── 04_heated_pipe_flow/               Conjugate heat transfer — buoyantSimpleFoam
-│   ├── 05_ahmed_body_aerodynamics/        Automotive aero — k-omega SST
-│   ├── 06_backward_facing_step/           Separated flow validation — k-omega SST
-│   ├── 07_dam_break/                      Multiphase VOF — interFoam
-│   ├── 08_wind_turbine_blade/             Rotating machinery — MRF + simpleFoam
-│   ├── 09_mixing_t_junction/              Thermal mixing — buoyantSimpleFoam
-│   ├── 10_boat_hull_fixed/                Fixed hull in water — interFoam + snappyHexMesh
-│   └── 11_boat_hull_floating/             Floating body dynamics — interDyMFoam + 6-DoF
+│   ├── 03_flow_around_cylinder/           External flow — snappyHexMesh
+│   ├── 04_naca_airfoil_analysis/          Airfoil aerodynamics — k-epsilon
+│   ├── 05_heated_pipe_flow/               Conjugate heat transfer — buoyantSimpleFoam
+│   ├── 06_ahmed_body_aerodynamics/        Automotive aero — k-omega SST
+│   ├── 07_backward_facing_step/           Separated flow validation — k-omega SST
+│   ├── 08_dam_break/                      Multiphase VOF — interFoam
+│   ├── 09_wind_turbine_blade/             Rotating machinery — MRF + simpleFoam
+│   ├── 10_mixing_t_junction/              Thermal mixing — buoyantSimpleFoam
+│   ├── 11_boat_hull_fixed/                Fixed hull in water — interFoam + snappyHexMesh
+│   └── 12_boat_hull_floating/             Floating body dynamics — interDyMFoam + 6-DoF
 │
 ├── document.pdf                        ← 📄 Supplementary reference document
 ├── LICENSE                             ← ⚖️  MIT License
@@ -150,43 +150,43 @@ Twelve simulation projects arranged by increasing complexity. Each project direc
 |---|---------|-------------|--------|------|------------|-------|
 | 01 | [**Lid-Driven Cavity**](projects/01_lid_driven_cavity/) | The "Hello World" of CFD — a square cavity with a moving top wall. Validates against Ghia et al. benchmark data. | `icoFoam` | `blockMesh` | Laminar | 🟢 Beginner |
 | 02 | [**Elbow**](projects/02_elbow/) | Flow through a curved pipe elbow. Demonstrates importing a Fluent mesh into OpenFOAM and post-processing in ParaView. | `icoFoam` | Fluent import | Laminar | 🟢 Beginner |
-| 03 | [**Flow Around a Cylinder**](projects/02_flow_around_cylinder/) | External flow past a circular cylinder. Introduces `snappyHexMesh` for geometry-based meshing and drag/lift computation. | `simpleFoam` | `snappyHexMesh` | Laminar/Low-Re | 🟡 Intermediate |
-| 04a | [**NACA Airfoil Analysis**](projects/03_naca_airfoil_analysis/) | Aerodynamic analysis of a NACA airfoil profile. Covers angle-of-attack sweeps, lift/drag coefficients, and pressure distributions. | `simpleFoam` | Structured | k-epsilon | 🟡 Intermediate |
-| 04b | [**Heated Pipe Flow**](projects/04_heated_pipe_flow/) | Conjugate heat transfer in a heated pipe. Introduces the energy equation, buoyancy effects, and thermal boundary conditions. | `buoyantSimpleFoam` | `blockMesh` | k-epsilon | 🟡 Intermediate |
-| 05 | [**Ahmed Body Aerodynamics**](projects/05_ahmed_body_aerodynamics/) | Full 3D automotive aerodynamics simulation of the Ahmed body — the standard reference geometry for vehicle aero studies. | `simpleFoam` | `snappyHexMesh` | k-omega SST | 🔴 Advanced |
-| 06 | [**Backward-Facing Step**](projects/06_backward_facing_step/) | Classic turbulent separated flow benchmark. Validates reattachment length against NASA experimental data (Xr/H ≈ 6.0). | `simpleFoam` | `blockMesh` | k-omega SST | 🔴 Advanced |
-| 07 | [**Dam Break**](projects/07_dam_break/) | Multiphase free-surface flow using Volume of Fluid (VOF). Water column collapse with gravity — transient interFoam simulation. | `interFoam` | `blockMesh` | Laminar | 🔴 Advanced |
-| 08 | [**Wind Turbine Blade**](projects/08_wind_turbine_blade/) | Rotating machinery simulation using the Multiple Reference Frame (MRF) approach. Introduces `topoSet` and `MRFProperties`. | `simpleFoam` | `blockMesh` | k-epsilon | 🔴 Advanced |
-| 09 | [**Mixing T-Junction**](projects/09_mixing_t_junction/) | Thermal mixing of hot (350 K) and cold (300 K) streams in a T-junction. Multi-block structured mesh with buoyancy coupling. | `buoyantSimpleFoam` | `blockMesh` | k-epsilon | 🔴 Advanced |
-| 10 | [**Boat Hull — Fixed**](projects/10_boat_hull_fixed/) | Fixed toy boat hull in calm water with free surface. Uses your own STL geometry with snappyHexMesh for drag and wave pattern analysis. | `interFoam` | `snappyHexMesh` | Laminar | 🔴 Advanced |
-| 11 | [**Boat Hull — Floating**](projects/11_boat_hull_floating/) | Floating rigid-body boat with 6-DoF motion. Dynamic mesh morphing with heave, pitch, and roll — the capstone project. | `interDyMFoam` | `snappyHexMesh` | Laminar | 🔴 Advanced |
+| 03 | [**Flow Around a Cylinder**](projects/03_flow_around_cylinder/) | External flow past a circular cylinder. Introduces `snappyHexMesh` for geometry-based meshing and drag/lift computation. | `simpleFoam` | `snappyHexMesh` | Laminar/Low-Re | 🟡 Intermediate |
+| 04 | [**NACA Airfoil Analysis**](projects/04_naca_airfoil_analysis/) | Aerodynamic analysis of a NACA airfoil profile. Covers angle-of-attack sweeps, lift/drag coefficients, and pressure distributions. | `simpleFoam` | Structured | k-epsilon | 🟡 Intermediate |
+| 05 | [**Heated Pipe Flow**](projects/05_heated_pipe_flow/) | Conjugate heat transfer in a heated pipe. Introduces the energy equation, buoyancy effects, and thermal boundary conditions. | `buoyantSimpleFoam` | `blockMesh` | k-epsilon | 🟡 Intermediate |
+| 06 | [**Ahmed Body Aerodynamics**](projects/06_ahmed_body_aerodynamics/) | Full 3D automotive aerodynamics simulation of the Ahmed body — the standard reference geometry for vehicle aero studies. | `simpleFoam` | `snappyHexMesh` | k-omega SST | 🔴 Advanced |
+| 07 | [**Backward-Facing Step**](projects/07_backward_facing_step/) | Classic turbulent separated flow benchmark. Validates reattachment length against NASA experimental data (Xr/H ≈ 6.0). | `simpleFoam` | `blockMesh` | k-omega SST | 🔴 Advanced |
+| 08 | [**Dam Break**](projects/08_dam_break/) | Multiphase free-surface flow using Volume of Fluid (VOF). Water column collapse with gravity — transient interFoam simulation. | `interFoam` | `blockMesh` | Laminar | 🔴 Advanced |
+| 09 | [**Wind Turbine Blade**](projects/09_wind_turbine_blade/) | Rotating machinery simulation using the Multiple Reference Frame (MRF) approach. Introduces `topoSet` and `MRFProperties`. | `simpleFoam` | `blockMesh` | k-epsilon | 🔴 Advanced |
+| 10 | [**Mixing T-Junction**](projects/10_mixing_t_junction/) | Thermal mixing of hot (350 K) and cold (300 K) streams in a T-junction. Multi-block structured mesh with buoyancy coupling. | `buoyantSimpleFoam` | `blockMesh` | k-epsilon | 🔴 Advanced |
+| 11 | [**Boat Hull — Fixed**](projects/11_boat_hull_fixed/) | Fixed toy boat hull in calm water with free surface. Uses your own STL geometry with snappyHexMesh for drag and wave pattern analysis. | `interFoam` | `snappyHexMesh` | Laminar | 🔴 Advanced |
+| 12 | [**Boat Hull — Floating**](projects/12_boat_hull_floating/) | Floating rigid-body boat with 6-DoF motion. Dynamic mesh morphing with heave, pitch, and roll — the capstone project. | `interDyMFoam` | `snappyHexMesh` | Laminar | 🔴 Advanced |
 
 ### Project Progression Map
 
 ```
   FUNDAMENTALS           EXTERNAL AERO          HEAT TRANSFER          ADVANCED PHYSICS
   ┌──────────┐          ┌──────────┐           ┌──────────┐          ┌──────────┐
-  │ 01 Cavity│          │03 Cylinder│           │04b Heated│          │07 Dam    │
+  │ 01 Cavity│          │03 Cylinder│           │05 Heated│           │08 Dam    │
   │ icoFoam  │─────────▶│ simpleFoam│──────────▶│   Pipe   │     ┌──▶│  Break   │
   │ blockMesh│          │ snappyHex │           │ buoyant  │     │   │ interFoam│
   └──────────┘          └──────────┘           └──────────┘     │   │ VOF      │
        │                     │                      │            │   └──────────┘
        ▼                     ▼                      ▼            │        │
   ┌──────────┐          ┌──────────┐           ┌──────────┐     │        ▼
-  │ 02 Elbow │          │04a Airfoil│           │09 T-Junct│     │   ┌──────────┐
-  │ icoFoam  │          │ simpleFoam│           │ buoyant  │     └──▶│10 Boat   │
+  │ 02 Elbow │          │04 Airfoil │           │10 T-Junct│     │   ┌──────────┐
+  │ icoFoam  │          │ simpleFoam│           │ buoyant  │     └──▶│11 Boat   │
   │ Fluent   │          │ k-epsilon │           │ thermal  │         │ Fixed    │
   └──────────┘          └──────────┘           └──────────┘         │interFoam │
                              │                                       └──────────┘
                              ▼                                            │
                         ┌──────────┐           ┌──────────┐              ▼
-                        │05 Ahmed  │           │06 BFS    │         ┌──────────┐
-                        │ Body 3D  │           │ k-ω SST  │         │11 Boat   │
+                        │06 Ahmed  │           │07 BFS    │         ┌──────────┐
+                        │ Body 3D  │           │ k-ω SST  │         │12 Boat   │
                         │ k-ω SST  │           │validation│         │ Floating │
                         └──────────┘           └──────────┘         │interDyM  │
                                                                     │ 6-DoF    │
                         ┌──────────┐                                └──────────┘
-                        │08 Wind   │
+                        │09 Wind   │
                         │ Turbine  │
                         │ MRF      │
                         └──────────┘

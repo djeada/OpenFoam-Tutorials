@@ -41,7 +41,7 @@ pressures, velocities, temperatures, and forces with remarkable accuracy.
 
 > **💡 Tip:** In this repository, our projects span the range from simple laminar
 > benchmarks (`projects/01_lid_driven_cavity/`) all the way to turbulent external
-> aerodynamics (`projects/05_ahmed_body_aerodynamics/`). Each one follows the same
+> aerodynamics (`projects/06_ahmed_body_aerodynamics/`). Each one follows the same
 > fundamental CFD workflow described next.
 
 ### CFD vs Other Approaches
@@ -275,7 +275,7 @@ Common turbulence models (see note 06 for details):
 | Spalart-Allmaras | RANS | Aerospace external flows                |
 | LES        | Scale-resolving | Unsteady flows needing eddy resolution |
 
-> **📂 Repo reference:** The NACA airfoil project (`projects/03_naca_airfoil_analysis/`)
+> **📂 Repo reference:** The NACA airfoil project (`projects/04_naca_airfoil_analysis/`)
 > uses the $k$-$\varepsilon$ turbulence model with `simpleFoam`, while the lid-driven cavity
 > (`projects/01_lid_driven_cavity/`) is solved as laminar.
 
@@ -514,7 +514,7 @@ The choice of scheme directly affects accuracy, stability, and convergence.
 > ddtSchemes { default Euler; }
 > ```
 > This is first-order but very robust — a good default for getting a simulation running.
-> The airfoil project (`projects/03_naca_airfoil_analysis/system/fvSchemes`) uses
+> The airfoil project (`projects/04_naca_airfoil_analysis/system/fvSchemes`) uses
 > `steadyState` because we seek a time-independent solution.
 
 ### 6.2 Spatial Discretization (Convection Schemes)
@@ -640,7 +640,7 @@ constraint are satisfied simultaneously.
 
 > **📂 Repo reference:** Our cavity project uses **PISO** (see
 > `projects/01_lid_driven_cavity/system/fvSolution`) with `nCorrectors 2`, while the
-> airfoil project uses **SIMPLE** (see `projects/03_naca_airfoil_analysis/system/fvSolution`)
+> airfoil project uses **SIMPLE** (see `projects/04_naca_airfoil_analysis/system/fvSolution`)
 > with under-relaxation factors of 0.3 for pressure and 0.7 for velocity — exactly as
 > the theory prescribes for a steady-state turbulent simulation.
 
@@ -807,7 +807,7 @@ local cell size.
 | Viscosity models | `notes/11_viscosity_models.md` |
 | Multiphase flows | `notes/12_multiphase_flows.md` |
 | **Hands-on:** Lid-driven cavity | `projects/01_lid_driven_cavity/` |
-| **Hands-on:** NACA airfoil | `projects/03_naca_airfoil_analysis/` |
+| **Hands-on:** NACA airfoil | `projects/04_naca_airfoil_analysis/` |
 
 ---
 

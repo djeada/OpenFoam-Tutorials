@@ -351,7 +351,7 @@ Key observations for CFL:
 
 ### Real Code: NACA Airfoil (Steady-State, No CFL Concern)
 
-From our project `projects/03_naca_airfoil_analysis/system/controlDict`:
+From our project `projects/04_naca_airfoil_analysis/system/controlDict`:
 
 ```c
 application     simpleFoam;

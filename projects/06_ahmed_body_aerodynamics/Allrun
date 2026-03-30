@@ -1,0 +1,51 @@
+#!/bin/bash
+#------------------------------------------------------------------------------
+# Allrun script for Ahmed body aerodynamics (parallel with snappyHexMesh)
+# Solver: simpleFoam | Turbulence: k-omega SST
+#------------------------------------------------------------------------------
+cd "${0%/*}" || exit
+. ${WM_PROJECT_DIR:?}/bin/tools/RunFunctions
+
+echo "================================================"
+echo "  Ahmed Body Aerodynamics — simpleFoam (parallel)"
+echo "================================================"
+
+# 1. Generate background mesh
+echo ""
+echo "Step 1: Generating background mesh with blockMesh..."
+runApplication blockMesh
+
+# 2. Extract surface features
+echo ""
+echo "Step 2: Extracting surface features..."
+runApplication surfaceFeatureExtract
+
+# 3. Run snappyHexMesh in parallel
+echo ""
+echo "Step 3: Decomposing domain..."
+runApplication decomposePar
+
+echo "Step 3: Running snappyHexMesh in parallel..."
+runParallel snappyHexMesh -overwrite
+
+# 4. Check mesh quality
+echo ""
+echo "Step 4: Checking mesh quality..."
+runParallel checkMesh -latestTime -allTopology -allGeometry
+
+# 5. Run the solver
+echo ""
+echo "Step 5: Running simpleFoam..."
+runParallel $(getApplication)
+
+# 6. Reconstruct
+echo ""
+echo "Step 6: Reconstructing parallel results..."
+runApplication reconstructParMesh -constant
+runApplication reconstructPar -latestTime
+
+echo ""
+echo "================================================"
+echo "  Simulation complete!"
+echo "  Force coefficients: postProcessing/forceCoeffs/"
+echo "================================================"

@@ -759,7 +759,7 @@ PISO
 
 ### 9.2 NACA Airfoil — Steady-State (SIMPLE)
 
-**Source**: `projects/03_naca_airfoil_analysis/system/fvSolution`
+**Source**: `projects/04_naca_airfoil_analysis/system/fvSolution`
 
 This is a steady-state, turbulent (RANS) simulation using SIMPLE. The approach is different:
 relaxation factors are critical, and solvers don't need to fully converge each outer iteration.
@@ -1316,5 +1316,5 @@ relaxationFactors
 ---
 
 *Last updated based on project configurations from `01_lid_driven_cavity` and
-`03_naca_airfoil_analysis`. For more on mesh generation, see `03_meshGeneration.md`.
+`04_naca_airfoil_analysis`. For more on mesh generation, see `03_meshGeneration.md`.
 For numerical schemes, see `08_numerical_schemes.md`.*

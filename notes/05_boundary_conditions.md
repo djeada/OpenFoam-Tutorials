@@ -612,21 +612,21 @@ When using RANS turbulence models, the near-wall region requires special treatme
 | `nutUWallFunction`       | nut     | Calculates nut from velocity (no k needed)       |
 
 ```cpp
-// From projects/03_naca_airfoil_analysis/0/k:
+// From projects/04_naca_airfoil_analysis/0/k:
 airfoil
 {
     type            kqRWallFunction;
     value           uniform 0.01;
 }
 
-// From projects/03_naca_airfoil_analysis/0/epsilon:
+// From projects/04_naca_airfoil_analysis/0/epsilon:
 airfoil
 {
     type            epsilonWallFunction;
     value           uniform 0.01;
 }
 
-// From projects/03_naca_airfoil_analysis/0/nut:
+// From projects/04_naca_airfoil_analysis/0/nut:
 airfoil
 {
     type            nutkWallFunction;
@@ -643,7 +643,7 @@ The `calculated` type means the field is **computed from other fields**, not dir
 solver calculates the value rather than applying a BC.
 
 ```cpp
-// From projects/03_naca_airfoil_analysis/0/nut:
+// From projects/04_naca_airfoil_analysis/0/nut:
 inlet
 {
     type            calculated;
@@ -780,7 +780,7 @@ boundaryField
 
 The turbulent case requires **five** field files. Here are the additional turbulence files:
 
-From `projects/03_naca_airfoil_analysis/0/k` (turbulent kinetic energy):
+From `projects/04_naca_airfoil_analysis/0/k` (turbulent kinetic energy):
 
 ```cpp
 dimensions      [0 2 -2 0 0 0 0];
@@ -814,7 +814,7 @@ boundaryField
 }
 ```
 
-From `projects/03_naca_airfoil_analysis/0/epsilon` (dissipation rate):
+From `projects/04_naca_airfoil_analysis/0/epsilon` (dissipation rate):
 
 ```cpp
 dimensions      [0 2 -3 0 0 0 0];
@@ -848,7 +848,7 @@ boundaryField
 }
 ```
 
-From `projects/03_naca_airfoil_analysis/0/nut` (turbulent viscosity):
+From `projects/04_naca_airfoil_analysis/0/nut` (turbulent viscosity):
 
 ```cpp
 dimensions      [0 2 -1 0 0 0 0];
@@ -1043,7 +1043,7 @@ boundaryField
 
 The airfoil case shows turbulent wall functions applied to a curved aerodynamic surface.
 
-From `projects/03_naca_airfoil_analysis/0/U`:
+From `projects/04_naca_airfoil_analysis/0/U`:
 
 ```cpp
 boundaryField

@@ -56,7 +56,7 @@ Every OpenFOAM case follows a strict three-directory layout:
 | `system/`   | Numerical controls: solvers, schemes, time stepping, I/O | `controlDict`, `fvSchemes`, `fvSolution`, `decomposeParDict` |
 
 > **Tip:** The laminar lid-driven cavity (`projects/01_lid_driven_cavity`) only has `U` and `p`
-> in `0/`, while the turbulent NACA airfoil (`projects/03_naca_airfoil_analysis`) also has `k`,
+> in `0/`, while the turbulent NACA airfoil (`projects/04_naca_airfoil_analysis`) also has `k`,
 > `epsilon`, and `nut`. The files you need in `0/` depend on which solver and turbulence model
 > you are running.
 
@@ -269,7 +269,7 @@ nu              [0 2 -1 0 0 0 0] 0.001;
 //               └───── kg^0 ──────┘
 ```
 
-From `projects/03_naca_airfoil_analysis/0/epsilon`:
+From `projects/04_naca_airfoil_analysis/0/epsilon`:
 
 ```c
 dimensions      [0 2 -3 0 0 0 0];
@@ -331,7 +331,7 @@ runTimeModifiable true;
 
 ### 5.2 — NACA Airfoil (Steady-State / simpleFoam)
 
-From `projects/03_naca_airfoil_analysis/system/controlDict`:
+From `projects/04_naca_airfoil_analysis/system/controlDict`:
 
 ```c
 FoamFile
@@ -509,7 +509,7 @@ snGradSchemes
 
 ### 6.3 — NACA Airfoil fvSchemes (Steady-State + Turbulence)
 
-From `projects/03_naca_airfoil_analysis/system/fvSchemes`:
+From `projects/04_naca_airfoil_analysis/system/fvSchemes`:
 
 ```c
 ddtSchemes
@@ -677,7 +677,7 @@ PISO
 
 ### 7.2 — NACA Airfoil fvSolution
 
-From `projects/03_naca_airfoil_analysis/system/fvSolution`:
+From `projects/04_naca_airfoil_analysis/system/fvSolution`:
 
 ```c
 solvers
@@ -888,7 +888,7 @@ nu              [0 2 -1 0 0 0 0] 0.001;
 
 ### NACA Airfoil (Turbulent)
 
-From `projects/03_naca_airfoil_analysis/constant/transportProperties`:
+From `projects/04_naca_airfoil_analysis/constant/transportProperties`:
 
 ```c
 FoamFile
@@ -927,7 +927,7 @@ laminar cases (where you set `simulationType laminar;`).
 
 ### NACA Airfoil (k-epsilon)
 
-From `projects/03_naca_airfoil_analysis/constant/turbulenceProperties`:
+From `projects/04_naca_airfoil_analysis/constant/turbulenceProperties`:
 
 ```c
 FoamFile
@@ -1091,7 +1091,7 @@ boundaryField
 
 The turbulent case needs five field files. Here are the key entries:
 
-**Velocity (U)** — from `projects/03_naca_airfoil_analysis/0/U`:
+**Velocity (U)** — from `projects/04_naca_airfoil_analysis/0/U`:
 
 ```c
 dimensions      [0 1 -1 0 0 0 0];
@@ -1107,7 +1107,7 @@ boundaryField
 }
 ```
 
-**Turbulent kinetic energy (k)** — from `projects/03_naca_airfoil_analysis/0/k`:
+**Turbulent kinetic energy (k)** — from `projects/04_naca_airfoil_analysis/0/k`:
 
 ```c
 dimensions      [0 2 -2 0 0 0 0];
@@ -1123,7 +1123,7 @@ boundaryField
 }
 ```
 
-**Turbulent dissipation (epsilon)** — from `projects/03_naca_airfoil_analysis/0/epsilon`:
+**Turbulent dissipation (epsilon)** — from `projects/04_naca_airfoil_analysis/0/epsilon`:
 
 ```c
 dimensions      [0 2 -3 0 0 0 0];
@@ -1139,7 +1139,7 @@ boundaryField
 }
 ```
 
-**Turbulent viscosity (nut)** — from `projects/03_naca_airfoil_analysis/0/nut`:
+**Turbulent viscosity (nut)** — from `projects/04_naca_airfoil_analysis/0/nut`:
 
 ```c
 dimensions      [0 2 -1 0 0 0 0];
@@ -1290,4 +1290,4 @@ method              scotch;  // decomposition method
 ---
 
 *All code examples in this document are taken directly from the project files in this
-repository. Cavity = `projects/01_lid_driven_cavity`, NACA = `projects/03_naca_airfoil_analysis`.*
+repository. Cavity = `projects/01_lid_driven_cavity`, NACA = `projects/04_naca_airfoil_analysis`.*

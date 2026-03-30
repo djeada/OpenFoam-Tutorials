@@ -1,0 +1,114 @@
+solid ahmed_body
+  facet normal 0.000000e+00 0.000000e+00 1.000000e+00
+    outer loop
+      vertex 0.000000e+00 -1.945000e-01 5.000000e-02
+      vertex 1.044000e+00 -1.945000e-01 5.000000e-02
+      vertex 1.044000e+00 1.945000e-01 5.000000e-02
+    endloop
+  endfacet
+  facet normal 0.000000e+00 0.000000e+00 1.000000e+00
+    outer loop
+      vertex 0.000000e+00 -1.945000e-01 5.000000e-02
+      vertex 1.044000e+00 1.945000e-01 5.000000e-02
+      vertex 0.000000e+00 1.945000e-01 5.000000e-02
+    endloop
+  endfacet
+  facet normal 0.000000e+00 0.000000e+00 -1.000000e+00
+    outer loop
+      vertex 0.000000e+00 -1.945000e-01 3.380000e-01
+      vertex 0.000000e+00 1.945000e-01 3.380000e-01
+      vertex 8.427997e-01 1.945000e-01 3.380000e-01
+    endloop
+  endfacet
+  facet normal 0.000000e+00 0.000000e+00 -1.000000e+00
+    outer loop
+      vertex 0.000000e+00 -1.945000e-01 3.380000e-01
+      vertex 8.427997e-01 1.945000e-01 3.380000e-01
+      vertex 8.427997e-01 -1.945000e-01 3.380000e-01
+    endloop
+  endfacet
+  facet normal -4.226183e-01 0.000000e+00 -9.063078e-01
+    outer loop
+      vertex 8.427997e-01 -1.945000e-01 3.380000e-01
+      vertex 8.427997e-01 1.945000e-01 3.380000e-01
+      vertex 1.044000e+00 1.945000e-01 2.441787e-01
+    endloop
+  endfacet
+  facet normal -4.226183e-01 0.000000e+00 -9.063078e-01
+    outer loop
+      vertex 8.427997e-01 -1.945000e-01 3.380000e-01
+      vertex 1.044000e+00 1.945000e-01 2.441787e-01
+      vertex 1.044000e+00 -1.945000e-01 2.441787e-01
+    endloop
+  endfacet
+  facet normal 1.000000e+00 0.000000e+00 0.000000e+00
+    outer loop
+      vertex 0.000000e+00 -1.945000e-01 5.000000e-02
+      vertex 0.000000e+00 1.945000e-01 5.000000e-02
+      vertex 0.000000e+00 1.945000e-01 3.380000e-01
+    endloop
+  endfacet
+  facet normal 1.000000e+00 0.000000e+00 0.000000e+00
+    outer loop
+      vertex 0.000000e+00 -1.945000e-01 5.000000e-02
+      vertex 0.000000e+00 1.945000e-01 3.380000e-01
+      vertex 0.000000e+00 -1.945000e-01 3.380000e-01
+    endloop
+  endfacet
+  facet normal -1.000000e+00 0.000000e+00 0.000000e+00
+    outer loop
+      vertex 1.044000e+00 1.945000e-01 5.000000e-02
+      vertex 1.044000e+00 -1.945000e-01 5.000000e-02
+      vertex 1.044000e+00 -1.945000e-01 2.441787e-01
+    endloop
+  endfacet
+  facet normal -1.000000e+00 0.000000e+00 0.000000e+00
+    outer loop
+      vertex 1.044000e+00 1.945000e-01 5.000000e-02
+      vertex 1.044000e+00 -1.945000e-01 2.441787e-01
+      vertex 1.044000e+00 1.945000e-01 2.441787e-01
+    endloop
+  endfacet
+  facet normal 0.000000e+00 1.000000e+00 0.000000e+00
+    outer loop
+      vertex 0.000000e+00 -1.945000e-01 5.000000e-02
+      vertex 0.000000e+00 -1.945000e-01 3.380000e-01
+      vertex 8.427997e-01 -1.945000e-01 3.380000e-01
+    endloop
+  endfacet
+  facet normal 0.000000e+00 1.000000e+00 0.000000e+00
+    outer loop
+      vertex 0.000000e+00 -1.945000e-01 5.000000e-02
+      vertex 8.427997e-01 -1.945000e-01 3.380000e-01
+      vertex 1.044000e+00 -1.945000e-01 2.441787e-01
+    endloop
+  endfacet
+  facet normal 0.000000e+00 1.000000e+00 0.000000e+00
+    outer loop
+      vertex 0.000000e+00 -1.945000e-01 5.000000e-02
+      vertex 1.044000e+00 -1.945000e-01 2.441787e-01
+      vertex 1.044000e+00 -1.945000e-01 5.000000e-02
+    endloop
+  endfacet
+  facet normal 0.000000e+00 -1.000000e+00 0.000000e+00
+    outer loop
+      vertex 0.000000e+00 1.945000e-01 5.000000e-02
+      vertex 1.044000e+00 1.945000e-01 5.000000e-02
+      vertex 1.044000e+00 1.945000e-01 2.441787e-01
+    endloop
+  endfacet
+  facet normal 0.000000e+00 -1.000000e+00 0.000000e+00
+    outer loop
+      vertex 0.000000e+00 1.945000e-01 5.000000e-02
+      vertex 1.044000e+00 1.945000e-01 2.441787e-01
+      vertex 8.427997e-01 1.945000e-01 3.380000e-01
+    endloop
+  endfacet
+  facet normal 0.000000e+00 -1.000000e+00 0.000000e+00
+    outer loop
+      vertex 0.000000e+00 1.945000e-01 5.000000e-02
+      vertex 8.427997e-01 1.945000e-01 3.380000e-01
+      vertex 0.000000e+00 1.945000e-01 3.380000e-01
+    endloop
+  endfacet
+endsolid ahmed_body

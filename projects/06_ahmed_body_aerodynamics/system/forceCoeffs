@@ -1,0 +1,36 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  v2312                                 |
+|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+
+forceCoeffs
+{
+    type            forceCoeffs;
+    libs            (forces);
+    writeControl    timeStep;
+    writeInterval   1;
+
+    patches         (ahmed_body);
+
+    rho             rhoInf;
+    rhoInf          1.225;
+
+    magUInf         40;
+
+    // Reference length (body length)
+    lRef            1.044;
+
+    // Reference area (frontal area = width x height = 0.389 x 0.288)
+    Aref            0.112032;
+
+    dragDir         (1 0 0);
+    liftDir         (0 0 1);
+    pitchAxis       (0 1 0);
+
+    CofR            (0.522 0 0.194);
+}
+
+// ************************************************************************* //
