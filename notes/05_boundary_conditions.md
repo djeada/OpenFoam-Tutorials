@@ -1,16 +1,14 @@
 # Boundary Conditions in OpenFOAM
 
-## 1. Introduction — Why Boundary Conditions Matter
-
 Boundary conditions (BCs) are the **single most important input** to any CFD simulation. They
 define how the computational domain interacts with the outside world: where fluid enters, where it
 leaves, what happens at walls, and how the simulation "knows" about physical reality.
 
 ```
   ┌─────────────────────────────────────────────────────────────────────┐
-  │                WHY BOUNDARY CONDITIONS MATTER                      │
+  │                WHY BOUNDARY CONDITIONS MATTER                       │
   │                                                                     │
-  │   ┌──────────────┐     BCs define     ┌──────────────────────┐     │
+  │   ┌──────────────┐     BCs define      ┌──────────────────────┐     │
   │   │  GOVERNING   │ ──────────────────► │  UNIQUE SOLUTION     │     │
   │   │  EQUATIONS   │  what makes the     │  to the PDEs         │     │
   │   │  (N-S eqns)  │  problem solvable   │  (your CFD result)   │     │
@@ -31,12 +29,10 @@ are actually solving.
 the pressure at an outlet, the no-penetration condition at a solid wall. Getting them right means
 your simulation reflects reality.
 
-> **⚠️ Key Insight**: A CFD simulation with perfect mesh, perfect numerics, but wrong boundary
+> **⚠️ Insight**: A CFD simulation with perfect mesh, perfect numerics, but wrong boundary
 > conditions will give you a perfectly converged **wrong answer**. Always validate your BCs first.
 
----
-
-## 1b. Initial Conditions — Setting the Starting Point
+## Initial Conditions — Setting the Starting Point
 
 While boundary conditions define what happens at the **edges** of your domain, **initial
 conditions** (ICs) define the field values at **every cell inside the domain** at the very
