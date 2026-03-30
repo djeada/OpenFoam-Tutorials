@@ -2,20 +2,20 @@
 
 ```
   ╔══════════════════════════════════════════════════════════════════════╗
-  ║                                                                    ║
-  ║   ██████╗  ██████╗  █████╗ ████████╗    ██╗  ██╗██╗   ██╗██╗      ║
-  ║   ██╔══██╗██╔═══██╗██╔══██╗╚══██╔══╝    ██║  ██║██║   ██║██║      ║
-  ║   ██████╔╝██║   ██║███████║   ██║       ███████║██║   ██║██║       ║
-  ║   ██╔══██╗██║   ██║██╔══██║   ██║       ██╔══██║██║   ██║██║      ║
-  ║   ██████╔╝╚██████╔╝██║  ██║   ██║       ██║  ██║╚██████╔╝███████╗ ║
-  ║   ╚═════╝  ╚═════╝ ╚═╝  ╚═╝   ╚═╝       ╚═╝  ╚═╝ ╚═════╝╚══════╝ ║
-  ║                                                                    ║
-  ║   F L O A T I N G   —   6 - D o F   R i g i d   B o d y           ║
-  ║                                                                    ║
-  ║   Solver:   interDyMFoam  (dynamic mesh + VOF + 6-DoF)            ║
-  ║   Physics:  Two-phase free surface + rigid body motion             ║
-  ║   Motion:   Heave · Pitch · Roll  (translation + rotation)        ║
-  ║                                                                    ║
+  ║                                                                      ║
+  ║   ██████╗  ██████╗  █████╗ ████████╗    ██╗  ██╗██╗   ██╗██╗         ║
+  ║   ██╔══██╗██╔═══██╗██╔══██╗╚══██╔══╝    ██║  ██║██║   ██║██║         ║
+  ║   ██████╔╝██║   ██║███████║   ██║       ███████║██║   ██║██║         ║
+  ║   ██╔══██╗██║   ██║██╔══██║   ██║       ██╔══██║██║   ██║██║         ║
+  ║   ██████╔╝╚██████╔╝██║  ██║   ██║       ██║  ██║╚██████╔╝███████╗    ║
+  ║   ╚═════╝  ╚═════╝ ╚═╝  ╚═╝   ╚═╝       ╚═╝  ╚═╝ ╚═════╝╚══════╝     ║
+  ║                                                                      ║
+  ║   F L O A T I N G   —   6 - D o F   R i g i d   B o d y              ║
+  ║                                                                      ║
+  ║   Solver:   interDyMFoam  (dynamic mesh + VOF + 6-DoF)               ║
+  ║   Physics:  Two-phase free surface + rigid body motion               ║
+  ║   Motion:   Heave · Pitch · Roll  (translation + rotation)           ║
+  ║                                                                      ║
   ╚══════════════════════════════════════════════════════════════════════╝
 ```
 
@@ -82,9 +82,9 @@ The simulation loop each timestep:
 
 ```
   ┌─────────────────────────────────────────────────────────────┐
-  │  1. Solve Navier-Stokes + VOF on current mesh              │
+  │  1. Solve Navier-Stokes + VOF on current mesh               │
   │  2. Compute pressure + viscous forces on boat surface       │
-  │  3. Pass forces → 6-DoF solver → new position / rotation   │
+  │  3. Pass forces → 6-DoF solver → new position / rotation    │
   │  4. Move mesh to conform to new body position               │
   │  5. Go to next timestep                                     │
   └─────────────────────────────────────────────────────────────┘
@@ -186,11 +186,11 @@ A rigid body in 3D space has **six degrees of freedom**:
 
 ```
   Translation (3 DoF):          Rotation (3 DoF):
-  ┌────────────────────┐       ┌────────────────────┐
+  ┌────────────────────┐       ┌─────────────────────┐
   │  Surge  (x)        │       │  Roll    (about x)  │
   │  Sway   (y)        │       │  Pitch   (about y)  │
   │  Heave  (z)        │       │  Yaw     (about z)  │
-  └────────────────────┘       └────────────────────┘
+  └────────────────────┘       └─────────────────────┘
 ```
 
 ```
@@ -251,22 +251,22 @@ Each timestep, the solver executes this coupling loop:
   ┌─────────────────────────────────────────────────────────────────┐
   │                     PIMPLE outer loop                           │
   │                                                                 │
-  │  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐      │
-  │  │ Solve p, U   │───→│ Integrate p  │───→│ 6-DoF solver │      │
-  │  │ and α on     │    │ and τ over   │    │ F = ma       │      │
-  │  │ current mesh │    │ boat patches │    │ τ = Iα       │      │
-  │  └──────────────┘    └──────────────┘    └──────┬───────┘      │
+  │  ┌──────────────┐    ┌──────────────┐    ┌──────────────┐       │
+  │  │ Solve p, U   │───→│ Integrate p  │───→│ 6-DoF solver │       │
+  │  │ and α on     │    │ and τ over   │    │ F = ma       │       │
+  │  │ current mesh │    │ boat patches │    │ τ = Iα       │       │
+  │  └──────────────┘    └──────────────┘    └──────┬───────┘       │
   │                                                  │              │
   │                                          new position           │
   │                                          new rotation           │
   │                                                  │              │
-  │                                          ┌───────▼──────┐      │
-  │                                          │  Move mesh   │      │
-  │                                          │  (morph)     │      │
-  │                                          └───────┬──────┘      │
+  │                                          ┌───────▼──────┐       │
+  │                                          │  Move mesh   │       │
+  │                                          │  (morph)     │       │
+  │                                          └───────┬──────┘       │
   │                                                  │              │
   │                                          back to top            │
-  │                                          (next outer corr.)    │
+  │                                          (next outer corr.)     │
   └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -294,7 +294,7 @@ The `innerDistance` and `outerDistance` parameters define three zones:
                      outerDistance = 0.08 m
                ┌───────────────────────────────┐
                │                               │
-               │   innerDistance = 0.01 m       │
+               │   innerDistance = 0.01 m      │
                │   ┌───────────────────┐       │
                │   │                   │       │
                │   │   ┏━━━━━━━━━━━┓   │       │
@@ -371,7 +371,7 @@ The hull geometry comes from `boat_hull.stl` at the repository root:
          Y                                   Z
          ↑                                   ↑  0.027
          |   ╭───────────────╮               |   ╭──────────────╮
-   0.041─|──╱                 ╲──            ─|──╱                ╲
+   0.041─|──╱                 ╲──           ─|──╱                ╲
          | ╱     BOAT HULL     ╲             | ╱   BOAT HULL      ╲
          |╱     (top view)      ╲            |╱   (side view)      ╲
   ───────┼───────────────────────→ X    ─────┼──────────────────────→ X
@@ -1231,10 +1231,10 @@ damping rate?
   ┌──────────────────────────────────────────────────────────────────┐
   │                                                                  │
   │  Project 08        Project 11          Project 12                │
-  │  ┌──────────┐     ┌──────────────┐    ┌────────────────────┐    │
-  │  │Dam Break │ ──→ │Fixed Hull    │ ──→│Floating Hull       │    │
-  │  │(VOF)     │     │(VOF + STL)   │    │(VOF + STL + 6-DoF) │    │
-  │  └──────────┘     └──────────────┘    └────────────────────┘    │
+  │  ┌──────────┐     ┌──────────────┐    ┌────────────────────┐     │
+  │  │Dam Break │ ──→ │Fixed Hull    │ ──→│Floating Hull       │     │
+  │  │(VOF)     │     │(VOF + STL)   │    │(VOF + STL + 6-DoF) │     │
+  │  └──────────┘     └──────────────┘    └────────────────────┘     │
   │                                                                  │
   │  Learn VOF         Learn STL meshing   Learn dynamic mesh        │
   │  Learn setFields   Learn snappyHex     Learn rigid body motion   │
