@@ -97,7 +97,7 @@ cavity.
 
 The velocity ratio of 3:1 means the vertical stream dominates the combined flow,
 deflecting the horizontal stream strongly upward. Where the two streams meet, a
-shear layer forms. Momentum diffusion (controlled by the kinematic viscosity $\nu$)
+shear layer forms. Momentum diffusion (controlled by the kinematic viscosity ν)
 slowly smooths the velocity differences over time, but the transient development of
 this mixing region is one of the key features to observe.
 
@@ -119,12 +119,13 @@ This setup is representative of many practical engineering situations:
 `icoFoam` solves the incompressible Navier–Stokes equations for a Newtonian fluid
 with constant kinematic viscosity:
 
-$$\nabla \cdot U = 0$$ (continuity)
-
-$$\partial U / \partial t + \nabla \cdot (UU) = -\nabla p + \nu \nabla^2 U$$ (momentum)
+```
+∇·U = 0                             (continuity)
+∂U/∂t + ∇·(UU) = −∇p + ν ∇²U       (momentum)
+```
 
 where **U** is the velocity vector, **p** is the kinematic pressure (pressure
-divided by density, p/$\rho$), and **$\nu$** is the kinematic viscosity. Because the fluid
+divided by density, p/ρ), and **ν** is the kinematic viscosity. Because the fluid
 is incompressible and the viscosity is constant, no energy equation or equation of
 state is needed.
 
@@ -136,7 +137,9 @@ This establishes a pair of counter-rotating vortices (Dean vortices) superimpose
 on the primary axial flow. The strength of this secondary flow is characterised by
 the **Dean number**:
 
-$$De = Re \times \sqrt{D / 2R}$$
+```
+De = Re × √(D / 2R)
+```
 
 where `Re` is the Reynolds number, `D` is the hydraulic diameter of the duct, and
 `R` is the bend radius of curvature. Higher Dean numbers produce stronger secondary
@@ -151,10 +154,12 @@ ratio, the channel geometry, and the Reynolds number.
 
 ### Reynolds Number Estimate
 
-With $\nu = 0.01$ m$^2$/s, a characteristic velocity of ~3 m/s (the faster inlet), and a
+With $\nu = 0.01$ m²/s, a characteristic velocity of ~3 m/s (the faster inlet), and a
 channel width on the order of 1 m, the Reynolds number is roughly:
 
-$$Re = U \times L / \nu \approx 3 \times 1 / 0.01 = 300$$
+```
+Re = U × L / ν ≈ 3 × 1 / 0.01 = 300
+```
 
 This is well within the laminar regime (Re ≪ 2300 for internal flow), which
 justifies the use of `icoFoam` without a turbulence model.
@@ -242,7 +247,7 @@ The converted mesh has the following characteristics (from `constant/polymesh/bo
 
 - **Internal faces:** 1300
 - **Total cells:** 918 (2-D; each cell has one front and one back `empty` face,
-  so 1836 $\div$ 2 = 918)
+  so 1836 ÷ 2 = 918)
 - **Mesh type:** Unstructured (triangular/quadrilateral mix typical of Fluent meshes)
 
 ### Unstructured Mesh Characteristics
@@ -331,10 +336,10 @@ nu    [0 2 -1 0 0 0 0]    0.01;
 
 | Property            | Symbol | Value   | Dimensions | Dimensional formula        |
 |---------------------|--------|---------|------------|----------------------------|
-| Kinematic viscosity | $\nu$      | 0.01    | m$^2$/s       | [0 2 -1 0 0 0 0]          |
+| Kinematic viscosity | ν      | 0.01    | m²/s       | [0 2 -1 0 0 0 0]          |
 
 This is a relatively high viscosity (for context, water at 20 °C has
-$\nu \approx 1 \times 10^{-6}$ m$^2$/s). The large value keeps the Reynolds number low (~300),
+$\nu \approx 1 \times 10^{-6}$ m²/s). The large value keeps the Reynolds number low (~300),
 ensuring the flow remains laminar and the simulation converges without a
 turbulence model.
 
@@ -455,7 +460,7 @@ runApplication foamDataToFluent             # 4. Export field data to Fluent
 
 1. **`fluentMeshToFoam elbow.msh`** — reads the Fluent `.msh` file and writes
    OpenFOAM's `constant/polymesh/` directory.
-2. **`icoFoam`** — runs the transient solver for 1500 time steps (75 s at $\Delta t$ = 0.05).
+2. **`icoFoam`** — runs the transient solver for 1500 time steps (75 s at Δt = 0.05).
    The `getApplication` function reads the solver name from `controldict`.
 3. **`foamMeshToFluent`** — converts the OpenFOAM mesh back to Fluent format and
    writes it to `fluentInterface/`.

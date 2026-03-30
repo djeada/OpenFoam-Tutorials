@@ -6,7 +6,7 @@
 | **Solver** | `buoyantSimpleFoam` (steady-state, buoyant, turbulent, compressible with energy equation) |
 | **Algorithm** | SIMPLE |
 | **Turbulence Model** | k-epsilon (RAS) |
-| **Reynolds Number** | Re $\approx$ 3333 (based on hydraulic diameter) |
+| **Reynolds Number** | Re ≈ 3333 (based on hydraulic diameter) |
 | **Prandtl Number** | Pr = 0.71 (air) |
 | **OpenFOAM Version** | 6+ |
 
@@ -97,18 +97,24 @@ the **energy equation** for a compressible (buoyant) flow:
 
 **Continuity (mass conservation):**
 
-$$\partial \rho / \partial t + \nabla \cdot (\rho U) = 0$$
+```
+∂ρ/∂t + ∇·(ρU) = 0
+```
 
 **Momentum (Navier-Stokes):**
 
-$$\partial (\rho U) / \partial t + \nabla \cdot (\rho U U) = -\nabla p + \nabla \cdot (\mu_{eff} \nabla U) + \rho g$$
+```
+∂(ρU)/∂t + ∇·(ρUU) = -∇p + ∇·(μ_eff ∇U) + ρg
+```
 
 **Energy (enthalpy form):**
 
-$$\partial (\rho h) / \partial t + \nabla \cdot (\rho U h) = \nabla \cdot (\alpha_{eff} \nabla h) + \partial p / \partial t$$
+```
+∂(ρh)/∂t + ∇·(ρUh) = ∇·(α_eff ∇h) + ∂p/∂t
+```
 
 where:
-- `ρ` = density (calculated from ideal gas law: $\rho$ = p/(RT))
+- `ρ` = density (calculated from ideal gas law: ρ = p/(RT))
 - `U` = velocity vector
 - `p` = pressure
 - `h` = specific enthalpy
@@ -122,16 +128,20 @@ where:
 
 The Reynolds number characterizes the ratio of inertial to viscous forces:
 
-$$Re = (U \times D_h) / \nu$$
+```
+Re = (U × D_h) / ν
+```
 
 For this case:
 - U = 0.5 m/s (inlet velocity)
 - $D_h = 2 \times H \times W/(H+W) \approx 2 \times 0.1 \times 0.01/(0.1+0.01) \approx 0.018$ m (hydraulic diameter for 2D duct $\approx 2H = 0.2$ m)
-- $\nu = 1.5 \times 10^{-5}$ m$^2$/s (kinematic viscosity of air at 300K)
+- $\nu = 1.5 \times 10^{-5}$ m²/s (kinematic viscosity of air at 300K)
 
 For the 2D approximation (infinite width): $D_h \approx 2H = 0.2$ m
 
-$$Re = (0.5 \times 0.2) / (1.5 \times 10^{-5}) \approx 6667$$
+```
+Re = (0.5 × 0.2) / 1.5e-5 ≈ 6667
+```
 
 This is in the **transitional-to-turbulent** regime ($Re > 2300$ for pipe flow), justifying
 the use of a turbulence model.
@@ -140,9 +150,11 @@ the use of a turbulence model.
 
 The Prandtl number relates momentum diffusivity to thermal diffusivity:
 
-$$Pr = (\mu \times Cp) / k_{thermal} = \nu / \alpha$$
+```
+Pr = (μ × Cp) / k_thermal = ν / α
+```
 
-For air: **Pr $\approx$ 0.71**
+For air: **Pr ≈ 0.71**
 
 This means the thermal boundary layer is slightly thicker than the velocity boundary
 layer — characteristic of gases.
@@ -152,21 +164,27 @@ layer — characteristic of gases.
 The Nusselt number quantifies the enhancement of heat transfer due to convection over
 pure conduction:
 
-$$Nu = (h_{conv} \times D_h) / k_{thermal}$$
+```
+Nu = (h_conv × D_h) / k_thermal
+```
 
 where:
-- `h_conv` = convective heat transfer coefficient [W/(m$^2$·K)]
+- `h_conv` = convective heat transfer coefficient [W/(m²·K)]
 - `k_thermal` = fluid thermal conductivity [W/(m·K)]
 
 **Expected correlations for fully-developed turbulent pipe flow:**
 
 Dittus-Boelter correlation (heating):
-$$Nu = 0.023 \times Re^{0.8} \times Pr^{0.4}$$
+```
+Nu = 0.023 × Re^0.8 × Pr^0.4
+```
 
 For our case: $Nu \approx 0.023 \times 6667^{0.8} \times 0.71^{0.4} \approx$ **24.8**
 
 Gnielinski correlation (more accurate for transitional flow):
-$$Nu = (f/8)(Re - 1000)Pr / [1 + 12.7(f/8)^{0.5} (Pr^{2/3} - 1)]$$
+```
+Nu = (f/8)(Re - 1000)Pr / [1 + 12.7(f/8)^0.5 (Pr^(2/3) - 1)]
+```
 
 where `f` is the Darcy friction factor from the Moody chart.
 
@@ -185,9 +203,11 @@ develops at the walls:
 
 The **thermal entry length** is approximately:
 
-$$L_{thermal} \approx 0.05 \times Re \times Pr \times D_h$$
+```
+L_thermal ≈ 0.05 × Re × Pr × D_h
+```
 
-For our case: L_thermal $\approx$ 0.05 $\times$ 6667 $\times$ 0.71 $\times$ 0.2 $\approx$ **47 m**
+For our case: L_thermal ≈ 0.05 × 6667 × 0.71 × 0.2 ≈ **47 m**
 
 Since our duct is only 2 m long, we are in the **thermally developing** region, where
 the local Nusselt number varies along the duct length and is higher near the inlet.
@@ -198,11 +218,13 @@ This simulation includes gravity and buoyancy effects (via `buoyantSimpleFoam`),
 the dominant heat transfer mechanism is **forced convection**. The relative importance is
 characterized by the Richardson number:
 
-$$Ri = Gr / Re^2 = (g \times \beta \times \Delta T \times D_h^3) / (\nu^2 \times Re^2)$$
+```
+Ri = Gr / Re² = (g × β × ΔT × D_h³) / (ν² × Re²)
+```
 
 - If Ri << 1: forced convection dominates (our case)
 - If Ri >> 1: natural convection dominates
-- If Ri $\approx$ 1: mixed convection
+- If Ri ≈ 1: mixed convection
 
 ### 2.5 Why buoyantSimpleFoam?
 
@@ -259,17 +281,17 @@ $$Ri = Gr / Re^2 = (g \times \beta \times \Delta T \times D_h^3) / (\nu^2 \times
 |---|---|---|
 | `0/U` | Velocity boundary conditions | Inlet: 0.5 m/s, Walls: no-slip |
 | `0/p_rgh` | Pressure (minus hydrostatic) | Used by buoyant solver instead of `p` |
-| `0/p` | Total pressure | Calculated from `p_rgh` + $\rho$gh |
+| `0/p` | Total pressure | Calculated from `p_rgh` + ρgh |
 | `0/T` | Temperature field | Inlet: 300K, Walls: 350K |
 | `0/k` | Turbulent kinetic energy | Wall functions at walls |
 | `0/epsilon` | Turbulent dissipation | Wall functions at walls |
 | `0/nut` | Turbulent viscosity | Wall functions at walls |
 | `0/alphat` | Turbulent thermal diffusivity | alphatWallFunction at walls |
-| `constant/g` | Gravity vector | (0, -9.81, 0) m/s$^2$ |
+| `constant/g` | Gravity vector | (0, -9.81, 0) m/s² |
 | `constant/thermophysicalProperties` | Gas properties | Air: Cp=1005, Pr=0.71 |
-| `constant/transportProperties` | Kinematic viscosity | $\nu$ = 1.5$\times$10$^{-5}$ m$^2$/s |
+| `constant/transportProperties` | Kinematic viscosity | ν = 1.5×10⁻⁵ m²/s |
 | `constant/turbulenceProperties` | Turbulence model | k-epsilon (RAS) |
-| `system/blockMeshDict` | Mesh definition | 100$\times$20$\times$1 cells, 2m$\times$0.1m$\times$0.01m |
+| `system/blockMeshDict` | Mesh definition | 100×20×1 cells, 2m×0.1m×0.01m |
 | `system/controlDict` | Run control | 1000 iterations, write every 100 |
 | `system/fvSchemes` | Discretization | Upwind for convection, linear for diffusion |
 | `system/fvSolution` | Solvers & relaxation | GAMG for pressure, smoothSolver for rest |
@@ -305,7 +327,7 @@ front/back boundaries):
 | Cells in y | 20 |
 | Cells in z | 1 |
 | **Total cells** | **2000** |
-| Cell aspect ratio | 1:1 ($\Delta x$ = 0.02 m, $\Delta y$ = 0.005 m → AR = 4:1) |
+| Cell aspect ratio | 1:1 (Δx = 0.02 m, Δy = 0.005 m → AR = 4:1) |
 | Grading | Uniform (1:1:1) |
 
 ### Mesh Quality Notes
@@ -313,8 +335,8 @@ front/back boundaries):
 - The mesh is intentionally coarse for fast turnaround and learning purposes.
 - **No grading** is applied — for production simulations, you would want wall-normal
   clustering (grading in y-direction) to resolve the boundary layer properly.
-- The first cell height of $\Delta y$ = 0.005 m gives an approximate y+ value suitable for
-  wall functions (y+ $\approx$ 30–100 range).
+- The first cell height of Δy = 0.005 m gives an approximate y+ value suitable for
+  wall functions (y+ ≈ 30–100 range).
 - For higher accuracy, increase y-direction cells to 40–60 and add grading toward walls.
 
 ---
@@ -372,7 +394,7 @@ front/back boundaries):
 
 #### Turbulence Variables (k, epsilon, nut, alphat)
 - **Inlet:** Fixed turbulence levels representing low-intensity incoming turbulence.
-  The turbulence intensity is approximately I = sqrt(2k/3) / U $\approx$ sqrt(2$\times$0.1/3) / 0.5 $\approx$ 52%.
+  The turbulence intensity is approximately I = sqrt(2k/3) / U ≈ sqrt(2×0.1/3) / 0.5 ≈ 52%.
   For lower turbulence intensity, reduce k accordingly.
 - **Outlet:** `zeroGradient` — turbulence is convected out of the domain.
 - **Walls:** Wall functions bridge the viscous sublayer, allowing coarser meshes:
@@ -564,7 +586,9 @@ Key observations:
 **Bulk temperature rise:**
 The energy balance gives the expected outlet bulk temperature:
 
-$$T_{out,bulk} \approx T_{in} + (2 \times h_{conv} \times L \times \Delta T) / (\dot{m} \times Cp)$$
+```
+T_out_bulk ≈ T_in + (2 × h_conv × L × ΔT) / (ṁ × Cp)
+```
 
 where ṁ is the mass flow rate. The actual outlet temperature will depend on the
 converged heat transfer coefficient.
@@ -638,7 +662,9 @@ postProcess -func "wallHeatFlux" -latestTime
 
 Then in ParaView or with a script:
 
-$$Nu_{local}(x) = q_{wall}(x) \times D_h / (k_{thermal} \times (T_{wall} - T_{bulk}(x)))$$
+```
+Nu_local(x) = q_wall(x) × D_h / (k_thermal × (T_wall - T_bulk(x)))
+```
 
 ### 9.6 Extracting Data with OpenFOAM Utilities
 
@@ -667,7 +693,7 @@ They are ordered from simple parameter changes to more significant modifications
 - Change `T_wall` from 350 K to 400 K, 500 K, and 600 K
 - Edit both wall patches in `0/T`
 - Compare temperature profiles at the outlet cross-section
-- **Question:** How does the bulk outlet temperature change? Is it linear with $\Delta T$?
+- **Question:** How does the bulk outlet temperature change? Is it linear with ΔT?
 
 ### Exercise 2: Change Inlet Velocity (Reynolds Number)
 
@@ -675,8 +701,8 @@ They are ordered from simple parameter changes to more significant modifications
 
 - Try U_in = 0.1, 0.5, 1.0, and 2.0 m/s (edit `0/U`)
 - Remember to adjust `k` and `epsilon` inlet values for consistency:
-  - k $\approx$ 1.5 $\times$ (U $\times$ I)$^2$ where I is turbulence intensity (e.g., 5%)
-  - epsilon $\approx$ C_$\mu$^0.75 $\times$ k^1.5 / l, where l is the turbulence length scale
+  - k ≈ 1.5 × (U × I)² where I is turbulence intensity (e.g., 5%)
+  - epsilon ≈ C_μ^0.75 × k^1.5 / l, where l is the turbulence length scale
 - Plot Nu vs Re and compare with Dittus-Boelter correlation
 - **Question:** At what velocity does the flow transition from laminar-like to turbulent?
 
@@ -685,10 +711,10 @@ They are ordered from simple parameter changes to more significant modifications
 **Goal:** Perform a mesh sensitivity study.
 
 - Change the mesh resolution in `system/blockMeshDict`:
-  - Coarse: 50$\times$10$\times$1 (500 cells)
-  - Medium: 100$\times$20$\times$1 (2000 cells) ← current
-  - Fine: 200$\times$40$\times$1 (8000 cells)
-  - Very fine: 400$\times$80$\times$1 (32000 cells)
+  - Coarse: 50×10×1 (500 cells)
+  - Medium: 100×20×1 (2000 cells) ← current
+  - Fine: 200×40×1 (8000 cells)
+  - Very fine: 400×80×1 (32000 cells)
 - Add y-direction grading for better wall resolution:
   ```
   simpleGrading (1 ((0.5 0.5 0.25)(0.5 0.5 4)) 1)
@@ -705,7 +731,7 @@ They are ordered from simple parameter changes to more significant modifications
   simpleGrading (1 ((0.3 0.4 0.2)(0.4 0.2 1)(0.3 0.4 5)) 1)
   ```
 - Check y+ values using `postProcess -func yPlus`
-- Target y+ $\approx$ 30–100 for wall functions, or y+ < 1 for resolving the viscous sublayer
+- Target y+ ≈ 30–100 for wall functions, or y+ < 1 for resolving the viscous sublayer
 - **Question:** How much does the Nusselt number change with better wall resolution?
 
 ### Exercise 5: Compare Turbulence Models
@@ -767,7 +793,7 @@ They are ordered from simple parameter changes to more significant modifications
 **Goal:** Approach fully-developed conditions.
 
 - Extend the duct to 10 m (change `blockMeshDict` vertex coordinates)
-- Increase x-direction cells to 500 (maintaining $\Delta x$ $\approx$ 0.02 m)
+- Increase x-direction cells to 500 (maintaining Δx ≈ 0.02 m)
 - Track the bulk temperature and Nusselt number along the length
 - **Question:** Does the Nusselt number reach the fully-developed value?
   Compare with the theoretical value for constant wall temperature.

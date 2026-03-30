@@ -66,19 +66,19 @@ simulations alike.
 | Parameter              | Symbol     | Value                         |
 |------------------------|------------|-------------------------------|
 | Step height            | H          | 0.0127 m (12.7 mm)           |
-| Inlet velocity         | $U_\infty$         | 10 m/s                        |
-| Kinematic viscosity    | $\nu$          | 1.5 $\times$ 10$^{-5}$ m$^2$/s (air)       |
-| Reynolds number        | Re_H       | $\approx$ 8,467 (based on H)         |
+| Inlet velocity         | U∞         | 10 m/s                        |
+| Kinematic viscosity    | ν          | 1.5 × 10⁻⁵ m²/s (air)       |
+| Reynolds number        | Re_H       | ≈ 8,467 (based on H)         |
 | Expansion ratio        | ER         | 2:1                           |
 | Upstream length        | L_up       | 4H = 0.0508 m                |
 | Downstream length      | L_down     | 30H = 0.381 m                |
 | Channel height (inlet) | h          | H (above step)                |
 | Channel height (outlet)| 2H         | 0.0254 m                     |
-| Expected reattachment  | Xr/H       | $\approx$ 6.0 $\pm$ 0.5                  |
+| Expected reattachment  | Xr/H       | ≈ 6.0 ± 0.5                  |
 
 > **Note on Reynolds number:** Different researchers define Re using different
 > reference lengths (step height H, hydraulic diameter, or upstream channel height).
-> Re_H $\approx$ 8,467 based on step height is common; using the full downstream channel
+> Re_H ≈ 8,467 based on step height is common; using the full downstream channel
 > height gives $Re \approx 16{,}933$. Some references cite $Re$ based on upstream centreline
 > velocity and channel height which can give $Re \approx 36{,}000$.
 
@@ -93,7 +93,9 @@ equations govern the mean flow:
 
 **Continuity:**
 
-$$\partial \bar{U}_i / \partial x_i = 0$$
+```
+∂Ūᵢ/∂xᵢ = 0
+```
 
 **Momentum:**
 
@@ -107,7 +109,7 @@ The Reynolds stress tensor `u'ᵢu'ⱼ` is modelled using the Boussinesq hypothe
 -u'ᵢu'ⱼ = νₜ(∂Ūᵢ/∂xⱼ + ∂Ūⱼ/∂xᵢ) - 2/3 k δᵢⱼ
 ```
 
-where $\nu ₜ$ is the turbulent eddy viscosity and k is the turbulent kinetic energy.
+where νₜ is the turbulent eddy viscosity and k is the turbulent kinetic energy.
 
 ### Flow Separation and Reattachment
 
@@ -164,35 +166,35 @@ metric for backward-facing step simulations:
 | Kim et al. (1980)           | 132,000   | 7.0    | Experiment      |
 | Armaly et al. (1983)        | 8,000     | 6.0    | Experiment      |
 | Adams & Johnston (1988)     | 38,000    | 6.4    | Experiment      |
-| Menter (1994) k-$\omega$ SST      | 37,400    | 6.1    | RANS CFD        |
-| Standard k-$\varepsilon$               | Various   | 4.5–5  | RANS CFD        |
+| Menter (1994) k-ω SST      | 37,400    | 6.1    | RANS CFD        |
+| Standard k-ε               | Various   | 4.5–5  | RANS CFD        |
 
-> **Key insight:** Standard k-$\varepsilon$ consistently under-predicts the reattachment length
-> by 15–25%, while k-$\omega$ SST typically predicts Xr/H within 5–10% of experimental
-> values. This is one of the primary reasons k-$\omega$ SST became the industry standard
+> **Key insight:** Standard k-ε consistently under-predicts the reattachment length
+> by 15–25%, while k-ω SST typically predicts Xr/H within 5–10% of experimental
+> values. This is one of the primary reasons k-ω SST became the industry standard
 > for separated flows.
 
 ### Why k-omega SST for This Problem
 
-The k-$\omega$ SST (Shear Stress Transport) model by Menter (1994) was specifically developed
+The k-ω SST (Shear Stress Transport) model by Menter (1994) was specifically developed
 to handle the weaknesses of existing two-equation models in separated flows:
 
-1. **Near-wall behaviour** — Uses k-$\omega$ formulation in the inner boundary layer,
+1. **Near-wall behaviour** — Uses k-ω formulation in the inner boundary layer,
    avoiding the need for damping functions and providing superior performance in
    adverse pressure gradient regions.
 
-2. **Free-stream robustness** — Switches to k-$\varepsilon$ behaviour in the outer region and
-   free shear layers, avoiding the sensitivity of k-$\omega$ to free-stream turbulence
+2. **Free-stream robustness** — Switches to k-ε behaviour in the outer region and
+   free shear layers, avoiding the sensitivity of k-ω to free-stream turbulence
    levels.
 
 3. **Shear stress limiter** — The SST modification limits the eddy viscosity using
    Bradshaw's assumption that the principal turbulent shear stress is proportional
-   to the turbulent kinetic energy: `τ = ρa₁k` where a$_1$ = 0.31. This prevents
+   to the turbulent kinetic energy: `τ = ρa₁k` where a₁ = 0.31. This prevents
    over-prediction of eddy viscosity in adverse pressure gradient flows, which is
-   the primary failure mode of standard k-$\varepsilon$ in separated flows.
+   the primary failure mode of standard k-ε in separated flows.
 
-4. **Blending function** — A smooth blending function F$_1$ transitions between the
-   k-$\omega$ and k-$\varepsilon$ formulations based on wall distance, ensuring the right model is
+4. **Blending function** — A smooth blending function F₁ transitions between the
+   k-ω and k-ε formulations based on wall distance, ensuring the right model is
    active in each region:
 
 ```
@@ -201,14 +203,14 @@ to handle the weaknesses of existing two-equation models in separated flows:
   arg₁ = min[max(√k/(β*ωy), 500ν/(y²ω)), 4ρσ_ω₂k/(CD_kω y²)]
 ```
 
-The transport equations for k and $\omega$ in the SST model are:
+The transport equations for k and ω in the SST model are:
 
 **Turbulent kinetic energy (k):**
 ```
 ∂(ρk)/∂t + ∂(ρUⱼk)/∂xⱼ = P̃k - β*ρkω + ∂/∂xⱼ[(μ + σk μt) ∂k/∂xⱼ]
 ```
 
-**Specific dissipation rate ($\omega$):**
+**Specific dissipation rate (ω):**
 ```
 ∂(ρω)/∂t + ∂(ρUⱼω)/∂xⱼ = αS² - βρω² + ∂/∂xⱼ[(μ + σω μt) ∂ω/∂xⱼ]
                              + 2(1-F₁)ρσ_ω₂ (1/ω) ∂k/∂xⱼ ∂ω/∂xⱼ
@@ -229,7 +231,7 @@ a mixing length scale (l):
 ```
 
 > The exact inlet values have moderate influence on the reattachment length. A
-> sensitivity study varying I from 1% to 10% typically shifts Xr/H by $\pm$0.5.
+> sensitivity study varying I from 1% to 10% typically shifts Xr/H by ±0.5.
 
 ---
 
@@ -266,7 +268,7 @@ a mixing length scale (l):
 | `0/k`                  | TKE: inlet value, wall functions on walls                  |
 | `0/omega`              | Omega: inlet value, wall functions on walls                |
 | `0/nut`                | Eddy viscosity: calculated at inlet/outlet, wall functions |
-| `constant/transport..` | Newtonian fluid, $\nu$ = 1.5e-5 m$^2$/s (air at 20°C)           |
+| `constant/transport..` | Newtonian fluid, ν = 1.5e-5 m²/s (air at 20°C)           |
 | `constant/turbulence.` | RAS → k-omega SST selection                               |
 | `system/blockMeshDict` | Multi-block structured mesh definition                     |
 | `system/controlDict`   | 2000 iterations, write every 200, function objects         |
@@ -309,9 +311,9 @@ The mesh is created using `blockMesh` with three structured hexahedral blocks:
 
 | Block | Region              | Size   | Cells     | Grading                     |
 |-------|---------------------|--------|-----------|-----------------------------|
-| 0     | Upstream channel    | 4H$\times$1H  | 80 $\times$ 40  | x: 0.25 (refine at step)   |
-| 1     | Downstream top      | 30H$\times$1H | 300 $\times$ 40 | x: 4.0 (expand downstream) |
-| 2     | Downstream bottom   | 30H$\times$1H | 300 $\times$ 40 | x: 4.0 (expand downstream) |
+| 0     | Upstream channel    | 4H×1H  | 80 × 40  | x: 0.25 (refine at step)   |
+| 1     | Downstream top      | 30H×1H | 300 × 40 | x: 4.0 (expand downstream) |
+| 2     | Downstream bottom   | 30H×1H | 300 × 40 | x: 4.0 (expand downstream) |
 
 **Total cells:** approximately 27,200 (2D, single cell in z-direction)
 
@@ -349,8 +351,8 @@ log-layer region:
 ```
 
 The mesh grading places the first cell at approximately 1 mm from the walls, giving
-y+ $\approx$ 30–50, appropriate for wall-function treatment. For resolved boundary layers
-(y+ < 1), the mesh would need ~10$\times$ more cells in the wall-normal direction.
+y+ ≈ 30–50, appropriate for wall-function treatment. For resolved boundary layers
+(y+ < 1), the mesh would need ~10× more cells in the wall-normal direction.
 
 ---
 
@@ -389,7 +391,7 @@ y+ $\approx$ 30–50, appropriate for wall-function treatment. For resolved boun
 | Patch        | Type        | Value           | Notes                        |
 |--------------|-------------|-----------------|------------------------------|
 | inlet        | zeroGradient| —               | Pressure floats at inlet     |
-| outlet       | fixedValue  | 0 m$^2$/s$^2$         | Reference pressure           |
+| outlet       | fixedValue  | 0 m²/s²         | Reference pressure           |
 | topWall      | zeroGradient| —               | Zero normal gradient         |
 | bottomWall   | zeroGradient| —               | Zero normal gradient         |
 | step         | zeroGradient| —               | Zero normal gradient         |
@@ -399,7 +401,7 @@ y+ $\approx$ 30–50, appropriate for wall-function treatment. For resolved boun
 
 | Patch        | Type              | Value       | Notes                      |
 |--------------|-------------------|-------------|----------------------------|
-| inlet        | fixedValue        | 0.24 m$^2$/s$^2$  | ~4% turbulence intensity   |
+| inlet        | fixedValue        | 0.24 m²/s²  | ~4% turbulence intensity   |
 | outlet       | zeroGradient      | —           | Convective outflow         |
 | topWall      | kqRWallFunction   | 0.24        | Wall function for k        |
 | bottomWall   | kqRWallFunction   | 0.24        | Wall function for k        |
@@ -410,7 +412,7 @@ y+ $\approx$ 30–50, appropriate for wall-function treatment. For resolved boun
 
 | Patch        | Type                | Value       | Notes                    |
 |--------------|---------------------|-------------|--------------------------|
-| inlet        | fixedValue          | 440 s$^{-1}$     | From mixing length       |
+| inlet        | fixedValue          | 440 s⁻¹     | From mixing length       |
 | outlet       | zeroGradient        | —           | Convective outflow       |
 | topWall      | omegaWallFunction   | 440         | Automatic wall treatment |
 | bottomWall   | omegaWallFunction   | 440         | Automatic wall treatment |
@@ -438,9 +440,9 @@ The three wall function types work together to provide consistent near-wall mode
 
 - **`omegaWallFunction`** — Sets omega based on the analytical near-wall solution,
   blending between viscous and log-layer values. This is the most critical wall
-  function for the k-$\omega$ SST model.
+  function for the k-ω SST model.
 
-- **`nutkWallFunction`** — Computes $\nu ₜ$ from the log-law, providing the correct eddy
+- **`nutkWallFunction`** — Computes νₜ from the log-law, providing the correct eddy
   viscosity profile near the wall. Automatically adapts based on the local y+ value.
 
 ---
@@ -467,15 +469,15 @@ allowing verification of default values:
 
 | Coefficient | Value  | Description                    |
 |-------------|--------|--------------------------------|
-| $\alpha k$1         | 0.85   | $\sigma k$ in k-$\omega$ region               |
-| $\alpha k$2         | 1.0    | $\sigma k$ in k-$\varepsilon$ region               |
-| $\alpha ω$1         | 0.5    | $\sigma ω$ in k-$\omega$ region               |
-| $\alpha ω$2         | 0.856  | $\sigma ω$ in k-$\varepsilon$ region               |
-| $\beta$1          | 0.075  | $\beta$ in k-$\omega$ region                |
-| $\beta$2          | 0.0828 | $\beta$ in k-$\varepsilon$ region                |
-| $\beta$Star       | 0.09   | $\beta$* (= C$\mu$)                      |
-| $\gamma$1          | 5/9    | $\gamma$ in k-$\omega$ region                |
-| $\gamma$2          | 0.44   | $\gamma$ in k-$\varepsilon$ region                |
+| αk1         | 0.85   | σk in k-ω region               |
+| αk2         | 1.0    | σk in k-ε region               |
+| αω1         | 0.5    | σω in k-ω region               |
+| αω2         | 0.856  | σω in k-ε region               |
+| β1          | 0.075  | β in k-ω region                |
+| β2          | 0.0828 | β in k-ε region                |
+| βStar       | 0.09   | β* (= Cμ)                      |
+| γ1          | 5/9    | γ in k-ω region                |
+| γ2          | 0.44   | γ in k-ε region                |
 | a1          | 0.31   | Bradshaw's constant            |
 | b1          | 1.0    | Blending parameter             |
 | c1          | 10.0   | Blending parameter             |
@@ -493,8 +495,8 @@ This corresponds to air at approximately 20°C and atmospheric pressure:
 
 | Property              | Value              |
 |-----------------------|--------------------|
-| Kinematic viscosity $\nu$ | 1.5 $\times$ 10$^{-5}$ m$^2$/s  |
-| Density $\rho$ (implicit)  | ~1.2 kg/m$^3$        |
+| Kinematic viscosity ν | 1.5 × 10⁻⁵ m²/s  |
+| Density ρ (implicit)  | ~1.2 kg/m³        |
 | Temperature           | ~20°C              |
 | Fluid                 | Air                |
 
@@ -535,7 +537,7 @@ SIMPLE
 
 > **GAMG** (Geometric-Algebraic Multi-Grid) is highly efficient for the pressure
 > equation because it handles the elliptic nature of the Poisson-type equation well.
-> For convection-dominated equations (U, k, $\omega$), smoothSolver is more appropriate.
+> For convection-dominated equations (U, k, ω), smoothSolver is more appropriate.
 
 ### Relaxation Factors
 
@@ -682,7 +684,7 @@ After convergence, you should observe:
 4. **Turbulent kinetic energy peak** — Maximum k occurs in the free shear layer
    just downstream of the step edge.
 
-5. **Wall shear stress sign change** — On the bottom wall, $\tau$_w changes from
+5. **Wall shear stress sign change** — On the bottom wall, τ_w changes from
    negative (in recirculation) to positive (after reattachment).
 
 ---
@@ -803,7 +805,7 @@ Target values:
 
 ### Exercise 1: Turbulence Model Comparison
 
-Compare k-$\omega$ SST with standard k-$\varepsilon$:
+Compare k-ω SST with standard k-ε:
 
 1. Copy the case directory
 2. Change `constant/turbulenceProperties`:
@@ -818,13 +820,13 @@ Compare k-$\omega$ SST with standard k-$\varepsilon$:
    ```
 4. Run and compare reattachment lengths
 
-Expected result: k-$\varepsilon$ will predict Xr/H $\approx$ 4.5–5.0 (too short).
+Expected result: k-ε will predict Xr/H ≈ 4.5–5.0 (too short).
 
 ### Exercise 2: Reynolds Number Sensitivity
 
 Run the case at different Reynolds numbers by changing the inlet velocity:
 
-| Case | $U_\infty$ (m/s) | Re_H    | Expected Xr/H |
+| Case | U∞ (m/s) | Re_H    | Expected Xr/H |
 |------|----------|---------|----------------|
 | A    | 2        | ~1,700  | ~5.0           |
 | B    | 5        | ~4,200  | ~5.5           |
@@ -841,10 +843,10 @@ Perform a systematic grid convergence study:
 
 | Level  | Upstream     | Downstream    | Total cells | Purpose           |
 |--------|-------------|---------------|-------------|-------------------|
-| Coarse | 40 $\times$ 20    | 150 $\times$ 30      | 9,800       | Quick test        |
-| Medium | 80 $\times$ 40    | 300 $\times$ 40      | 27,200      | Baseline (this)   |
-| Fine   | 160 $\times$ 80   | 600 $\times$ 80      | 108,800     | Grid convergence  |
-| V.Fine | 320 $\times$ 160  | 1200 $\times$ 160    | 435,200     | Reference         |
+| Coarse | 40 × 20    | 150 × 30      | 9,800       | Quick test        |
+| Medium | 80 × 40    | 300 × 40      | 27,200      | Baseline (this)   |
+| Fine   | 160 × 80   | 600 × 80      | 108,800     | Grid convergence  |
+| V.Fine | 320 × 160  | 1200 × 160    | 435,200     | Reference         |
 
 Plot Xr/H vs total cell count. The solution should become grid-independent at the
 Fine or Very Fine level.
@@ -853,8 +855,8 @@ Fine or Very Fine level.
 
 Modify the mesh and boundary conditions for resolved boundary layers (y+ < 1):
 
-1. Increase wall-normal cell count by 10$\times$
-2. Apply first-cell grading to achieve y+ $\approx$ 0.5
+1. Increase wall-normal cell count by 10×
+2. Apply first-cell grading to achieve y+ ≈ 0.5
 3. Change wall functions:
    - `k`: `fixedValue uniform 0` (k = 0 at wall)
    - `omega`: `omegaWallFunction` (handles both low-Re and wall-function)
@@ -906,7 +908,7 @@ Replace the uniform inlet velocity with a fully developed turbulent channel prof
 
 4. **Menter, F.R.** (1994). "Two-equation eddy-viscosity turbulence models for
    engineering applications." *AIAA Journal*, 32(8), pp.1598–1605.
-   — Original k-$\omega$ SST paper. Demonstrates superior performance for backward-facing
+   — Original k-ω SST paper. Demonstrates superior performance for backward-facing
    step and other separated flows.
 
 5. **Wilcox, D.C.** (2006). *Turbulence Modeling for CFD*. 3rd edition, DCW
@@ -941,7 +943,7 @@ notes in the `notes/` directory:
 | Dictionary syntax      | `notes/03_openfoam_dictionaries.md`  | FoamFile headers, keywords   |
 | Meshing strategies     | `notes/04_meshing.md`                | blockMesh, grading, quality  |
 | Boundary conditions    | `notes/05_boundary_conditions.md`    | Wall functions, inlet/outlet |
-| Turbulence models      | `notes/06_turbulence_models.md`      | k-$\omega$ SST, wall treatment     |
+| Turbulence models      | `notes/06_turbulence_models.md`      | k-ω SST, wall treatment     |
 | Linear solvers         | `notes/09_linear_solvers.md`         | GAMG, smoothSolver, SIMPLE   |
 
 ---

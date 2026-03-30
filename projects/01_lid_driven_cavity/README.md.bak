@@ -47,21 +47,27 @@ This case solves the **incompressible Navier-Stokes equations** for a Newtonian 
 
 **Continuity (mass conservation):**
 
-$$\nabla \cdot U = 0$$
+```
+∇ · U = 0
+```
 
 **Momentum conservation:**
 
-$$\partial U / \partial t + (U \cdot \nabla)U = -\nabla p / \rho + \nu \nabla^2 U$$
+```
+∂U/∂t + (U · ∇)U = -∇p/ρ + ν ∇²U
+```
 
 where `U` is the velocity vector, `p` is the kinematic pressure (pressure divided by density), and `ν` is the kinematic viscosity.
 
-Since icoFoam is an incompressible solver, density does not appear explicitly. The pressure field `p` has dimensions of m$^2$/s$^2$ (kinematic pressure).
+Since icoFoam is an incompressible solver, density does not appear explicitly. The pressure field `p` has dimensions of m²/s² (kinematic pressure).
 
 ### Reynolds Number
 
 The Reynolds number characterizes the ratio of inertial to viscous forces:
 
-$$Re = U \times L / \nu$$
+```
+Re = U × L / ν
+```
 
 For this case:
 
@@ -69,9 +75,11 @@ For this case:
 |---|---|---|
 | Lid velocity | U | 1 m/s |
 | Cavity width | L | 0.1 m |
-| Kinematic viscosity | $\nu$ | 0.001 m$^2$/s |
+| Kinematic viscosity | ν | 0.001 m²/s |
 
-$$Re = 1 \times 0.1 / 0.001 = 100$$
+```
+Re = 1 × 0.1 / 0.001 = 100
+```
 
 At $Re = 100$, the flow is well within the laminar regime. The primary vortex forms quickly and the solution reaches a quasi-steady state within the 0.5 s simulation window.
 
@@ -131,11 +139,11 @@ The `convertToMeters` factor is **0.1**, so the unit-cube vertices in the dictio
 
 | Property | Value |
 |---|---|
-| Domain size (x $\times$ y $\times$ z) | 0.1 m $\times$ 0.1 m $\times$ 0.01 m |
-| Cell count | 20 $\times$ 20 $\times$ 1 = 400 cells |
+| Domain size (x × y × z) | 0.1 m × 0.1 m × 0.01 m |
+| Cell count | 20 × 20 × 1 = 400 cells |
 | Cell type | Hexahedral (structured) |
 | Grading | Uniform (simpleGrading 1 1 1) |
-| Cell size ($\Delta x$ $\times$ $\Delta y$) | 0.005 m $\times$ 0.005 m |
+| Cell size (Δx × Δy) | 0.005 m × 0.005 m |
 
 The single-cell thickness in z and the `empty` boundary condition on the front/back faces make this a **2D simulation**.
 
@@ -229,9 +237,11 @@ All boundary conditions are defined in `0/U` and `0/p`.
 
 With `deltaT = 0.001` and `endTime = 0.5`, the solver runs for **500 time steps**. Because `writeInterval` is set to 1, every single time step is saved. For production runs you may want to increase `writeInterval` (e.g., to 20 or 50) to reduce disk usage.
 
-**CFL number estimate:** With $\Delta x$ = 0.005 m and U_max = 1 m/s:
+**CFL number estimate:** With Δx = 0.005 m and U_max = 1 m/s:
 
-$$CFL = U \times \Delta t / \Delta x = 1 \times 0.001 / 0.005 = 0.2$$
+```
+CFL = U × Δt / Δx = 1 × 0.001 / 0.005 = 0.2
+```
 
 A CFL of 0.2 is well below the stability limit of 1.0, ensuring a stable explicit time integration.
 
@@ -255,7 +265,7 @@ A CFL of 0.2 is well below the stability limit of 1.0, ensuring a stable explici
 |---|---|
 | Solver | `PCG` (Preconditioned Conjugate Gradient) |
 | Preconditioner | `DIC` (Diagonal Incomplete Cholesky) |
-| Tolerance | 1$\times$10$^{-6}$ |
+| Tolerance | 1×10⁻⁶ |
 | Relative tolerance | 0.05 (0 for final corrector) |
 
 **Velocity solver (`U`):**
@@ -264,7 +274,7 @@ A CFL of 0.2 is well below the stability limit of 1.0, ensuring a stable explici
 |---|---|
 | Solver | `smoothSolver` |
 | Smoother | `symGaussSeidel` (Symmetric Gauss-Seidel) |
-| Tolerance | 1$\times$10$^{-5}$ |
+| Tolerance | 1×10⁻⁵ |
 | Relative tolerance | 0 |
 
 **PISO algorithm settings:**
@@ -339,7 +349,7 @@ rm -rf 0.* [1-9]* VTK/ constant/polyMesh
 
 ## Expected Results
 
-### Flow Field at Steady State (t $\approx$ 0.5 s)
+### Flow Field at Steady State (t ≈ 0.5 s)
 
 At $Re = 100$, the flow reaches a quasi-steady state well within the 0.5 s simulation window. You should observe:
 
@@ -437,7 +447,7 @@ These exercises build progressively on the base case. Try them in order:
 
 Modify `constant/transportProperties` to change `ν` and observe different flow regimes:
 
-| $\nu$ (m$^2$/s) | Re | Expected Behavior |
+| ν (m²/s) | Re | Expected Behavior |
 |---|---|---|
 | 0.01 | 10 | Very viscous, weak vortex, slow approach to steady state |
 | 0.001 | 100 | ← Current case. Clear primary vortex |
@@ -484,9 +494,9 @@ Extract the vertical centerline velocity profile and compare with the tabulated 
 
 ### 5. Experiment with Time Stepping
 
-- Double `deltaT` to 0.002 (CFL $\approx$ 0.4): Should still be stable.
-- Try `deltaT = 0.005` (CFL $\approx$ 1.0): At the stability boundary.
-- Try `deltaT = 0.01` (CFL $\approx$ 2.0): Likely diverges — observe the behavior.
+- Double `deltaT` to 0.002 (CFL ≈ 0.4): Should still be stable.
+- Try `deltaT = 0.005` (CFL ≈ 1.0): At the stability boundary.
+- Try `deltaT = 0.01` (CFL ≈ 2.0): Likely diverges — observe the behavior.
 
 ### 6. Change the Write Interval
 

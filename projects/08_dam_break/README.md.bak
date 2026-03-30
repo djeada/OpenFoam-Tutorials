@@ -79,12 +79,12 @@ This tutorial teaches you:
 | Domain depth       | 0.01                     | m       |
 | Water column width | 0.146                    | m       |
 | Water column height| 0.292                    | m       |
-| Water density      | 1000                     | kg/m$^3$   |
-| Air density        | 1                        | kg/m$^3$   |
-| Water viscosity    | 1 $\times$ 10$^{-6}$                | m$^2$/s    |
-| Air viscosity      | 1.48 $\times$ 10$^{-5}$             | m$^2$/s    |
+| Water density      | 1000                     | kg/m³   |
+| Air density        | 1                        | kg/m³   |
+| Water viscosity    | 1 × 10⁻⁶                | m²/s    |
+| Air viscosity      | 1.48 × 10⁻⁵             | m²/s    |
 | Surface tension    | 0.07                     | N/m     |
-| Gravity            | 9.81 (downward)          | m/s$^2$    |
+| Gravity            | 9.81 (downward)          | m/s²    |
 
 ### Time Evolution
 
@@ -147,10 +147,10 @@ the local volume fraction:
 ```
 
 where:
-- `ρ` — mixture density (varies with $\alpha$)
+- `ρ` — mixture density (varies with α)
 - `U` — velocity field (shared by both phases)
-- `p_rgh` — dynamic pressure (p - $\rho$ g · x), removes the hydrostatic component
-- `g` — gravitational acceleration vector (0, -9.81, 0) m/s$^2$
+- `p_rgh` — dynamic pressure (p - ρ g · x), removes the hydrostatic component
+- `g` — gravitational acceleration vector (0, -9.81, 0) m/s²
 - `μ` — mixture dynamic viscosity
 - `σ` — surface tension coefficient
 - `κ` — interface curvature
@@ -159,7 +159,7 @@ where:
 ### Mixture Properties
 
 The fluid properties at any point in the domain are computed as weighted averages
-of the two phases using the volume fraction $\alpha$:
+of the two phases using the volume fraction α:
 
 ```
 ρ = α · ρ_water + (1 - α) · ρ_air
@@ -187,7 +187,7 @@ This small-scale dam break (0.584 m domain) operates at relatively low Reynolds
 numbers during most of the simulation. While some turbulent features may develop
 during the splash phase, a laminar simulation captures the essential physics of
 the collapse and wave propagation. This keeps the case simple and focused on the
-VOF method itself. For larger-scale dam breaks, turbulence modelling (e.g., k-$\varepsilon$
+VOF method itself. For larger-scale dam breaks, turbulence modelling (e.g., k-ε
 or LES) would be appropriate.
 
 See also: [Turbulence Models](../../notes/06_turbulence_models.md)
@@ -207,7 +207,7 @@ immiscible fluids. The key idea is elegantly simple:
 
 ### The Alpha Field
 
-The volume fraction field `alpha.water` (denoted $\alpha$) represents the fraction of
+The volume fraction field `alpha.water` (denoted α) represents the fraction of
 each computational cell occupied by water:
 
 ```
@@ -223,11 +223,11 @@ each computational cell occupied by water:
                   cell
 ```
 
-| Value of $\alpha$ | Meaning                     |
+| Value of α | Meaning                     |
 |------------|-----------------------------|
-| $\alpha$ = 1      | Cell is fully water         |
-| $\alpha$ = 0      | Cell is fully air           |
-| 0 < $\alpha$ < 1  | Cell contains the interface |
+| α = 1      | Cell is fully water         |
+| α = 0      | Cell is fully air           |
+| 0 < α < 1  | Cell contains the interface |
 
 ### Transport Equation for Alpha
 
@@ -733,7 +733,7 @@ Phase-1 volume fraction = 0.0625  Min(alpha.water) = 0  Max(alpha.water) = 1
 | Min(alpha.water)         | 0 (exactly)           | Negative values = boundedness issue |
 | Max(alpha.water)         | 1 (exactly)           | > 1 = MULES not working            |
 | Phase volume fraction    | ~0.0625 (constant)    | Changing = mass not conserved       |
-| Courant number           | $\leq$ 0.5                 | Higher = may need smaller maxCo     |
+| Courant number           | ≤ 0.5                 | Higher = may need smaller maxCo     |
 | Time step                | 0.001–0.01            | Very small = possible mesh issue    |
 
 ### Physical Behavior Timeline
@@ -859,7 +859,7 @@ Their non-dimensional results for the wave front position are:
 
 Add a small rectangular obstacle on the tank floor to study wave-structure interaction.
 Modify `blockMeshDict` to include an obstacle at x = 0.292 m with dimensions
-0.024 $\times$ 0.048 m. This requires splitting the domain into multiple blocks.
+0.024 × 0.048 m. This requires splitting the domain into multiple blocks.
 
 ```
   ┌──────────────────────────────────────────────────────┐
@@ -888,12 +888,12 @@ Modify the `setFieldsDict` box coordinates for each case and compare results.
 
 Test the sensitivity of results to mesh resolution:
 
-| Mesh   | Cells    | $\Delta x$ (m)   | Expected Outcome                       |
+| Mesh   | Cells    | Δx (m)   | Expected Outcome                       |
 |--------|----------|----------|----------------------------------------|
-| Coarse | 23$\times$23    | 0.0254   | Fast but diffused interface            |
-| Medium | 46$\times$46    | 0.0127   | Good balance (this tutorial)           |
-| Fine   | 92$\times$92    | 0.0063   | Sharper interface, slower              |
-| VFine  | 184$\times$184  | 0.0032   | Detailed splashing features visible    |
+| Coarse | 23×23    | 0.0254   | Fast but diffused interface            |
+| Medium | 46×46    | 0.0127   | Good balance (this tutorial)           |
+| Fine   | 92×92    | 0.0063   | Sharper interface, slower              |
+| VFine  | 184×184  | 0.0032   | Detailed splashing features visible    |
 
 Modify the cell counts in `blockMeshDict` and compare interface sharpness.
 
@@ -923,12 +923,12 @@ See also: [Turbulence Models](../../notes/06_turbulence_models.md)
 Study the effect of surface tension by varying the `sigma` value in
 `transportProperties`:
 
-| $\sigma$ (N/m) | Physical Meaning                | Effect on Flow                       |
+| σ (N/m) | Physical Meaning                | Effect on Flow                       |
 |---------|----------------------------------|--------------------------------------|
 | 0.0     | No surface tension               | Maximum interface fragmentation      |
 | 0.07    | Water-air (standard)             | Slight interface smoothing           |
-| 0.7     | 10$\times$ enhanced                     | Noticeable rounding of interface     |
-| 7.0     | 100$\times$ enhanced                    | Strong surface tension dominance     |
+| 0.7     | 10× enhanced                     | Noticeable rounding of interface     |
+| 7.0     | 100× enhanced                    | Strong surface tension dominance     |
 
 ---
 
@@ -957,7 +957,7 @@ Study the effect of surface tension by varying the `sigma` value in
    for Modeling Surface Tension." *Journal of Computational Physics*, 100(2),
    pp. 335–354.
    - The Continuum Surface Force (CSF) model used in OpenFOAM
-   - Converts surface tension to a volume force using $\nabla$$\alpha$
+   - Converts surface tension to a volume force using ∇α
 
 ### OpenFOAM Documentation
 
