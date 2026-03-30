@@ -341,8 +341,8 @@ blade STL geometry. The purpose here is to demonstrate the MRF concept.
 
 | Parameter       | Value                          | Purpose                      |
 |-----------------|--------------------------------|------------------------------|
-| Domain size     | 3.0 $\times$ 2.0 $\times$ 0.1 m            | Rectangular, quasi-2D        |
-| Cell count      | 150 $\times$ 100 $\times$ 1                 | 15,000 cells total           |
+| Domain size     | 3.0 × 2.0 × 0.1 m            | Rectangular, quasi-2D        |
+| Cell count      | 150 × 100 × 1                 | 15,000 cells total           |
 | Cell size (dx)  | 0.02 m                         | Uniform spacing              |
 | Cell size (dy)  | 0.02 m                         | Uniform spacing              |
 | Grading         | (1 1 1) — uniform              | No stretching                |

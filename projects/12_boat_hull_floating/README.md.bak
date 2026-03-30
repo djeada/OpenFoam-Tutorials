@@ -155,7 +155,7 @@ The **dynamicMeshDict** is the most important new file. It tells OpenFOAM:
 ### 4.1 Volume of Fluid (VOF) — Recap
 
 The VOF method tracks the interface between two immiscible fluids (water and
-air) using a scalar field **$\alpha$** (alpha):
+air) using a scalar field **α** (alpha):
 
 ```
   α = 1  →  pure water
@@ -163,7 +163,7 @@ air) using a scalar field **$\alpha$** (alpha):
   0 < α < 1  →  interface region
 ```
 
-The transport equation for $\alpha$:
+The transport equation for α:
 
 ```
   ∂α/∂t + ∇·(U α) + ∇·(U_r α(1-α)) = 0
@@ -286,7 +286,7 @@ smoothing** approach to redistribute mesh points:
   ∇·(γ ∇ cellDisplacement) = 0
 ```
 
-where $\gamma$ is a diffusivity field that controls how much each cell moves.
+where γ is a diffusivity field that controls how much each cell moves.
 
 The `innerDistance` and `outerDistance` parameters define three zones:
 
@@ -388,10 +388,10 @@ The hull geometry comes from `boat_hull.stl` at the repository root:
 | Property              | Value                         | Units         |
 |-----------------------|-------------------------------|---------------|
 | Mass                  | 0.050                         | kg            |
-| Centre of mass        | (0, 0, $-$0.005)                | m             |
-| Ixx (roll)            | 5.0 $\times$ 10$^{-6}$                   | kg·m$^2$         |
-| Iyy (pitch)           | 1.5 $\times$ 10$^{-5}$                   | kg·m$^2$         |
-| Izz (yaw)             | 1.5 $\times$ 10$^{-5}$                   | kg·m$^2$         |
+| Centre of mass        | (0, 0, −0.005)                | m             |
+| Ixx (roll)            | 5.0 × 10⁻⁶                   | kg·m²         |
+| Iyy (pitch)           | 1.5 × 10⁻⁵                   | kg·m²         |
+| Izz (yaw)             | 1.5 × 10⁻⁵                   | kg·m²         |
 
 The centre of mass is 5 mm below the geometric centre. This is physically
 reasonable — the bottom of a boat hull is thicker than the top, and the
@@ -409,7 +409,7 @@ For a uniform rectangular solid with mass m, length L, width W, height H:
 
 But a boat hull is *not* a solid rectangular block — it's a hollow shell with
 most of its mass near the waterline. The actual moments of inertia are much
-smaller (roughly 10–20$\times$ less) because mass is concentrated near the centre.
+smaller (roughly 10–20× less) because mass is concentrated near the centre.
 Our values (5e-6, 1.5e-5, 1.5e-5) reflect this.
 
 ---
@@ -459,7 +459,7 @@ boat room to bob up and down without the bottom boundary interfering.
 
 ### Why the Waterline Refinement Box?
 
-The free surface at z $\approx$ 0 is where all the action happens: waves, splashing,
+The free surface at z ≈ 0 is where all the action happens: waves, splashing,
 the hull entering and leaving the water. Fine cells here improve:
 - Interface sharpness
 - Force calculation accuracy (buoyancy depends on knowing exactly where the
@@ -499,7 +499,7 @@ mesh moves — the simulation would diverge immediately.
 
 ### 8.2 `0/p_rgh`
 
-**Reduced pressure** (p - $\rho$gh).
+**Reduced pressure** (p - ρgh).
 
 Using p_rgh instead of p removes the hydrostatic component, which improves
 numerical accuracy for free-surface flows.
@@ -518,7 +518,7 @@ numerical accuracy for free-surface flows.
 **Phase fraction** — identifies where water and air are.
 
 Initially set to 0 everywhere (air). The `setFields` utility fills
-everything below z = 0 with $\alpha$ = 1 (water).
+everything below z = 0 with α = 1 (water).
 
 ```
   inlet:       inletOutlet (inletValue 1)  Water enters from below waterline
@@ -565,8 +565,8 @@ Two-phase fluid properties — identical to Project 11.
   simulationType  laminar;
 ```
 
-Laminar flow — appropriate for a small toy boat at low speed. Re $\approx$ UL/$\nu$ =
-0.2 $\times$ 0.155 / 1e-6 $\approx$ 31,000 — borderline, but laminar is acceptable for
+Laminar flow — appropriate for a small toy boat at low speed. Re ≈ UL/ν =
+0.2 × 0.155 / 1e-6 ≈ 31,000 — borderline, but laminar is acceptable for
 a learning case.
 
 ### 8.7 `constant/g`
@@ -608,7 +608,7 @@ mesh motion and the 6-DoF rigid body solver.
 | `patches`              | `(boat)`               | Which patches form the rigid body |
 | `mass`                 | `0.050`                | Body mass in kg |
 | `centreOfMass`         | `(0 0 -0.005)`         | CoM position in m |
-| `momentOfInertia`      | `(5e-06 1.5e-05 1.5e-05)` | Ixx, Iyy, Izz in kg·m$^2$ |
+| `momentOfInertia`      | `(5e-06 1.5e-05 1.5e-05)` | Ixx, Iyy, Izz in kg·m² |
 | `report`               | `on`                   | Print position/rotation each timestep |
 
 #### sixDoFRigidBodyMotionCoeffs — Mesh Motion
@@ -686,7 +686,7 @@ This is a good starting configuration:
 
 ### 8.9 `system/blockMeshDict`
 
-Creates the background hexahedral mesh: 60 $\times$ 20 $\times$ 14 cells.
+Creates the background hexahedral mesh: 60 × 20 × 14 cells.
 
 ```
   Domain: [-0.5, 1.0] × [-0.25, 0.25] × [-0.20, 0.15] m
@@ -772,8 +772,8 @@ The box `(-10 -10 -10) (10 10 0)` is intentionally huge — it fills *all*
 cells below the waterline, regardless of domain size.
 
 After `setFields`, the boat hull sits with its centre at the waterline:
-- Bottom half submerged in water ($\alpha$ = 1)
-- Top half in air ($\alpha$ = 0)
+- Bottom half submerged in water (α = 1)
+- Top half in air (α = 0)
 
 ### 8.14 `system/surfaceFeatureExtractDict`
 
@@ -1038,7 +1038,7 @@ Constraint 3 is the new one. If the body moves too far in one step, cells
 near it can invert. The `adjustTimeStep` mechanism handles constraints 1 and 2
 but does NOT directly monitor mesh quality.
 
-**Rule of thumb:** Start with a very small $\delta t$ (5e-5) and let the adaptive
+**Rule of thumb:** Start with a very small δt (5e-5) and let the adaptive
 timestepping find the right value. Don't increase `maxDeltaT` beyond 0.005.
 
 ### Acceleration Relaxation and Damping

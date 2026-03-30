@@ -74,16 +74,16 @@ moving to a **free-floating** hull. Fixing the hull:
 | Parameter            | Value                                |
 |----------------------|--------------------------------------|
 | Solver               | `interFoam` (VOF two-phase)          |
-| Phases               | Water ($\rho$=998.2 kg/m$^3$) + Air ($\rho$=1.225 kg/m$^3$) |
+| Phases               | Water (ρ=998.2 kg/m³) + Air (ρ=1.225 kg/m³) |
 | Flow speed           | 0.3 m/s (towing speed)               |
 | Boat length          | 0.155 m (~6 inches)                  |
-| Reynolds number      | Re $\approx$ 46,500 (based on boat length)   |
-| Froude number        | Fr $\approx$ 0.243 (based on boat length)    |
+| Reynolds number      | Re ≈ 46,500 (based on boat length)   |
+| Froude number        | Fr ≈ 0.243 (based on boat length)    |
 | Turbulence model     | Laminar (first pass)                 |
-| Surface tension      | $\sigma$ = 0.072 N/m                        |
-| Gravity              | g = -9.81 m/s$^2$ (z-direction)         |
+| Surface tension      | σ = 0.072 N/m                        |
+| Gravity              | g = -9.81 m/s² (z-direction)         |
 
-The **Froude number** Fr = U / $\sqrt{gL}$ $\approx$ 0.3 / $\sqrt{9.81 × 0.155}$ $\approx$ 0.243,
+The **Froude number** Fr = U / √(gL) ≈ 0.3 / √(9.81 × 0.155) ≈ 0.243,
 which is in the wave-making regime — we should see visible surface waves.
 
 ---
@@ -110,14 +110,14 @@ and computationally challenging.
 ### Volume of Fluid (VOF)
 
 The VOF method tracks the interface using a **phase fraction** field
-`alpha.water` ($\alpha$):
+`alpha.water` (α):
 
-- $\alpha$ = 1: cell is fully water
-- $\alpha$ = 0: cell is fully air
-- 0 < $\alpha$ < 1: cell contains the interface
+- α = 1: cell is fully water
+- α = 0: cell is fully air
+- 0 < α < 1: cell contains the interface
 
 A single set of Navier-Stokes equations is solved for the **mixture**, with
-material properties that vary according to $\alpha$:
+material properties that vary according to α:
 
 ```
 ρ_mixture = α · ρ_water + (1 - α) · ρ_air
@@ -126,7 +126,7 @@ material properties that vary according to $\alpha$:
 
 ### Surface Tension
 
-Surface tension $\sigma$ acts at the interface and is modeled using the
+Surface tension σ acts at the interface and is modeled using the
 **Continuum Surface Force (CSF)** method. The surface tension force is
 converted to a volume force:
 
@@ -134,7 +134,7 @@ converted to a volume force:
 F_σ = σ κ ∇α
 ```
 
-where $\kappa$ is the interface curvature estimated from the $\alpha$ field.
+where κ is the interface curvature estimated from the α field.
 
 ---
 
@@ -205,7 +205,7 @@ Rule of thumb for external flow around a body of length L:
 |-------------|------------------|-------------|----------------------------|
 | Upstream    | ~3L from hull    | 0.5 m       | Undisturbed inflow         |
 | Downstream  | ~6L from hull    | 1.0 m       | Wake/wave development      |
-| Lateral     | ~3W each side    | $\pm$0.25 m     | No wall interference       |
+| Lateral     | ~3W each side    | ±0.25 m     | No wall interference       |
 | Below       | ~3H below hull   | 0.15 m      | No bottom effects          |
 | Above       | ~3H above water  | 0.15 m      | Air space for waves        |
 
@@ -302,7 +302,7 @@ removed, which improves numerical conditioning for free-surface flows.
 ### 0/alpha.water — Phase Fraction
 
 The water volume fraction. Initialized to 0 everywhere (all air), then
-`setFields` fills everything below z = 0 with water ($\alpha$ = 1).
+`setFields` fills everything below z = 0 with water (α = 1).
 
 - **inlet**: `fixedValue 1` — water enters from the left
 - **outlet/atmosphere**: `inletOutlet` — prevents air from flowing in as water
@@ -336,8 +336,8 @@ Gravity points in the -z direction: `(0 0 -9.81)`. This is essential for:
 
 Creates the base hexahedral mesh that `snappyHexMesh` will refine.
 
-- **Domain**: [-0.5, 1.0] $\times$ [-0.25, 0.25] $\times$ [-0.15, 0.15]
-- **Cells**: 60 $\times$ 20 $\times$ 12 = 14,400 cells
+- **Domain**: [-0.5, 1.0] × [-0.25, 0.25] × [-0.15, 0.15]
+- **Cells**: 60 × 20 × 12 = 14,400 cells
 - **Cell size**: ~25 mm (coarse — snappy will refine near hull)
 
 ### system/controlDict — Run Control
@@ -374,7 +374,7 @@ Key entries for interFoam:
 
 ### system/setFieldsDict — Phase Initialization
 
-Uses `boxToCell` to set $\alpha$ = 1 in a huge box from (-10,-10,-10) to (10,10,0).
+Uses `boxToCell` to set α = 1 in a huge box from (-10,-10,-10) to (10,10,0).
 Since z = 0 is the waterline, everything below gets filled with water.
 
 ### system/surfaceFeatureExtractDict
@@ -387,7 +387,7 @@ file. These edges guide `snappyHexMesh` for accurate feature snapping.
 Three-stage mesh generation:
 
 1. **Castellated mesh**: Refines cells near the hull surface
-   - Surface refinement: levels 2-3 (cells 4-8$\times$ smaller than background)
+   - Surface refinement: levels 2-3 (cells 4-8× smaller than background)
    - Region refinement: level 2 in a box around the waterline
 2. **Snap**: Moves cell vertices onto the STL surface
 3. **Add layers**: Disabled for first pass (set `addLayers false`)
@@ -518,18 +518,18 @@ boat and inside the domain).
 
 - **fixedFluxPressure**: Adjusts the pressure gradient at the boundary to
   be consistent with the velocity BC. Essential for gravity-driven flows.
-- **totalPressure**: Sets p$_0$ = 0 at the outlet/atmosphere, allowing
+- **totalPressure**: Sets p₀ = 0 at the outlet/atmosphere, allowing
   pressure to vary with the velocity (Bernoulli-like condition).
 - **pressureInletOutletVelocity**: A smart BC that applies zero-gradient
   for outflow and fixedValue for inflow (preventing reverse flow).
-- **inletOutlet for $\alpha$**: Prevents air from being "sucked in" as water at
+- **inletOutlet for α**: Prevents air from being "sucked in" as water at
   outflow boundaries.
 
 ---
 
 ## Phase Initialization (setFields)
 
-After meshing, the entire domain is initialized as air ($\alpha$ = 0). The
+After meshing, the entire domain is initialized as air (α = 0). The
 `setFields` utility reads `setFieldsDict` and fills the water region:
 
 ```
@@ -546,7 +546,7 @@ After meshing, the entire domain is initialized as air ($\alpha$ = 0). The
 ```
 
 The `boxToCell` selector fills a giant box from (-10,-10,-10) to (10,10,0)
-with $\alpha$ = 1. The box is intentionally oversized — only cells inside the
+with α = 1. The box is intentionally oversized — only cells inside the
 mesh domain are affected. The z = 0 cutoff creates the waterline.
 
 **Inside the hull**: Cells inside the boat geometry were removed by
@@ -559,7 +559,7 @@ solid obstacle.
 
 ### The Volume Fraction Equation
 
-The VOF method solves a transport equation for the phase fraction $\alpha$:
+The VOF method solves a transport equation for the phase fraction α:
 
 ```
 ∂α/∂t + ∇·(U α) + ∇·(U_r α(1-α)) = 0
@@ -572,15 +572,15 @@ where:
 
 The third term `∇·(U_r α(1-α))` is the **interface compression** term,
 unique to OpenFOAM's VOF implementation. The factor `α(1-α)` ensures
-compression only acts at the interface (where 0 < $\alpha$ < 1), not in pure
+compression only acts at the interface (where 0 < α < 1), not in pure
 fluid regions.
 
 ### MULES Algorithm
 
 OpenFOAM uses the **Multidimensional Universal Limiter with Explicit
-Solution (MULES)** algorithm to solve the $\alpha$ equation. MULES ensures:
+Solution (MULES)** algorithm to solve the α equation. MULES ensures:
 
-1. **Boundedness**: $\alpha$ stays between 0 and 1 (no unphysical overshoot)
+1. **Boundedness**: α stays between 0 and 1 (no unphysical overshoot)
 2. **Sharpness**: The interface remains thin (1-3 cells wide)
 3. **Conservation**: Total water volume is conserved
 
@@ -608,7 +608,7 @@ discontinuities that would destabilize the numerics.
 
 `interFoam` solves the following coupled system at each time step:
 
-1. **Volume fraction equation** ($\alpha$ transport):
+1. **Volume fraction equation** (α transport):
    ```
    ∂α/∂t + ∇·(Uα) + ∇·(U_c α(1-α)) = 0
    ```
@@ -627,7 +627,7 @@ The variables are:
 - `U`: velocity vector field
 - `p_rgh = p - ρgh`: modified pressure (hydrostatic part removed)
 - `α`: water volume fraction
-- `ρ, μ`: mixture density and viscosity (functions of $\alpha$)
+- `ρ, μ`: mixture density and viscosity (functions of α)
 - `σκ∇α`: surface tension force (CSF model)
 
 ### Solution Algorithm (PIMPLE)
@@ -649,12 +649,12 @@ For each time step:
 
 ### Adaptive Time Stepping
 
-With `adjustTimeStep yes`, interFoam automatically adjusts $\Delta t$ to satisfy:
+With `adjustTimeStep yes`, interFoam automatically adjusts Δt to satisfy:
 
 - **maxCo = 0.5**: Maximum Courant number for velocity
 - **maxAlphaCo = 0.3**: Maximum Courant number for the interface
 
-The interface Courant limit is stricter because the $\alpha$ equation is solved
+The interface Courant limit is stricter because the α equation is solved
 explicitly and is more sensitive to time step size. See
 [Note 08 — The CFL Number](../../notes/08_cfl_number.md) for details.
 
@@ -743,7 +743,7 @@ Check: `log.checkMesh`
 setFields
 ```
 
-Sets $\alpha$ = 1 below z = 0 (water region). Check: `log.setFields`
+Sets α = 1 below z = 0 (water region). Check: `log.setFields`
 
 #### Step 7: Run Solver
 
@@ -872,7 +872,7 @@ cat postProcessing/forces/0/forces.dat | tail -20
 
 ### Flow Features
 
-At Fr $\approx$ 0.24 and Re $\approx$ 46,500, you should observe:
+At Fr ≈ 0.24 and Re ≈ 46,500, you should observe:
 
 ```
   SIDE VIEW (centerplane, y = 0):
@@ -920,9 +920,9 @@ dominates** (~70-80% of total drag).
 | Quantity           | Expected Range      |
 |-------------------|---------------------|
 | Total drag force   | 0.01–0.05 N         |
-| Drag coefficient   | Cd $\approx$ 0.1–0.5        |
+| Drag coefficient   | Cd ≈ 0.1–0.5        |
 | Bow wave height    | 1–5 mm              |
-| Max Courant number | $\leq$ 0.5 (controlled)  |
+| Max Courant number | ≤ 0.5 (controlled)  |
 | Time step (steady) | ~0.001–0.01 s       |
 
 ---
@@ -933,7 +933,7 @@ dominates** (~70-80% of total drag).
 
 #### 1. Interface Smearing
 
-**Symptom**: The water surface becomes diffuse ($\alpha$ spreads over many cells).
+**Symptom**: The water surface becomes diffuse (α spreads over many cells).
 
 **Causes and fixes**:
 - Mesh too coarse at waterline → increase refinement level in `snappyHexMeshDict`
@@ -1003,10 +1003,10 @@ Run the simulation with different refinement levels:
 
 Modify the inlet velocity and observe how waves change:
 
-1. Run at U = 0.15 m/s (Fr $\approx$ 0.12) — minimal wave making
-2. Run at U = 0.3 m/s (Fr $\approx$ 0.24) — moderate waves (baseline)
-3. Run at U = 0.6 m/s (Fr $\approx$ 0.49) — strong waves
-4. Plot drag vs. speed — does it follow a U$^2$ relationship?
+1. Run at U = 0.15 m/s (Fr ≈ 0.12) — minimal wave making
+2. Run at U = 0.3 m/s (Fr ≈ 0.24) — moderate waves (baseline)
+3. Run at U = 0.6 m/s (Fr ≈ 0.49) — strong waves
+4. Plot drag vs. speed — does it follow a U² relationship?
 
 ### Exercise 3: Enable Turbulence
 

@@ -5,7 +5,7 @@
 | **Difficulty** | ⭐⭐⭐ Intermediate–Advanced |
 | **Solver** | `buoyantSimpleFoam` (steady-state, buoyant, compressible with energy) |
 | **Algorithm** | SIMPLE |
-| **Turbulence** | k-$\varepsilon$ (RAS) |
+| **Turbulence** | k-ε (RAS) |
 | **Mesh** | `blockMesh` (multi-block structured T-shape) |
 | **Physics** | Forced convection, scalar transport, thermal mixing |
 | **Key Learning** | Temperature field, thermal stratification, multi-block meshing |
@@ -176,7 +176,7 @@ where U_branch = 0.5 m/s     (branch inlet velocity)
 ```
 
 Both Reynolds numbers are well above the laminar-turbulent transition
-(Re $\approx$ 2300 for pipe flow), justifying the use of a turbulence model.
+(Re ≈ 2300 for pipe flow), justifying the use of a turbulence model.
 
 ### Thermal Mixing Theory
 
@@ -227,7 +227,7 @@ where σ_T         = standard deviation of T across a cross-section
 where L_mix is the characteristic mixing length
 ```
 
-Good mixing requires L_mix $\approx$ 10–20 hydraulic diameters downstream
+Good mixing requires L_mix ≈ 10–20 hydraulic diameters downstream
 of the junction for turbulent flow.
 
 ### Turbulent Prandtl Number
@@ -242,7 +242,7 @@ where Pr_t ≈ 0.85  (turbulent Prandtl number, default in OpenFOAM)
 ```
 
 This means turbulent heat transport is enhanced relative to momentum
-transport. The k-$\varepsilon$ model provides $\nu$_t, and `alphat` provides the
+transport. The k-ε model provides ν_t, and `alphat` provides the
 wall-bounded turbulent thermal diffusivity.
 
 ---
@@ -399,14 +399,14 @@ z=0.01):
   └────────────────────────────────────────────────────────┘
 ```
 
-| Block | Region | Cells (x $\times$ y $\times$ z) | Dimensions (m) |
+| Block | Region | Cells (x × y × z) | Dimensions (m) |
 |---|---|---|---|
-| 0 | Main pipe, left of junction | 50 $\times$ 40 $\times$ 1 | 0.125 $\times$ 0.1 $\times$ 0.01 |
-| 1 | Main pipe, junction zone | 20 $\times$ 40 $\times$ 1 | 0.05 $\times$ 0.1 $\times$ 0.01 |
-| 2 | Main pipe, right of junction | 130 $\times$ 40 $\times$ 1 | 0.325 $\times$ 0.1 $\times$ 0.01 |
-| 3 | Branch pipe | 20 $\times$ 40 $\times$ 1 | 0.05 $\times$ 0.1 $\times$ 0.01 |
+| 0 | Main pipe, left of junction | 50 × 40 × 1 | 0.125 × 0.1 × 0.01 |
+| 1 | Main pipe, junction zone | 20 × 40 × 1 | 0.05 × 0.1 × 0.01 |
+| 2 | Main pipe, right of junction | 130 × 40 × 1 | 0.325 × 0.1 × 0.01 |
+| 3 | Branch pipe | 20 × 40 × 1 | 0.05 × 0.1 × 0.01 |
 
-**Total cells:** 50$\times$40 + 20$\times$40 + 130$\times$40 + 20$\times$40 = 2000 + 800 + 5200 + 800
+**Total cells:** 50×40 + 20×40 + 130×40 + 20×40 = 2000 + 800 + 5200 + 800
 = **8,800 cells**
 
 ### Multi-Block Connectivity
@@ -465,7 +465,7 @@ OpenFOAM automatically merges faces that share the same vertex coordinates:
 
 | Patch | Type | Value | Notes |
 |---|---|---|---|
-| All patches | `calculated` | `0` | Derived from `p_rgh` + $\rho$gh |
+| All patches | `calculated` | `0` | Derived from `p_rgh` + ρgh |
 | `frontAndBack` | `empty` | — | 2D constraint |
 
 ### Temperature (`T`) — ★ The Key Field
@@ -486,8 +486,8 @@ OpenFOAM automatically merges faces that share the same vertex coordinates:
 
 | Patch | Type | Value | Notes |
 |---|---|---|---|
-| `mainInlet` | `fixedValue` | `0.06` m$^2$/s$^2$ | TI $\approx$ 3.5% at 1.0 m/s |
-| `branchInlet` | `fixedValue` | `0.015` m$^2$/s$^2$ | TI $\approx$ 3.5% at 0.5 m/s |
+| `mainInlet` | `fixedValue` | `0.06` m²/s² | TI ≈ 3.5% at 1.0 m/s |
+| `branchInlet` | `fixedValue` | `0.015` m²/s² | TI ≈ 3.5% at 0.5 m/s |
 | `outlet` | `zeroGradient` | — | Free outflow |
 | `walls` | `kqRWallFunction` | `0.06` | Wall function for k |
 | `frontAndBack` | `empty` | — | 2D constraint |
@@ -509,10 +509,10 @@ Branch: k = 1.5 × (0.5 × 0.2)²   ≈ 0.015    (using TI=20%)
 
 | Patch | Type | Value | Notes |
 |---|---|---|---|
-| `mainInlet` | `fixedValue` | `0.0495` m$^2$/s$^3$ | Estimated from k and L |
-| `branchInlet` | `fixedValue` | `0.00877` m$^2$/s$^3$ | Estimated from k and L |
+| `mainInlet` | `fixedValue` | `0.0495` m²/s³ | Estimated from k and L |
+| `branchInlet` | `fixedValue` | `0.00877` m²/s³ | Estimated from k and L |
 | `outlet` | `zeroGradient` | — | Free outflow |
-| `walls` | `epsilonWallFunction` | `0.0495` | Wall function for $\varepsilon$ |
+| `walls` | `epsilonWallFunction` | `0.0495` | Wall function for ε |
 | `frontAndBack` | `empty` | — | 2D constraint |
 
 **Dissipation rate estimation:**
@@ -534,20 +534,20 @@ Branch: l = 0.07 × 0.05 = 0.0035 m
 
 | Patch | Type | Value | Notes |
 |---|---|---|---|
-| `mainInlet` | `calculated` | `0` | Computed from k and $\varepsilon$ |
-| `branchInlet` | `calculated` | `0` | Computed from k and $\varepsilon$ |
-| `outlet` | `calculated` | `0` | Computed from k and $\varepsilon$ |
-| `walls` | `nutkWallFunction` | `0` | Standard wall function for $\nu$_t |
+| `mainInlet` | `calculated` | `0` | Computed from k and ε |
+| `branchInlet` | `calculated` | `0` | Computed from k and ε |
+| `outlet` | `calculated` | `0` | Computed from k and ε |
+| `walls` | `nutkWallFunction` | `0` | Standard wall function for ν_t |
 | `frontAndBack` | `empty` | — | 2D constraint |
 
 ### Turbulent Thermal Diffusivity (`alphat`)
 
 | Patch | Type | Value | Notes |
 |---|---|---|---|
-| `mainInlet` | `calculated` | `0` | Computed from $\nu$_t and Pr_t |
-| `branchInlet` | `calculated` | `0` | Computed from $\nu$_t and Pr_t |
-| `outlet` | `calculated` | `0` | Computed from $\nu$_t and Pr_t |
-| `walls` | `compressible::alphatWallFunction` | `0` | Wall function for $\alpha$_t |
+| `mainInlet` | `calculated` | `0` | Computed from ν_t and Pr_t |
+| `branchInlet` | `calculated` | `0` | Computed from ν_t and Pr_t |
+| `outlet` | `calculated` | `0` | Computed from ν_t and Pr_t |
+| `walls` | `compressible::alphatWallFunction` | `0` | Wall function for α_t |
 | `frontAndBack` | `empty` | — | 2D constraint |
 
 > **Why `compressible::alphatWallFunction`?** Since `buoyantSimpleFoam`
@@ -569,7 +569,7 @@ model used by `buoyantSimpleFoam`:
 | `mixture` | `pureMixture` | Single-component fluid |
 | `transport` | `const` | Constant transport properties |
 | `thermo` | `hConst` | Constant specific heat capacity |
-| `equationOfState` | `perfectGas` | Ideal gas law ($\rho$ = p/(RT)) |
+| `equationOfState` | `perfectGas` | Ideal gas law (ρ = p/(RT)) |
 | `specie` | `specie` | Basic species model |
 | `energy` | `sensibleEnthalpy` | Energy variable is sensible enthalpy |
 
@@ -586,7 +586,7 @@ model used by `buoyantSimpleFoam`:
 | Molecular weight | M | 18.0 | g/mol |
 | Specific heat capacity | Cp | 4182 | J/(kg·K) |
 | Heat of formation | Hf | 0 | J/kg |
-| Dynamic viscosity | $\mu$ | 1$\times$10$^{-3}$ | Pa·s |
+| Dynamic viscosity | μ | 1×10⁻³ | Pa·s |
 | Prandtl number | Pr | 7.0 | — |
 
 ### Transport Properties
@@ -594,15 +594,15 @@ model used by `buoyantSimpleFoam`:
 | Property | Symbol | Value | Dimensions |
 |---|---|---|---|
 | Transport model | — | Newtonian | — |
-| Kinematic viscosity | $\nu$ | 1$\times$10$^{-6}$ | [0 2 -1 0 0 0 0] m$^2$/s |
+| Kinematic viscosity | ν | 1×10⁻⁶ | [0 2 -1 0 0 0 0] m²/s |
 
 ### Gravity
 
 | Component | Value | Units |
 |---|---|---|
-| g_x | 0 | m/s$^2$ |
-| g_y | -9.81 | m/s$^2$ |
-| g_z | 0 | m/s$^2$ |
+| g_x | 0 | m/s² |
+| g_y | -9.81 | m/s² |
+| g_z | 0 | m/s² |
 
 ---
 
@@ -617,28 +617,28 @@ model used by `buoyantSimpleFoam`:
 | Turbulence | on |
 | Print coefficients | on |
 
-### k-$\varepsilon$ Model Constants (Defaults)
+### k-ε Model Constants (Defaults)
 
 | Constant | Value | Description |
 |---|---|---|
-| C$\mu$ | 0.09 | Eddy viscosity coefficient |
+| Cμ | 0.09 | Eddy viscosity coefficient |
 | C1 | 1.44 | Production coefficient |
 | C2 | 1.92 | Destruction coefficient |
-| $\sigma$_k | 1.0 | Turbulent Prandtl number for k |
-| $\sigma$_$\varepsilon$ | 1.3 | Turbulent Prandtl number for $\varepsilon$ |
+| σ_k | 1.0 | Turbulent Prandtl number for k |
+| σ_ε | 1.3 | Turbulent Prandtl number for ε |
 
 ### Wall Treatment
 
-The k-$\varepsilon$ model uses **standard wall functions** for near-wall treatment:
+The k-ε model uses **standard wall functions** for near-wall treatment:
 
 - `kqRWallFunction` — applies the equilibrium assumption for k at walls
-- `epsilonWallFunction` — computes $\varepsilon$ from the equilibrium log-law
-- `nutkWallFunction` — computes $\nu$_t from k and the wall distance
-- `compressible::alphatWallFunction` — wall function for $\alpha$_t
+- `epsilonWallFunction` — computes ε from the equilibrium log-law
+- `nutkWallFunction` — computes ν_t from k and the wall distance
+- `compressible::alphatWallFunction` — wall function for α_t
 
 > **Important:** Wall functions require the first cell centre to be in
-> the log-law region (30 < y$^+$ < 300). With this mesh resolution, y$^+$
-> values may be approximate. For production work, verify y$^+$ values
+> the log-law region (30 < y⁺ < 300). With this mesh resolution, y⁺
+> values may be approximate. For production work, verify y⁺ values
 > and consider using `kOmegaSST` with wall-resolved meshes.
 
 ---
@@ -681,8 +681,8 @@ The k-$\varepsilon$ model uses **standard wall functions** for near-wall treatme
 
 | Field | Solver | Preconditioner | Tolerance | Relative Tolerance |
 |---|---|---|---|---|
-| `p_rgh` | `GAMG` | `GaussSeidel` | 1$\times$10$^{-7}$ | 0.01 |
-| `U`, `h`, `k`, `epsilon` | `PBiCGStab` | `DILU` | 1$\times$10$^{-7}$ | 0.1 |
+| `p_rgh` | `GAMG` | `GaussSeidel` | 1×10⁻⁷ | 0.01 |
+| `U`, `h`, `k`, `epsilon` | `PBiCGStab` | `DILU` | 1×10⁻⁷ | 0.1 |
 
 **SIMPLE algorithm settings:**
 
@@ -704,7 +704,7 @@ The k-$\varepsilon$ model uses **standard wall functions** for near-wall treatme
 
 **Residual control:**
 
-All fields converge to 1$\times$10$^{-4}$. The solver stops when all residuals drop
+All fields converge to 1×10⁻⁴. The solver stops when all residuals drop
 below these thresholds, even before reaching `endTime`.
 
 ---
@@ -994,18 +994,18 @@ stratification?
 
 Keep velocities fixed but vary the temperature difference:
 
-| Case | T_main (K) | T_branch (K) | $\Delta T$ (K) |
+| Case | T_main (K) | T_branch (K) | ΔT (K) |
 |---|---|---|---|
-| Small $\Delta T$ | 320 | 300 | 20 |
+| Small ΔT | 320 | 300 | 20 |
 | Baseline | 350 | 300 | 50 |
-| Large $\Delta T$ | 400 | 300 | 100 |
+| Large ΔT | 400 | 300 | 100 |
 
 **Question:** Does the buoyancy effect become more significant with
 larger temperature differences? Look for changes in the flow pattern.
 
-### Exercise 3: Switch to k-$\omega$ SST Model
+### Exercise 3: Switch to k-ω SST Model
 
-Replace the k-$\varepsilon$ model with k-$\omega$ SST for better near-wall behaviour:
+Replace the k-ε model with k-ω SST for better near-wall behaviour:
 
 1. Modify `constant/turbulenceProperties`:
    ```
@@ -1045,7 +1045,7 @@ thermal striping (high-frequency temperature fluctuations at the wall):
 
 1. Change solver to `buoyantPimpleFoam`
 2. Switch turbulence to LES with Smagorinsky or WALE model
-3. Refine the mesh significantly (wall-resolved, y$^+$ < 1)
+3. Refine the mesh significantly (wall-resolved, y⁺ < 1)
 4. Set appropriate time step (CFL < 0.5)
 5. Run for sufficient flow-through times
 
@@ -1083,7 +1083,7 @@ Extend the 2D case to 3D by:
    mechanical analysis of thermal fatigue in a mixing tee," Nuclear
    Engineering and Design, Vol. 235, pp. 575–596.
 
-5. **k-$\varepsilon$ turbulence model** — Launder, B.E. and Spalding, D.B. (1974),
+5. **k-ε turbulence model** — Launder, B.E. and Spalding, D.B. (1974),
    "The numerical computation of turbulent flows," Computer Methods in
    Applied Mechanics and Engineering, Vol. 3, pp. 269–289.
 
