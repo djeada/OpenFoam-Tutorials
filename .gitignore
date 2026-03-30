@@ -10,6 +10,20 @@ projects/**/*.OpenFOAM
 projects/**/constant/polyMesh/
 projects/**/constant/extendedFeatureEdgeMesh/
 
+# Generated mesh artifacts
+projects/**/constant/*.geo
+projects/**/constant/*.msh
+
+# Fluent export artifacts
+projects/**/fluentInterface/
+
+# ParaView animation outputs
+projects/**/frames/
+projects/**/*.mp4
+
+# Python cache
+__pycache__/
+
 # Project 10 generated geometry artifacts
 projects/10_boat_hull_fixed/0.[0-9]*/
 projects/10_boat_hull_fixed/[1-9]*/

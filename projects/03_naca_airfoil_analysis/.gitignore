@@ -27,3 +27,7 @@
 /transient_animation/log.*
 /transient_animation/airfoil.foam
 /transient_animation/airfoil_transient_view.png
+/transient_animation/constant/*.geo
+/transient_animation/constant/*.msh
+/transient_animation/frames/
+/transient_animation/*.mp4

@@ -55,9 +55,23 @@ solvers
 PIMPLE
 {
     momentumPredictor          yes;
-    nOuterCorrectors           1;
+    nOuterCorrectors           2;
     nCorrectors                2;
     nNonOrthogonalCorrectors   1;
+}
+
+relaxationFactors
+{
+    fields
+    {
+        p               0.3;
+        pFinal          1;
+    }
+    equations
+    {
+        U               0.7;
+        UFinal          1;
+    }
 }
 
 potentialFlow

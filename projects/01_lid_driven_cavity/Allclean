@@ -1,0 +1,26 @@
+#!/bin/bash
+cd "${0%/*}" || exit 1
+
+# Source OpenFOAM bashrc
+if [ -f /opt/openfoam6/etc/bashrc ]; then
+    source /opt/openfoam6/etc/bashrc
+elif [ -f /opt/openfoam11/etc/bashrc ]; then
+    source /opt/openfoam11/etc/bashrc
+elif [ -f "$HOME/OpenFOAM/OpenFOAM-6/etc/bashrc" ]; then
+    source "$HOME/OpenFOAM/OpenFOAM-6/etc/bashrc"
+elif [ -f /usr/lib/openfoam/openfoam/etc/bashrc ]; then
+    source /usr/lib/openfoam/openfoam/etc/bashrc
+else
+    echo "Error: Could not find OpenFOAM bashrc" >&2
+    exit 1
+fi
+
+# Source clean functions
+. "$WM_PROJECT_DIR/bin/tools/CleanFunctions"
+
+cleanCase
+
+# Remove logs and .foam files
+rm -f log.* *.foam
+
+echo "Case cleaned."

@@ -19,12 +19,12 @@ startFrom       startTime;
 startTime       0;
 
 stopAt          endTime;
-endTime         10;
+endTime         20;
 
-deltaT          0.002;
+deltaT          0.001;
 
 writeControl    runTime;
-writeInterval   0.1;
+writeInterval   0.05;
 
 purgeWrite      0;
 
@@ -39,7 +39,7 @@ runTimeModifiable true;
 
 adjustTimeStep  yes;
 maxCo           0.5;
-maxDeltaT       0.005;
+maxDeltaT       0.01;
 
 functions
 {
@@ -53,7 +53,7 @@ functions
         p               p;
         U               U;
         rho             rhoInf;
-        rhoInf          1;
+        rhoInf          1.225;
         liftDir         (0 1 0);
         dragDir         (1 0 0);
         CofR            (0.25 0 0);

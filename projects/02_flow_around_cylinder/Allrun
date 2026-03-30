@@ -1,0 +1,93 @@
+#!/bin/bash
+# =========================================================================
+#  2D Flow Around Cylinder — Allrun
+#
+#  Re = 200 laminar vortex shedding with pimpleFoam
+# =========================================================================
+set -eu
+
+cd "${0%/*}" || exit 1
+touch cylinder.foam
+
+# ── Source OpenFOAM ───────────────────────────────────────────────────────
+ensure_openfoam() {
+    if [ -n "${WM_PROJECT_DIR:-}" ]; then
+        return
+    fi
+
+    for bashrc in \
+        /opt/openfoam*/etc/bashrc \
+        /usr/lib/openfoam*/etc/bashrc \
+        /usr/lib/openfoam/*/etc/bashrc \
+        /usr/local/openfoam*/etc/bashrc \
+        "$HOME"/OpenFOAM/*/etc/bashrc
+    do
+        if [ -f "$bashrc" ]; then
+            # shellcheck disable=SC1090
+            . "$bashrc"
+            break
+        fi
+    done
+
+    : "${WM_PROJECT_DIR:?OpenFOAM not found. Source it first, then rerun ./Allrun.}"
+}
+
+ensure_openfoam
+. "$WM_PROJECT_DIR"/bin/tools/RunFunctions
+
+# ── Paths ─────────────────────────────────────────────────────────────────
+MESH_GEO=constant/cylinder.geo
+MESH_MSH=constant/cylinder.msh
+
+# ── Copy initial conditions ───────────────────────────────────────────────
+mkdir -p 0
+cp 0.orig/U 0/U
+cp 0.orig/p 0/p
+rm -f 0/Phi 0/phi
+
+echo "========================================"
+echo "  2D Cylinder — Re 200 Vortex Shedding"
+echo "========================================"
+
+# ── Step 1: Generate geometry ─────────────────────────────────────────────
+echo "Step 1: Generating cylinder geometry..."
+python3 generate_cylinder_geo.py --output "$MESH_GEO"
+
+# ── Step 2: Mesh with Gmsh ───────────────────────────────────────────────
+if [ ! -f "$MESH_MSH" ]; then
+    if command -v gmsh >/dev/null 2>&1; then
+        echo "Step 2: Meshing with Gmsh..."
+        gmsh -3 -format msh2 "$MESH_GEO" -o "$MESH_MSH"
+    else
+        echo "Missing $MESH_MSH and gmsh is not available."
+        echo "Generate the mesh on the host first, or use ./run_docker.sh."
+        exit 1
+    fi
+else
+    echo "Step 2: Reusing existing $MESH_MSH..."
+fi
+
+# ── Step 3: Import mesh ──────────────────────────────────────────────────
+echo "Step 3: Importing mesh..."
+runApplication gmshToFoam "$MESH_MSH"
+
+# ── Step 4: Set patch types ──────────────────────────────────────────────
+echo "Step 4: Setting patch types..."
+runApplication changeDictionary
+
+# ── Step 5: Renumber mesh ────────────────────────────────────────────────
+echo "Step 5: Renumbering mesh..."
+runApplication renumberMesh -overwrite
+
+# ── Step 6: Check mesh ──────────────────────────────────────────────────
+echo "Step 6: Checking mesh..."
+runApplication checkMesh
+
+# ── Step 7: Run solver ──────────────────────────────────────────────────
+echo "Step 7: Running pimpleFoam..."
+runApplication pimpleFoam
+
+echo "========================================"
+echo "  Simulation complete"
+echo "  Check postProcessing/forceCoeffs/ for Cd/Cl"
+echo "========================================"

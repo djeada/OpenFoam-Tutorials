@@ -45,21 +45,21 @@ if [ -f "$GENERATOR" ]; then
     echo "Step 1: Generating animation-case geometry..."
     python3 "$GENERATOR" \
         --output "$MESH_GEO" \
-        --angle-deg -10 \
-        --chord-points 101 \
+        --angle-deg -15 \
+        --chord-points 121 \
         --domain-xmin -15 \
-        --domain-xmax 20 \
+        --domain-xmax 25 \
         --domain-yhalf 15 \
-        --mesh-size-airfoil 0.012 \
+        --mesh-size-airfoil 0.008 \
         --mesh-size-farfield 0.8 \
-        --first-layer 0.004 \
+        --first-layer 0.002 \
         --bl-thickness 0.05 \
         --bl-ratio 1.12 \
-        --near-size 0.03 \
-        --near-dist 1.5 \
-        --wake-size 0.04 \
-        --wake-xmax 10 \
-        --wake-yhalf 3 \
+        --near-size 0.018 \
+        --near-dist 2.0 \
+        --wake-size 0.025 \
+        --wake-xmax 15 \
+        --wake-yhalf 4 \
         --split-farfield
 else
     echo "Step 1: Reusing existing $MESH_GEO..."
