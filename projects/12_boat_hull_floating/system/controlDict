@@ -1,0 +1,76 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      controlDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+application     interDyMFoam;
+
+startFrom       startTime;
+
+startTime       0;
+
+stopAt          endTime;
+
+endTime         3;
+
+deltaT          5e-05;
+
+writeControl    adjustableRunTime;
+
+writeInterval   0.05;
+
+purgeWrite      0;
+
+writeFormat     binary;
+
+writePrecision  6;
+
+writeCompression uncompressed;
+
+timeFormat      general;
+
+timePrecision   6;
+
+runTimeModifiable yes;
+
+adjustTimeStep  yes;
+
+maxCo           0.4;
+
+maxAlphaCo      0.25;
+
+maxDeltaT       0.005;
+
+libs
+(
+    "libsixDoFRigidBodyMotion.so"
+);
+
+functions
+{
+    sixDoFRigidBodyState
+    {
+        type            sixDoFRigidBodyState;
+        libs            ("libsixDoFRigidBodyMotion.so");
+        angleFormat      degrees;
+    }
+
+    forces
+    {
+        type            forces;
+        libs            ("libforces.so");
+        writeControl    timeStep;
+        writeInterval   1;
+        patches         (boat);
+        rho             rhoInf;
+        rhoInf          998.2;
+        CofR            (0 0 0);
+        log             yes;
+    }
+}
+
+// ************************************************************************* //

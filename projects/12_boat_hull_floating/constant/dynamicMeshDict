@@ -1,0 +1,57 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      dynamicMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+dynamicFvMesh   dynamicMotionSolverFvMesh;
+
+motionSolverLibs ("libsixDoFRigidBodyMotion.so");
+
+motionSolver    sixDoFRigidBodyMotion;
+
+sixDoFRigidBodyMotionCoeffs
+{
+    patches         (boat);
+    innerDistance    0.01;
+    outerDistance    0.08;
+
+    mass            0.050;
+    centreOfMass    (0 0 -0.005);
+    momentOfInertia (5e-06 1.5e-05 1.5e-05);
+
+    report          on;
+    accelerationRelaxation 0.7;
+    accelerationDamping    0.9;
+
+    solver
+    {
+        type Newmark;
+    }
+
+    constraints
+    {
+        // Constrain motion to a vertical line (heave only for translation)
+        fixedLine
+        {
+            sixDoFRigidBodyMotionConstraint line;
+            direction       (0 0 1);
+        }
+
+        // Constrain rotation about the z-axis (suppress yaw)
+        fixedAxis
+        {
+            sixDoFRigidBodyMotionConstraint axis;
+            axis            (0 0 1);
+        }
+    }
+
+    restraints
+    {
+    }
+}
+
+// ************************************************************************* //

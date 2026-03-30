@@ -1,0 +1,176 @@
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    location    "constant/polyMesh";
+    object      blockMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+//
+// T-Junction Geometry (2D with empty front/back):
+//
+//                  branchInlet (cold, 300K)
+//                       |
+//            v12---v13  |  v14---v15
+//             |  Blk4  |   |         <- branch pipe (y: 0.1 to 0.2)
+//            v8----v9------v10---v11
+//             |         |         |
+//  mainInlet  | Block1  | Block2  | Block3  -> outlet
+//  (hot,350K) |         |         |
+//            v0----v1------v2----v3
+//
+//  x: 0    0.125  0.175       0.5
+//  y: 0                       0.1   0.2
+//
+// Block 1: main pipe left section   (v0  v1  v9  v8)
+// Block 2: main pipe junction zone  (v1  v2  v10 v9)
+// Block 3: main pipe right section  (v2  v3  v11 v10)
+// Block 4: branch pipe              (v9  v10 v14 v13) -- note: using v12-v15 for branch top
+//
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+convertToMeters 1;
+
+vertices
+(
+    // Main pipe bottom (y = 0)
+    (0.0    0.0   0.0)    // 0
+    (0.125  0.0   0.0)    // 1
+    (0.175  0.0   0.0)    // 2
+    (0.5    0.0   0.0)    // 3
+
+    // Main pipe bottom (y = 0) — back face (z = 0.01)
+    (0.0    0.0   0.01)   // 4
+    (0.125  0.0   0.01)   // 5
+    (0.175  0.0   0.01)   // 6
+    (0.5    0.0   0.01)   // 7
+
+    // Main pipe top / branch bottom (y = 0.1)
+    (0.0    0.1   0.0)    // 8
+    (0.125  0.1   0.0)    // 9
+    (0.175  0.1   0.0)    // 10
+    (0.5    0.1   0.0)    // 11
+
+    // Main pipe top / branch bottom (y = 0.1) — back face (z = 0.01)
+    (0.0    0.1   0.01)   // 12
+    (0.125  0.1   0.01)   // 13
+    (0.175  0.1   0.01)   // 14
+    (0.5    0.1   0.01)   // 15
+
+    // Branch pipe top (y = 0.2)
+    (0.125  0.2   0.0)    // 16
+    (0.175  0.2   0.0)    // 17
+
+    // Branch pipe top (y = 0.2) — back face (z = 0.01)
+    (0.125  0.2   0.01)   // 18
+    (0.175  0.2   0.01)   // 19
+);
+
+blocks
+(
+    // Block 0: main pipe left of junction
+    // vertices: (front-bot-left front-bot-right front-top-right front-top-left
+    //            back-bot-left  back-bot-right  back-top-right  back-top-left)
+    hex (0 1 9 8 4 5 13 12)
+    (50 40 1)
+    simpleGrading (1 1 1)
+
+    // Block 1: main pipe junction zone
+    hex (1 2 10 9 5 6 14 13)
+    (20 40 1)
+    simpleGrading (1 1 1)
+
+    // Block 2: main pipe right of junction
+    hex (2 3 11 10 6 7 15 14)
+    (130 40 1)
+    simpleGrading (1 1 1)
+
+    // Block 3: branch pipe
+    hex (9 10 17 16 13 14 19 18)
+    (20 40 1)
+    simpleGrading (1 1 1)
+);
+
+edges
+(
+);
+
+boundary
+(
+    mainInlet
+    {
+        type patch;
+        faces
+        (
+            (0 4 12 8)
+        );
+    }
+
+    branchInlet
+    {
+        type patch;
+        faces
+        (
+            (16 17 19 18)
+        );
+    }
+
+    outlet
+    {
+        type patch;
+        faces
+        (
+            (3 7 15 11)
+        );
+    }
+
+    walls
+    {
+        type wall;
+        faces
+        (
+            // Main pipe bottom wall
+            (0 1 5 4)
+            (1 2 6 5)
+            (2 3 7 6)
+
+            // Main pipe top wall (left of branch)
+            (8 12 13 9)
+
+            // Main pipe top wall (right of branch)
+            (10 14 15 11)
+
+            // Branch pipe left wall
+            (9 13 18 16)
+
+            // Branch pipe right wall
+            (10 17 19 14)
+        );
+    }
+
+    frontAndBack
+    {
+        type empty;
+        faces
+        (
+            // Front faces (z = 0)
+            (0 1 9 8)
+            (1 2 10 9)
+            (2 3 11 10)
+            (9 10 17 16)
+
+            // Back faces (z = 0.01)
+            (4 12 13 5)
+            (5 13 14 6)
+            (6 14 15 7)
+            (13 18 19 14)
+        );
+    }
+);
+
+mergePatchPairs
+(
+);
+
+// ************************************************************************* //

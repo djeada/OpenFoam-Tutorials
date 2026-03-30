@@ -3,7 +3,12 @@ projects/**/postProcessing/
 projects/**/processor*/
 projects/**/VTK/
 projects/**/0.[0-9]*/
-projects/**/[1-9]*/
+projects/**/[1-9]/
+projects/**/[1-9][0-9]/
+projects/**/[1-9][0-9][0-9]/
+projects/**/[1-9].[0-9]*/
+projects/**/[1-9][0-9].[0-9]*/
+projects/**/[1-9][0-9][0-9].[0-9]*/
 projects/**/log.*
 projects/**/*.foam
 projects/**/*.OpenFOAM
@@ -24,8 +29,13 @@ projects/**/*.mp4
 # Python cache
 __pycache__/
 
-# Project 10 generated geometry artifacts
-projects/10_boat_hull_fixed/0.[0-9]*/
-projects/10_boat_hull_fixed/[1-9]*/
-projects/10_boat_hull_fixed/constant/triSurface/boat_hull.stl
-projects/10_boat_hull_fixed/constant/triSurface/boat_hull.eMesh
+# Project 11 generated geometry artifacts
+projects/11_boat_hull_fixed/0.[0-9]*/
+projects/11_boat_hull_fixed/[1-9]/
+projects/11_boat_hull_fixed/[1-9][0-9]/
+projects/11_boat_hull_fixed/[1-9][0-9][0-9]/
+projects/11_boat_hull_fixed/[1-9].[0-9]*/
+projects/11_boat_hull_fixed/[1-9][0-9].[0-9]*/
+projects/11_boat_hull_fixed/[1-9][0-9][0-9].[0-9]*/
+projects/11_boat_hull_fixed/constant/triSurface/boat_hull.stl
+projects/11_boat_hull_fixed/constant/triSurface/boat_hull.eMesh
