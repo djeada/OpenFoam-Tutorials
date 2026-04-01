@@ -46,14 +46,14 @@ engineering practice combines them.
 
 ```
   ┌───────────────────────────────────────────────────────────────────────────┐
-  │                  THE THREE PILLARS OF FLUID MECHANICS                    │
+  │                  THE THREE PILLARS OF FLUID MECHANICS                     │
   │                                                                           │
   │      Analytical              Experimental                CFD              │
-  │     ┌──────────┐           ┌──────────────┐        ┌──────────────┐      │
-  │     │  Exact    │           │  Wind tunnel │        │  Computer    │      │
-  │     │  math     │           │  Water tank  │        │  simulation  │      │
-  │     │  solution │           │  Test rig    │        │  (OpenFOAM)  │      │
-  │     └─────┬────┘           └──────┬───────┘        └──────┬───────┘      │
+  │     ┌──────────┐           ┌──────────────┐        ┌──────────────┐       │
+  │     │  Exact   │           │  Wind tunnel │        │  Computer    │       │
+  │     │  math    │           │  Water tank  │        │  simulation  │       │
+  │     │ solution │           │  Test rig    │        │  (OpenFOAM)  │       │
+  │     └─────┬────┘           └──────┬───────┘        └──────┬───────┘       │
   │           │                       │                       │               │
   │           └───────────────────────┼───────────────────────┘               │
   │                                   ▼                                       │
