@@ -4,15 +4,9 @@
 > works, and how the mathematics connects to the OpenFOAM cases in this repository.
 > This is the starting point before diving into OpenFOAM-specific notes.
 
----
+## What Is CFD and Why Does It Matter?
 
-## 1. What Is CFD and Why Does It Matter?
-
-Computational Fluid Dynamics (CFD) is a branch of fluid mechanics that uses numerical
-methods, algorithms, and computers to solve and analyze problems involving fluid flows.
-Instead of building expensive physical prototypes or running wind-tunnel experiments for
-every design iteration, engineers can simulate fluid behavior digitally — predicting
-pressures, velocities, temperatures, and forces with remarkable accuracy.
+Computational Fluid Dynamics (CFD) is a branch of fluid mechanics that uses numerical methods, algorithms, and computers to solve and analyze problems involving fluid flows. Instead of building expensive physical prototypes or running wind-tunnel experiments for every design iteration, engineers can simulate fluid behavior digitally — predicting pressures, velocities, temperatures, and forces with remarkable accuracy.
 
 ### Where CFD Is Used
 
@@ -28,16 +22,11 @@ pressures, velocities, temperatures, and forces with remarkable accuracy.
 
 ### A Brief History
 
-- **1920s–1940s:** Lewis Fry Richardson attempted the first numerical weather prediction
-  by hand — dividing the atmosphere into cells and solving balance equations.
-- **1960s:** With the arrival of digital computers, researchers at Los Alamos and NASA
-  developed the first practical CFD codes (MAC method, SIMPLE algorithm).
-- **1980s–1990s:** Commercial CFD software emerged (Fluent, CFX, STAR-CD). Turbulence
-  modeling matured ($k$-$\varepsilon$, $k$-$\omega$ SST).
-- **2004:** OpenFOAM was released as open-source, democratizing CFD for researchers and
-  students worldwide.
-- **Today:** GPU-accelerated solvers, machine-learning-augmented turbulence models, and
-  cloud-based HPC make CFD faster and more accessible than ever.
+- **1920s–1940s:** Lewis Fry Richardson attempted the first numerical weather prediction by hand — dividing the atmosphere into cells and solving balance equations.
+- **1960s:** With the arrival of digital computers, researchers at Los Alamos and NASA developed the first practical CFD codes (MAC method, SIMPLE algorithm).
+- **1980s–1990s:** Commercial CFD software emerged (Fluent, CFX, STAR-CD). Turbulence modeling matured ($k$-$\varepsilon$, $k$-$\omega$ SST).
+- **2004:** OpenFOAM was released as open-source, democratizing CFD for researchers andstudents worldwide.
+- **Today:** GPU-accelerated solvers, machine-learning-augmented turbulence models, and cloud-based HPC make CFD faster and more accessible than ever.
 
 > **💡 Tip:** In this repository, our projects span the range from simple laminar
 > benchmarks (`projects/01_lid_driven_cavity/`) all the way to turbulent external
@@ -76,12 +65,14 @@ engineering practice combines them.
 ```
 
 **When to prefer CFD over experiments:**
+
 - Early design stages when no prototype exists yet
 - Parameter sweeps (e.g., testing 50 angles of attack vs. 5 in a wind tunnel)
 - Hazardous or inaccessible environments (nuclear reactors, human arteries)
 - When you need full-field data (not just point measurements)
 
 **When experiments are still essential:**
+
 - Validating your CFD model (you cannot trust a simulation that has never been checked)
 - Turbulence transition and complex multiphase phenomena that models approximate poorly
 - Regulatory certification (e.g., aerospace, automotive crash testing)
@@ -106,39 +97,37 @@ specialized open-source solvers:
 > detailed in [Section 9 — OpenFOAM in the CFD Landscape](#9-openfoam-in-the-cfd-landscape)
 > later in this note.
 
----
-
-## 2. The CFD Workflow
+## The CFD Workflow
 
 Every CFD project — whether academic or industrial — follows essentially the same
 pipeline. Here it is at a glance:
 
 ```plaintext
-┌─────────────────────────────────────────────────────────────────────────────┐
-│                        THE CFD WORKFLOW PIPELINE                           │
-│                                                                             │
+┌──────────────────────────────────────────────────────────────────────────┐
+│                        THE CFD WORKFLOW PIPELINE                         │
+│                                                                          │
 │  ┌──────────┐   ┌──────────┐   ┌──────────┐   ┌──────────┐               │
 │  │ PROBLEM  │   │ GEOMETRY │   │ MESHING  │   │ PHYSICS  │               │
 │  │ DEFINI-  │──▶│ CREATION │──▶│          │──▶│  SETUP   │               │
 │  │  TION    │   │  (CAD)   │   │          │   │          │               │
 │  └──────────┘   └──────────┘   └──────────┘   └──────────┘               │
-│       │                                              │                     │
-│       │         What are we solving?                 │                     │
-│       │         What accuracy do we need?            ▼                     │
-│       │                                        ┌──────────┐               │
-│       │                                        │ SOLVING  │               │
-│       │                                        │ (Run the │               │
-│       │                                        │  solver) │               │
-│       │                                        └────┬─────┘               │
-│       │                                             │                     │
-│       │         ┌──────────┐   ┌──────────────┐     │                     │
-│       │         │ VALIDA-  │   │    POST-     │     │                     │
-│       └────────▶│  TION    │◀──│  PROCESSING  │◀────┘                     │
-│                 │          │   │              │                             │
-│                 └──────────┘   └──────────────┘                             │
-│                                                                             │
-│  Compare with experiments / analytical solutions / grid studies             │
-└─────────────────────────────────────────────────────────────────────────────┘
+│       │                                              │                   │
+│       │         What are we solving?                 │                   │
+│       │         What accuracy do we need?            ▼                   │
+│       │                                        ┌──────────┐              │
+│       │                                        │ SOLVING  │              │
+│       │                                        │ (Run the │              │
+│       │                                        │  solver) │              │
+│       │                                        └────┬─────┘              │
+│       │                                             │                    │
+│       │         ┌──────────┐   ┌──────────────┐     │                    │
+│       │         │ VALIDA-  │   │    POST-     │     │                    │
+│       └────────▶│  TION    │◀──│  PROCESSING  │◀────┘                    │
+│                 │          │   │              │                          │
+│                 └──────────┘   └──────────────┘                          │
+│                                                                          │
+│  Compare with experiments / analytical solutions / grid studies          │
+└──────────────────────────────────────────────────────────────────────────┘
 ```
 
 ### Step-by-Step Breakdown
@@ -157,37 +146,31 @@ pipeline. Here it is at a glance:
 > and you will see this workflow reflected in the folder structure: geometry in
 > `constant/polyMesh`, physics in `0/` and `constant/`, solver settings in `system/`.
 
----
+## Governing Equations
 
-## 3. Governing Equations
+All of CFD rests on three conservation laws from classical physics. These are partial differential equations (PDEs) that describe how mass, momentum, and energy are transported through a fluid.
 
-All of CFD rests on three conservation laws from classical physics. These are partial
-differential equations (PDEs) that describe how mass, momentum, and energy are
-transported through a fluid.
+### The Control Volume Concept
 
-### 3.1 The Control Volume Concept
-
-Before writing equations, we need to understand what we are writing them *for*. In CFD,
-we consider a small fixed region of space — a **control volume** — and track what flows
-in and out of it:
+Before writing equations, we need to understand what we are writing them *for*. In CFD, we consider a small fixed region of space — a **control volume** — and track what flows in and out of it:
 
 ```plaintext
-                    ┌─── mass flux in (top) ───┐
-                    │     ṁ_top = ρ u · n A    │
+                    ┌─── mass flux in (top) ────┐
+                    │     ṁ_top = ρ u · n A     │
                     ▼                           │
          ┌──────────────────────────┐           │
          │                          │           │
   mass   │                          │   mass    │
   flux ──▶   CONTROL VOLUME (CV)    ├──▶ flux   │
   in     │                          │   out     │
- (left)  │   • density ρ           │  (right)  │
-         │   • velocity u          │           │
-         │   • pressure p          │           │
-         │   • energy e            │           │
+ (left)  │   • density ρ            │  (right)  │
+         │   • velocity u           │           │
+         │   • pressure p           │           │
+         │   • energy e             │           │
          │                          │           │
          └──────────────────────────┘           │
                     │                           │
-                    │     ṁ_bot = ρ u · n A    │
+                    │     ṁ_bot = ρ u · n A     │
                     ▼                           │
                     └─── mass flux out (bot) ───┘
 
@@ -195,44 +178,37 @@ in and out of it:
       (What flows IN) − (What flows OUT) + (Sources)
 ```
 
-This is the **Reynolds Transport Theorem** in action. Every governing equation in CFD
-has this structure: *accumulation = flux in − flux out + sources*.
+This is the **Reynolds Transport Theorem** in action. Every governing equation in CFD has this structure: *accumulation = flux in − flux out + sources*.
 
-### 3.2 Conservation of Mass (Continuity Equation)
+### Conservation of Mass (Continuity Equation)
 
-**Physical meaning:** Mass cannot be created or destroyed. If fluid enters a region,
-it must either accumulate there or leave somewhere else.
+**Physical meaning:** Mass cannot be created or destroyed. If fluid enters a region, it must either accumulate there or leave somewhere else.
 
 **General (compressible) form:**
 
 $$\frac{\partial \rho}{\partial t} + \nabla \cdot (\rho \mathbf{u}) = 0$$
 
-where $\rho$ is density, $t$ is time, $\mathbf{u}$ is the velocity vector, and
-$\nabla \cdot$ is the divergence operator.
+where $\rho$ is density, $t$ is time, $\mathbf{u}$ is the velocity vector, and $\nabla \cdot$ is the divergence operator.
 
-**Incompressible simplification:** When density is constant ($\rho = \text{const}$),
-the equation reduces to:
+**Incompressible simplification:** When density is constant ($\rho = \text{const}$), the equation reduces to:
 
 $$\nabla \cdot \mathbf{u} = 0$$
 
-This says that the velocity field must be **divergence-free** — fluid cannot pile up
-or thin out anywhere.
+This says that the velocity field must be **divergence-free** — fluid cannot pile up or thin out anywhere.
 
 > **📂 Repo reference:** In our lid-driven cavity project
 > (`projects/01_lid_driven_cavity/`), `icoFoam` assumes incompressible flow, so it
 > enforces $\nabla \cdot \mathbf{u} = 0$ at every time step.
 
-### 3.3 Conservation of Momentum (Navier-Stokes Equations)
+### Conservation of Momentum (Navier-Stokes Equations)
 
-**Physical meaning:** Newton's second law applied to a fluid element — the rate of
-change of momentum equals the sum of all forces (pressure, viscous, gravity).
+**Physical meaning:** Newton's second law applied to a fluid element — the rate of change of momentum equals the sum of all forces (pressure, viscous, gravity).
 
 **General (compressible) form:**
 
 $$\frac{\partial (\rho \mathbf{u})}{\partial t} + \nabla \cdot (\rho \mathbf{u} \otimes \mathbf{u}) = -\nabla p + \nabla \cdot \boldsymbol{\tau} + \rho \mathbf{g}$$
 
-where $p$ is pressure, $\boldsymbol{\tau}$ is the viscous stress tensor, and
-$\mathbf{g}$ is gravitational acceleration.
+where $p$ is pressure, $\boldsymbol{\tau}$ is the viscous stress tensor, and $\mathbf{g}$ is gravitational acceleration.
 
 **Incompressible Navier-Stokes equations** (constant $\rho$, Newtonian fluid):
 
@@ -245,10 +221,9 @@ where $\nu = \mu / \rho$ is the kinematic viscosity.
 > carried along — *convection*). The right side captures the forces: pressure gradient
 > pushing the fluid, viscous diffusion smoothing out velocity gradients, and gravity.
 
-### 3.4 Conservation of Energy
+### Conservation of Energy
 
-**Physical meaning:** Energy is conserved — the rate of change of energy inside a
-control volume equals the net heat and work transfer.
+**Physical meaning:** Energy is conserved — the rate of change of energy inside a control volume equals the net heat and work transfer.
 
 $$\frac{\partial (\rho e)}{\partial t} + \nabla \cdot (\rho e \mathbf{u}) = -p \nabla \cdot \mathbf{u} + \nabla \cdot (\mathbf{u} \cdot \boldsymbol{\tau}) + \rho \mathbf{u} \cdot \mathbf{g} + Q$$
 
@@ -258,13 +233,9 @@ where $e$ is specific internal energy and $Q$ is a volumetric heat source.
 > the energy equation is not solved — temperature is assumed constant. Solvers like
 > `buoyantSimpleFoam` add the energy equation when thermal effects matter.
 
-### 3.5 Turbulence and the Closure Problem
+### Turbulence and the Closure Problem
 
-When flow becomes turbulent (high Reynolds number), the Navier-Stokes equations are
-still valid, but resolving every tiny eddy is computationally prohibitive. The
-**Reynolds-Averaged Navier-Stokes (RANS)** approach decomposes each variable into a
-mean and a fluctuating part, then time-averages. This introduces unknown
-**Reynolds stress** terms that require a *turbulence model* to close the system.
+When flow becomes turbulent (high Reynolds number), the Navier-Stokes equations are still valid, but resolving every tiny eddy is computationally prohibitive. The **Reynolds-Averaged Navier-Stokes (RANS)** approach decomposes each variable into a mean and a fluctuating part, then time-averages. This introduces unknown **Reynolds stress** terms that require a *turbulence model* to close the system.
 
 Common turbulence models (see note 06 for details):
 
@@ -279,16 +250,11 @@ Common turbulence models (see note 06 for details):
 > uses the $k$-$\varepsilon$ turbulence model with `simpleFoam`, while the lid-driven cavity
 > (`projects/01_lid_driven_cavity/`) is solved as laminar.
 
----
+## Discretization — From Calculus to Algebra
 
-## 4. Discretization — From Calculus to Algebra
+The governing equations are continuous PDEs — they apply at every point in space and every instant in time. Computers cannot solve continuous equations directly. We must **discretize**: convert the continuous domain into a finite set of cells and convert the PDEs into algebraic equations that can be solved with linear algebra.
 
-The governing equations are continuous PDEs — they apply at every point in space and
-every instant in time. Computers cannot solve continuous equations directly. We must
-**discretize**: convert the continuous domain into a finite set of cells and convert the
-PDEs into algebraic equations that can be solved with linear algebra.
-
-### 4.1 Mesh: Dividing Space Into Cells
+### Mesh: Dividing Space Into Cells
 
 ```plaintext
   CONTINUOUS DOMAIN                     DISCRETIZED DOMAIN (MESH)
@@ -310,53 +276,53 @@ PDEs into algebraic equations that can be solved with linear algebra.
 **1D mesh terminology:**
 
 ```plaintext
-  face    cell center    face    cell center    face    cell center    face
-   │           │          │           │          │           │          │
-   ▼           ▼          ▼           ▼          ▼           ▼          ▼
+  face  cell center  face  cell center  face
+   │         │        │        │          │
+   ▼         ▼        ▼        ▼          ▼
 
-   |     ●     |     ●     |     ●     |     ●     |     ●     |
-   |  cell 1   |  cell 2   |  cell 3   |  cell 4   |  cell 5   |
-   |           |           |           |           |           |
-   |◀── Δx ──▶|◀── Δx ──▶|◀── Δx ──▶|◀── Δx ──▶|◀── Δx ──▶|
+   |         ●        |        ●          |     ●      |     ●     |     ●     |
+   |       cell 1     |       cell 2      |  cell 3    |  cell 4   |  cell 5   |
+   |                  |         |         |            |           |
+   |  ◀──── Δx ────▶  |  ◀──── Δx ─────▶  | ◀── Δx ──▶ |◀── Δx ──▶ |◀── Δx ──▶ |
 
    ●  = cell centroid (where field values are stored in FVM)
    |  = cell face     (where fluxes are computed)
 ```
 
-### 4.2 Three Discretization Philosophies
+### Three Discretization Philosophies
 
 ```plaintext
   ┌──────────────────────────────────────────────────────────────────────┐
-  │                  DISCRETIZATION APPROACHES                          │
+  │                  DISCRETIZATION APPROACHES                           │
   │                                                                      │
-  │  FINITE DIFFERENCE (FDM)      FINITE VOLUME (FVM)                   │
+  │  FINITE DIFFERENCE (FDM)      FINITE VOLUME (FVM)                    │
   │                                                                      │
-  │   ●────●────●────●            ┌────┬────┬────┐     Values stored    │
-  │   │    │    │    │            │ ●  │ ●  │ ●  │     at cell CENTERS  │
-  │   ●────●────●────●            ├────┼────┼────┤     Fluxes across    │
-  │   │    │    │    │            │ ●  │ ●  │ ●  │     cell FACES       │
-  │   ●────●────●────●            └────┴────┴────┘                      │
+  │   ●────●────●────●            ┌────┬────┬────┐     Values stored     │
+  │   │    │    │    │            │ ●  │ ●  │ ●  │     at cell CENTERS   │
+  │   ●────●────●────●            ├────┼────┼────┤     Fluxes across     │
+  │   │    │    │    │            │ ●  │ ●  │ ●  │     cell FACES        │
+  │   ●────●────●────●            └────┴────┴────┘                       │
   │                                                                      │
-  │   Values at grid NODES        Integral form of                      │
-  │   Derivatives ≈ differences   equations → inherently                │
-  │   between neighbors           CONSERVATIVE                          │
+  │   Values at grid NODES        Integral form of                       │
+  │   Derivatives ≈ differences   equations → inherently                 │
+  │   between neighbors           CONSERVATIVE                           │
   │                                                                      │
-  │  FINITE ELEMENT (FEM)                                               │
+  │  FINITE ELEMENT (FEM)                                                │
   │                                                                      │
-  │   ●─────●─────●              Values represented by                  │
+  │   ●─────●─────●              Values represented by                   │
   │   │\    │    /│              basis functions over                    │
-  │   │  \  │  /  │              each element.                          │
+  │   │  \  │  /  │              each element.                           │
   │   │    \│/    │              Minimizes a weighted                    │
-  │   ●─────●─────●              residual (weak form).                  │
+  │   ●─────●─────●              residual (weak form).                   │
   │   │    /│\    │              Excellent for complex                   │
-  │   │  /  │  \  │              geometry & solid mech.                 │
+  │   │  /  │  \  │              geometry & solid mech.                  │
   │   │/    │    \│                                                      │
-  │   ●─────●─────●                                                     │
+  │   ●─────●─────●                                                      │
   │                                                                      │
   └──────────────────────────────────────────────────────────────────────┘
 ```
 
-### 4.3 Comparison Table
+### Comparison Table
 
 | Feature                  | FDM                      | FVM                         | FEM                          |
 |--------------------------|--------------------------|-----------------------------|------------------------------|
@@ -373,7 +339,7 @@ PDEs into algebraic equations that can be solved with linear algebra.
 > Fluxes leaving one cell enter the neighbor exactly — nothing is lost or created at
 > interfaces. This is critical for physically meaningful CFD results.
 
-### 4.4 From PDE to Linear System
+### From PDE to Linear System
 
 The discretization process converts a PDE like:
 
@@ -383,23 +349,18 @@ into a system of algebraic equations, one per cell:
 
 $$a_P \phi_P = \sum_{N} a_N \phi_N + b_P$$
 
-where $\phi_P$ is the value at cell $P$, $\phi_N$ are values at neighboring cells, and
-$a_P$, $a_N$, $b_P$ are coefficients that come from the discretization. Assembled over
-all cells, this becomes a matrix equation:
+where $\phi_P$ is the value at cell $P$, $\phi_N$ are values at neighboring cells, and $a_P$, $a_N$, $b_P$ are coefficients that come from the discretization. Assembled over all cells, this becomes a matrix equation:
 
 $$\mathbf{A} \boldsymbol{\phi} = \mathbf{b}$$
 
-This sparse linear system is what the linear solvers (PCG, smoothSolver, GAMG —
-see note 09) actually solve at every iteration or time step.
-
----
+This sparse linear system is what the linear solvers (PCG, smoothSolver, GAMG — see note 09) actually solve at every iteration or time step.
 
 ## 5. The Finite Volume Method in Detail
 
 Since OpenFOAM is built entirely on FVM, it is worth understanding how this method works
 in more depth.
 
-### 5.1 Integral Form and Gauss's Divergence Theorem
+### Integral Form and Gauss's Divergence Theorem
 
 Starting from the general transport equation in differential form:
 
@@ -415,7 +376,7 @@ $$\frac{d}{dt} \int_V \phi \, dV + \oint_{\partial V} (\mathbf{u} \phi) \cdot \m
 
 ```plaintext
   ┌─────────────────────────────────────────────────────────────────┐
-  │              FINITE VOLUME: FACE FLUX BALANCE                  │
+  │              FINITE VOLUME: FACE FLUX BALANCE                   │
   │                                                                 │
   │                        n_top ▲                                  │
   │                    ┌─────────┼─────────┐                        │
@@ -423,35 +384,33 @@ $$\frac{d}{dt} \int_V \phi \, dV + \oint_{\partial V} (\mathbf{u} \phi) \cdot \m
   │                    │ ════════╪══════   │                        │
   │                    │         │         │                        │
   │      n_left        │    cell center    │       n_right          │
-  │    ◀───────────────│─── ● (P) ────────│───────────────▶        │
-  │       F_left       │         │         │      F_right          │
+  │    ◀───────────────│─── ● (P) ────────│───────────────▶         │
+  │       F_left       │         │         │      F_right           │
   │                    │         │         │                        │
   │                    │ ════════╪══════   │                        │
   │                    │ F_bot   │         │                        │
   │                    └─────────┼─────────┘                        │
   │                              ▼ n_bot                            │
   │                                                                 │
-  │   F = flux through face = (ρ u φ) · n · A                     │
-  │   Sum of all face fluxes = sources inside cell                 │
-  │   ΣF_faces = S_cell · V_cell                                   │
+  │   F = flux through face = (ρ u φ) · n · A                       │
+  │   Sum of all face fluxes = sources inside cell                  │
+  │   ΣF_faces = S_cell · V_cell                                    │
   │                                                                 │
-  │   KEY PROPERTY: Flux leaving cell P through a shared face      │
-  │   is EXACTLY the flux entering the neighbor → CONSERVATION     │
+  │   KEY PROPERTY: Flux leaving cell P through a shared face       │
+  │   is EXACTLY the flux entering the neighbor → CONSERVATION      │
   └─────────────────────────────────────────────────────────────────┘
 ```
 
-### 5.2 Cell-Centered vs Vertex-Centered
+### Cell-Centered vs Vertex-Centered
 
 | Approach | Where values are stored | Used by |
 |----------|------------------------|---------|
 | **Cell-centered** | At the centroid of each cell | **OpenFOAM**, Fluent, STAR-CCM+ |
 | Vertex-centered | At the vertices (corners) of each cell | SU2, some FEM-based codes |
 
-OpenFOAM stores all field values (p, U, k, $\varepsilon$, etc.) at cell centers. When fluxes are
-needed at faces, values are **interpolated** from the cell centers to the face using
-interpolation schemes (linear, upwind, etc.).
+OpenFOAM stores all field values (p, U, k, $\varepsilon$, etc.) at cell centers. When fluxes are needed at faces, values are **interpolated** from the cell centers to the face using interpolation schemes (linear, upwind, etc.).
 
-### 5.3 Discrete Operators in OpenFOAM
+### Discrete Operators in OpenFOAM
 
 OpenFOAM's `fvm::` and `fvc::` namespaces map directly to the FVM discretization:
 
@@ -459,28 +418,26 @@ OpenFOAM's `fvm::` and `fvc::` namespaces map directly to the FVM discretization
 |----------------------|---------------------|--------------------------------|
 | Time derivative      | $\partial/\partial t$ | `fvm::ddt(U)`                |
 | Convection           | $\nabla \cdot (\mathbf{u}\phi)$ | `fvm::div(phi, U)` |
-| Diffusion (Laplacian)| $\nabla^2 \phi$     | `fvm::laplacian(nu, U)`       |
-| Gradient             | $\nabla p$          | `fvc::grad(p)`                |
+| Diffusion (Laplacian)| $\nabla^2 \phi$     | `fvm::laplacian(nu, U)`        |
+| Gradient             | $\nabla p$          | `fvc::grad(p)`                 |
 
 > **📂 Repo reference:** In note 10 (`notes/10_icofoam_solver_analysis.md`), the
 > icoFoam source code is analyzed line by line showing exactly how these operators
 > appear in the momentum equation assembly.
 
----
-
-## 6. Numerical Schemes — Accuracy, Stability, and Trade-Offs
+## Numerical Schemes — Accuracy, Stability, and Trade-Offs
 
 Discretization schemes control *how* the integrals and derivatives are approximated.
 The choice of scheme directly affects accuracy, stability, and convergence.
 
-### 6.1 Time Discretization
+### Time Discretization
 
 ```plaintext
   TIME DISCRETIZATION: HOW WE MARCH THROUGH TIME
 
   t^n                    t^(n+1)                  t^(n+2)
    │                       │                       │
-   ●━━━━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━━━━●━━━━━▶ time
+   ●━━━━━━━━━━━━━━━━━━━━━━━●━━━━━━━━━━━━━━━━━━━━━━━●━━━━━▶ time
    │       Δt              │        Δt             │
    │                       │                       │
    │  ┌─── Euler ────┐     │                       │
@@ -517,11 +474,9 @@ The choice of scheme directly affects accuracy, stability, and convergence.
 > The airfoil project (`projects/04_naca_airfoil_analysis/system/fvSchemes`) uses
 > `steadyState` because we seek a time-independent solution.
 
-### 6.2 Spatial Discretization (Convection Schemes)
+### Spatial Discretization (Convection Schemes)
 
-The convection term $\nabla \cdot (\mathbf{u} \phi)$ is the trickiest to discretize
-because it can introduce numerical oscillations (wiggles) or excessive smearing
-(artificial diffusion).
+The convection term $\nabla \cdot (\mathbf{u} \phi)$ is the trickiest to discretize because it can introduce numerical oscillations (wiggles) or excessive smearing (artificial diffusion).
 
 ```plaintext
   ACCURACY vs. STABILITY TRADE-OFF
@@ -552,68 +507,57 @@ because it can introduce numerical oscillations (wiggles) or excessive smearing
 > uses `Gauss upwind` for turbulence quantities ($k$, $\varepsilon$) because turbulence fields need
 > extra stability.
 
-### 6.3 Gradient Schemes
+### Gradient Schemes
 
-Gradients are needed for pressure gradient evaluation and for reconstructing face
-values in higher-order convection schemes. Common choices:
+Gradients are needed for pressure gradient evaluation and for reconstructing face values in higher-order convection schemes. Common choices:
 
-- `Gauss linear` — compute the gradient using Gauss's theorem with linear interpolation
-  to faces. This is the most common default.
-- `cellLimited Gauss linear 1` — same, but limit the gradient so that reconstructed
-  face values do not exceed/undershoot cell neighbor values. Prevents oscillations.
+- `Gauss linear` — compute the gradient using Gauss's theorem with linear interpolation to faces. This is the most common default.
+- `cellLimited Gauss linear 1` — same, but limit the gradient so that reconstructed face values do not exceed/undershoot cell neighbor values. Prevents oscillations.
 
-### 6.4 Laplacian (Diffusion) Schemes
+### Laplacian (Diffusion) Schemes
 
 The diffusion term $\nabla \cdot (\Gamma \nabla \phi)$ is discretized as:
 
 $$\sum_f \Gamma_f (\nabla \phi)_f \cdot \mathbf{S}_f$$
 
-In OpenFOAM: `Gauss linear corrected` — linear interpolation of $\Gamma$ to the face,
-with a non-orthogonal correction for meshes whose face normals are not aligned with the
-vector between cell centers.
+In OpenFOAM: `Gauss linear corrected` — linear interpolation of $\Gamma$ to the face, with a non-orthogonal correction for meshes whose face normals are not aligned with the vector between cell centers.
 
 > **⚠️ Warning:** On highly non-orthogonal meshes (angle > 70°), you may need
 > `nNonOrthogonalCorrectors` > 0 in `fvSolution` to get accurate diffusion terms.
 
----
+## Pressure-Velocity Coupling
 
-## 7. Pressure-Velocity Coupling
+### The Problem
 
-### 7.1 The Problem
+In incompressible flow, there is no explicit equation for pressure — the continuity equation $\nabla \cdot \mathbf{u} = 0$ acts as a *constraint* on the velocity field. The momentum equation gives us velocity, but it contains the pressure gradient. We need a way to couple pressure and velocity so both the momentum equation and the continuity constraint are satisfied simultaneously.
 
-In incompressible flow, there is no explicit equation for pressure — the continuity
-equation $\nabla \cdot \mathbf{u} = 0$ acts as a *constraint* on the velocity field.
-The momentum equation gives us velocity, but it contains the pressure gradient. We need
-a way to couple pressure and velocity so both the momentum equation and the continuity
-constraint are satisfied simultaneously.
-
-### 7.2 The Major Algorithms
+### The Major Algorithms
 
 ```plaintext
   ┌─────────────────────────────────────────────────────────────────────┐
-  │                     PISO ALGORITHM FLOWCHART                       │
+  │                     PISO ALGORITHM FLOWCHART                        │
   │                                                                     │
   │     ┌───────────────────────────┐                                   │
   │     │  Start new time step t^n  │                                   │
   │     └─────────────┬─────────────┘                                   │
   │                   ▼                                                 │
   │     ┌───────────────────────────┐                                   │
-  │     │  Solve MOMENTUM equation  │◀─── Assemble H(U), A matrix      │
+  │     │  Solve MOMENTUM equation  │◀─── Assemble H(U), A matrix       │
   │     │  for predicted U*         │                                   │
   │     └─────────────┬─────────────┘                                   │
   │                   ▼                                                 │
   │     ┌───────────────────────────┐                                   │
-  │     │  Solve PRESSURE equation  │◀─── From continuity constraint   │
-  │     │  (Poisson equation)       │     ∇·U = 0 → ∇²p = ∇·(H/A)    │
+  │     │  Solve PRESSURE equation  │◀─── From continuity constraint    │
+  │     │  (Poisson equation)       │     ∇·U = 0 → ∇²p = ∇·(H/A)       │
   │     └─────────────┬─────────────┘                                   │
   │                   ▼                                                 │
   │     ┌───────────────────────────┐                                   │
   │     │  CORRECT velocity:        │                                   │
-  │     │  U = H/A − (1/A)∇p       │                                   │
+  │     │  U = H/A − (1/A)∇p        │                                   │
   │     └─────────────┬─────────────┘                                   │
   │                   ▼                                                 │
   │            ┌──────────────┐                                         │
-  │            │ Corrector    │ NO    (typically 2 correctors            │
+  │            │ Corrector    │ NO    (typically 2 correctors           │
   │            │ loops done?  ├──────▶ for standard PISO)               │
   │            └──────┬───────┘         Loop back to pressure solve     │
   │                   │ YES                                             │
@@ -625,7 +569,7 @@ constraint are satisfied simultaneously.
   └─────────────────────────────────────────────────────────────────────┘
 ```
 
-### 7.3 SIMPLE vs PISO vs PIMPLE
+### SIMPLE vs PISO vs PIMPLE
 
 | Feature | SIMPLE | PISO | PIMPLE |
 |---------|--------|------|--------|
@@ -648,11 +592,9 @@ constraint are satisfied simultaneously.
 > most flexible — it degenerates to PISO with `nOuterCorrectors 1` and behaves like
 > SIMPLE with many outer correctors and under-relaxation.
 
----
+## Convergence and Accuracy
 
-## 8. Convergence and Accuracy
-
-### 8.1 Residuals — How We Know the Solution Is Converging
+### Residuals — How We Know the Solution Is Converging
 
 At each iteration (or time step), the linear solver reduces the **residual** — the
 imbalance in the discretized equation $\mathbf{A}\boldsymbol{\phi} = \mathbf{b}$.
@@ -670,15 +612,13 @@ PCG:           Solving for p,  Initial residual = 5.1e-03, Final residual = 2.4e
 ```
 
 **Rules of thumb:**
-- Initial residuals dropping below ~$10^{-4}$ for velocity and ~$10^{-3}$ for pressure
-  typically indicates decent convergence for SIMPLE-based steady solvers.
-- For transient solvers (PISO/PIMPLE), the *final* residual at each time step should be
-  below the specified `tolerance` (e.g., $10^{-6}$).
 
-### 8.2 Grid Independence
+- Initial residuals dropping below ~$10^{-4}$ for velocity and ~$10^{-3}$ for pressure typically indicates decent convergence for SIMPLE-based steady solvers.
+- For transient solvers (PISO/PIMPLE), the *final* residual at each time step should be below the specified `tolerance` (e.g., $10^{-6}$).
 
-A CFD result is only meaningful if it does not change significantly when the mesh is
-refined. A **grid independence study** (or mesh convergence study) works as follows:
+### Grid Independence
+
+A CFD result is only meaningful if it does not change significantly when the mesh is refined. A **grid independence study** (or mesh convergence study) works as follows:
 
 1. Run the simulation on a coarse mesh.
 2. Refine the mesh (double the resolution in each direction).
@@ -688,25 +628,21 @@ refined. A **grid independence study** (or mesh convergence study) works as foll
 > **💡 Tip:** Always report grid independence in academic work. A beautiful CFD picture
 > on a coarse mesh can be completely wrong!
 
-### 8.3 The CFL Number
+### The CFL Number
 
-The Courant-Friedrichs-Lewy (CFL) number constrains the time step relative to the mesh
-and flow velocity:
+The Courant-Friedrichs-Lewy (CFL) number constrains the time step relative to the mesh and flow velocity:
 
 $$\text{CFL} = \frac{u \, \Delta t}{\Delta x}$$
 
-where $u$ is the local velocity, $\Delta t$ is the time step, and $\Delta x$ is the
-local cell size.
+where $u$ is the local velocity, $\Delta t$ is the time step, and $\Delta x$ is the local cell size.
 
-- **Explicit schemes:** require $\text{CFL} < 1$ for stability (information must not travel more
-  than one cell per time step).
-- **Implicit schemes:** unconditionally stable in theory, but accuracy degrades for
-  $\text{CFL} \gg 1$.
+- **Explicit schemes:** require $\text{CFL} < 1$ for stability (information must not travel more than one cell per time step).
+- **Implicit schemes:** unconditionally stable in theory, but accuracy degrades for $\text{CFL} \gg 1$.
 
 > **📖 See also:** Note 08 (`notes/08_cfl_number.md`) provides an in-depth treatment
 > of the CFL number, including practical guidelines for choosing time steps in OpenFOAM.
 
-### 8.4 Sources of Error in CFD
+### Sources of Error in CFD
 
 | Error Type | Description | How to Minimize |
 |------------|-------------|-----------------|
@@ -716,11 +652,9 @@ local cell size.
 | **Round-off error** | Finite precision of floating-point arithmetic | Usually negligible (use double precision) |
 | **Input error** | Wrong boundary conditions, geometry, or properties | Careful setup and validation |
 
----
+## OpenFOAM in the CFD Landscape
 
-## 9. OpenFOAM in the CFD Landscape
-
-### 9.1 Comparison with Commercial Solvers
+### Comparison with Commercial Solvers
 
 | Feature | OpenFOAM | ANSYS Fluent | Siemens STAR-CCM+ |
 |---------|----------|-------------|-------------------|
@@ -734,62 +668,41 @@ local cell size.
 | **Community** | Large, active ✔ | Vendor support | Vendor support |
 | **Industry adoption** | Growing (automotive, energy) | Dominant | Strong (automotive) |
 
-### 9.2 Why Open-Source Matters
+### Why Open-Source Matters
 
-- **Transparency:** You can read every line of the solver. If it gives a wrong answer,
-  you can find out *why* at the source-code level.
-- **Reproducibility:** Anyone can run your exact simulation without purchasing a license.
-  This is critical for academic publications.
-- **Customization:** Need a custom boundary condition, a new turbulence model, or a
-  coupled multi-physics solver? Write it in C++ and compile.
+- **Transparency:** You can read every line of the solver. If it gives a wrong answer, you can find out *why* at the source-code level.
+- **Reproducibility:** Anyone can run your exact simulation without purchasing a license. This is critical for academic publications.
+- **Customization:** Need a custom boundary condition, a new turbulence model, or a coupled multi-physics solver? Write it in C++ and compile.
 - **Cost:** Running 1000-core HPC jobs? No per-core license fees.
 
-### 9.3 OpenFOAM's Strengths and Limitations
+### OpenFOAM's Strengths and Limitations
 
 **Strengths:**
-- Comprehensive solver library (incompressible, compressible, multiphase, combustion,
-  electromagnetics, solid mechanics).
+
+- Comprehensive solver library (incompressible, compressible, multiphase, combustion, electromagnetics, solid mechanics).
 - Flexible meshing with `snappyHexMesh` for complex geometries.
 - Mature parallelization with domain decomposition.
 - Extensive turbulence model library.
 
 **Limitations:**
+
 - No integrated GUI — everything is done through text dictionaries and the command line.
 - Steep learning curve for beginners (which is why this repo exists!).
 - Documentation can be sparse for advanced features.
 - Two main forks (openfoam.org and openfoam.com) can cause confusion.
 
----
+##  Quick Reference — Key Takeaways
 
-## 10. Quick Reference — Key Takeaways
-
-> **📋 SUMMARY BOX**
->
-> 1. **CFD** solves fluid flow problems numerically by discretizing the governing PDEs
->    into algebraic equations on a mesh.
->
-> 2. **Three conservation laws** govern all fluid flow: mass (continuity), momentum
->    (Navier-Stokes), and energy.
->
-> 3. **Incompressible Navier-Stokes** ($\nabla \cdot \mathbf{u} = 0$ and the momentum
->    equation with $\nu \nabla^2 \mathbf{u}$) are what `icoFoam` solves.
->
-> 4. **The Finite Volume Method** converts PDEs into integral form over control volumes,
->    naturally conserving transported quantities.
->
-> 5. **Numerical schemes** trade off accuracy vs. stability: upwind is stable but
->    diffusive; central differencing is accurate but can oscillate.
->
-> 6. **Pressure-velocity coupling** algorithms (SIMPLE, PISO, PIMPLE) are needed
->    because there is no explicit pressure equation in incompressible flow.
->
-> 7. **Always validate** your results: check residuals, perform grid independence
->    studies, and compare with analytical/experimental data.
->
-> 8. **OpenFOAM** is a powerful open-source FVM-based CFD toolbox — free, customizable,
->    and widely used in both academia and industry.
-
----
+| # | Concept                      | Description                                                                                                                    |
+| - | ---------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| 1 | CFD                          | Solves fluid flow problems numerically by discretizing governing PDEs into algebraic equations on a mesh.                      |
+| 2 | Conservation Laws            | Three laws govern fluid flow: mass (continuity), momentum (Navier–Stokes), and energy.                                         |
+| 3 | Incompressible Navier–Stokes | Defined by $\nabla \cdot \mathbf{u} = 0$ and the momentum equation with $\nu \nabla^2 \mathbf{u}$; solved by `icoFoam`.        |
+| 4 | Finite Volume Method         | Converts PDEs into integral form over control volumes, ensuring conservation of transported quantities.                        |
+| 5 | Numerical Schemes            | Trade-off between accuracy and stability: upwind (stable but diffusive) vs. central differencing (accurate but may oscillate). |
+| 6 | Pressure-Velocity Coupling   | Algorithms like SIMPLE, PISO, and PIMPLE handle coupling since no explicit pressure equation exists in incompressible flow.    |
+| 7 | Validation                   | Essential step: check residuals, perform grid independence studies, and compare with analytical or experimental data.          |
+| 8 | OpenFOAM                     | Open-source FVM-based CFD toolbox; free, customizable, and widely used in academia and industry.                               |
 
 ## Where to Go Next
 
@@ -809,6 +722,5 @@ local cell size.
 | **Hands-on:** Lid-driven cavity | `projects/01_lid_driven_cavity/` |
 | **Hands-on:** NACA airfoil | `projects/04_naca_airfoil_analysis/` |
 
----
 
 *Last updated: 2025. Part of the [OpenFOAM-Tutorials](../README.md) repository.*
