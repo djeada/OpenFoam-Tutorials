@@ -282,7 +282,7 @@ The governing equations are continuous PDEs — they apply at every point in spa
 
    |         ●        |        ●          |     ●      |     ●     |     ●     |
    |       cell 1     |       cell 2      |  cell 3    |  cell 4   |  cell 5   |
-   |                  |         |         |            |           |
+   |                  |                   |            |           |           |
    |  ◀──── Δx ────▶  |  ◀──── Δx ─────▶  | ◀── Δx ──▶ |◀── Δx ──▶ |◀── Δx ──▶ |
 
    ●  = cell centroid (where field values are stored in FVM)
