@@ -11,15 +11,9 @@ This philosophy has profound implications:
 - **Automation** — shell scripts can set up, modify, and launch thousands of parametric runs.
 - **Transparency** — nothing is hidden; if the solver uses it, you can find it in a file.
 
-This document walks through every piece of an OpenFOAM case, using **real files from the projects
-in this repository** as examples.
+## Case Directory Structure
 
----
-
-## 1. Case Directory Structure — The Big Picture
-
-Every OpenFOAM case follows the same three-directory convention. Below is a **complete** tree
-showing all the files you may encounter in a typical case:
+Every OpenFOAM case follows the same three-directory convention. Below is a **complete** tree showing all the files you may encounter in a typical case:
 
 ```
 ╔══════════════════════════════════════════════════════════════════════════════╗
@@ -77,11 +71,11 @@ MyCase/
 ### How the Three Directories Relate
 
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        HOW THE PIECES FIT TOGETHER                      │
-│                                                                         │
+┌────────────────────────────────────────────────────────────────────────┐
+│                        HOW THE PIECES FIT TOGETHER                     │
+│                                                                        │
 │    ┌────────────┐     ┌──────────────────┐     ┌────────────────┐      │
-│    │    0/       │     │    constant/      │     │    system/      │     │
+│    │    0/      │     │    constant/     │     │    system/     │      │
 │    │            │     │                  │     │                │      │
 │    │  "What are │     │  "What is the    │     │  "How do we    │      │
 │    │   the start│     │   physical       │     │   solve the    │      │
@@ -96,16 +90,14 @@ MyCase/
 │                                │                                       │
 │                                ▼                                       │
 │                     ┌──────────────────┐                               │
-│                     │     SOLVER        │                               │
+│                     │     SOLVER       │                               │
 │                     │  (e.g. icoFoam,  │                               │
 │                     │   simpleFoam)    │                               │
 │                     └──────────────────┘                               │
-└─────────────────────────────────────────────────────────────────────────┘
+└────────────────────────────────────────────────────────────────────────┘
 ```
 
----
-
-## 2. The `0/` Directory — Initial & Boundary Conditions
+## The `0/` Directory — Initial & Boundary Conditions
 
 The `0/` directory (named for time = 0) holds one file per field variable. Each file specifies:
 
@@ -113,7 +105,7 @@ The `0/` directory (named for time = 0) holds one file per field variable. Each 
 2. **The initial value everywhere** — `internalField`
 3. **Conditions on every boundary patch** — `boundaryField`
 
-### 2.1 The FoamFile Header
+### The FoamFile Header
 
 Every single OpenFOAM dictionary file starts with a standardized header:
 
@@ -134,7 +126,7 @@ FoamFile
 | `volSymmTensorField` | Symmetric tensor per cell            | `R` (Reynolds stress)|
 | `dictionary`         | Key-value configuration              | `controlDict`        |
 
-### 2.2 The Dimensions Array
+### The Dimensions Array
 
 OpenFOAM enforces dimensional consistency at runtime. Every field declares its units:
 
@@ -163,7 +155,7 @@ dimensions      [0 1 -1 0 0 0 0];
 > **⚠ Warning:** If you get a dimensions mismatch error at runtime, check this array first.
 > A single wrong exponent (e.g., `[0 2 -1 ...]` vs `[0 2 -2 ...]`) will crash the solver.
 
-### 2.3 internalField vs boundaryField
+### internalField vs boundaryField
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -174,7 +166,7 @@ dimensions      [0 1 -1 0 0 0 0];
 │         value: (1 0 0)         │                                │
 │                                ▼                                │
 │    ┌─────────┬─────────┬─────────┐                              │
-│    │ (0,0,0) │ (0,0,0) │ (0,0,0) │ ◄── internalField           │
+│    │ (0,0,0) │ (0,0,0) │ (0,0,0) │ ◄── internalField            │
 │    ├─────────┼─────────┼─────────┤     uniform (0 0 0)          │
 │    │ (0,0,0) │ (0,0,0) │ (0,0,0) │                              │
 │    ├─────────┼─────────┼─────────┤                              │
@@ -183,8 +175,8 @@ dimensions      [0 1 -1 0 0 0 0];
 │                              │                                  │
 │                              ▼                                  │
 │                boundaryField: "outlet"                          │
-│                type: zeroGradient                                │
-│                (value extrapolated from interior)                │
+│                type: zeroGradient                               │
+│                (value extrapolated from interior)               │
 │                                                                 │
 │    ─── Top: "movingWall" (fixedValue) ───                       │
 │    ─── Left/Right/Bottom: "fixedWalls" (noSlip) ───             │
@@ -192,13 +184,16 @@ dimensions      [0 1 -1 0 0 0 0];
 └─────────────────────────────────────────────────────────────────┘
 ```
 
-- **`internalField`** sets the value inside every cell at `t = 0`.
-  - `uniform (0 0 0)` — same value everywhere (most common).
-  - `nonuniform List<vector> ...` — different value per cell (rare at startup).
-- **`boundaryField`** assigns a condition to each named patch in the mesh.
-  - Every patch defined in `constant/polyMesh/boundary` **must** appear here.
+**`internalField`** sets the value inside every cell at `t = 0`.
 
-### 2.4 Real Example — Laminar Case: Lid-Driven Cavity `0/U`
+- `uniform (0 0 0)` — same value everywhere (most common).
+- `nonuniform List<vector> ...` — different value per cell (rare at startup).
+
+**`boundaryField`** assigns a condition to each named patch in the mesh.
+
+- Every patch defined in `constant/polyMesh/boundary` **must** appear here.
+
+### Real Example — Laminar Case: Lid-Driven Cavity `0/U`
 
 *Source: `projects/01_lid_driven_cavity/0/U`*
 
@@ -272,7 +267,7 @@ boundaryField
 > **Note:** For incompressible solvers like `icoFoam`, pressure has dimensions `[0 2 -2 ...]`
 > (kinematic pressure, p/ρ). For compressible solvers, it would be `[1 -1 -2 ...]` (Pascals).
 
-### 2.5 Real Example — Turbulent Case: NACA Airfoil `0/U`
+### Real Example — Turbulent Case: NACA Airfoil `0/U`
 
 *Source: `projects/04_naca_airfoil_analysis/0/U`*
 
@@ -408,14 +403,12 @@ boundaryField
 | `nutkWallFunction`   | Wall function for turbulent νt                  | Turbulent walls            |
 | `calculated`         | Derived from other fields                       | νt at inlet/outlet         |
 
----
-
-## 3. The `constant/` Directory — Physical Properties & Mesh
+## The `constant/` Directory — Physical Properties & Mesh
 
 The `constant/` directory defines the unchanging physical reality of your simulation: what fluid
 you are simulating, what turbulence model you are using, and the mesh geometry.
 
-### 3.1 transportProperties
+### transportProperties
 
 This file tells OpenFOAM what kind of fluid model to use and its properties.
 
