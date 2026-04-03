@@ -656,7 +656,7 @@ With `adjustTimeStep yes`, interFoam automatically adjusts $\Delta t$ to satisfy
 
 The interface Courant limit is stricter because the $\alpha$ equation is solved
 explicitly and is more sensitive to time step size. See
-[Note 08 — The CFL Number](../../notes/08_cfl_number.md) for details.
+[Note 08 — The CFL Number](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/08_cfl_number.md) for details.
 
 ---
 
@@ -1043,7 +1043,7 @@ This project is the stepping stone to Project 12 (floating hull):
 2. Read about `sixDoFRigidBodyMotion` in OpenFOAM
 3. Estimate the hull's buoyancy: does the waterline position make sense?
 4. What additional dictionary entries would you need for a floating hull?
-5. Proceed to [Project 12](../12_boat_hull_floating/) to see the answer
+5. Proceed to [Project 12](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/12_boat_hull_floating) to see the answer
 
 ---
 
@@ -1053,20 +1053,20 @@ This project is the stepping stone to Project 12 (floating hull):
 
 | Note | Topic | Relevance |
 |------|-------|-----------|
-| [01 — CFD Introduction](../../notes/01_short_intro_to_cfd.md) | Fundamentals of CFD | Navier-Stokes equations, discretization basics |
-| [04 — Meshing](../../notes/04_meshing.md) | Meshing in OpenFOAM | blockMesh, snappyHexMesh theory and practice |
-| [05 — Boundary Conditions](../../notes/05_boundary_conditions.md) | BCs in OpenFOAM | Detailed explanation of all BC types used here |
-| [08 — CFL Number](../../notes/08_cfl_number.md) | Stability & time stepping | Why maxCo and maxAlphaCo matter for interFoam |
-| [09 — Linear Solvers](../../notes/09_linear_solvers.md) | Solver settings | PCG, GAMG, smoothSolver configuration |
+| [01 — CFD Introduction](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/01_short_intro_to_cfd.md) | Fundamentals of CFD | Navier-Stokes equations, discretization basics |
+| [04 — Meshing](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/04_meshing.md) | Meshing in OpenFOAM | blockMesh, snappyHexMesh theory and practice |
+| [05 — Boundary Conditions](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/05_boundary_conditions.md) | BCs in OpenFOAM | Detailed explanation of all BC types used here |
+| [08 — CFL Number](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/08_cfl_number.md) | Stability & time stepping | Why maxCo and maxAlphaCo matter for interFoam |
+| [09 — Linear Solvers](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/09_linear_solvers.md) | Solver settings | PCG, GAMG, smoothSolver configuration |
 
 ### Related Projects
 
 | Project | Description | Connection |
 |---------|-------------|------------|
-| [08 — Dam Break](../08_dam_break/) | Two-phase dam break simulation | Also uses interFoam/VOF — simpler geometry, same physics |
-| [12 — Floating Hull](../12_boat_hull_floating/) | Free-floating boat hull | Next step — adds 6-DOF rigid body motion to this case |
-| [04 — NACA Airfoil](../04_naca_airfoil_analysis/) | External aerodynamics | Similar external flow concepts, single-phase |
-| [06 — Ahmed Body](../06_ahmed_body_aerodynamics/) | Bluff body aerodynamics | Similar drag analysis concepts |
+| [08 — Dam Break](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/08_dam_break) | Two-phase dam break simulation | Also uses interFoam/VOF — simpler geometry, same physics |
+| [12 — Floating Hull](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/12_boat_hull_floating) | Free-floating boat hull | Next step — adds 6-DOF rigid body motion to this case |
+| [04 — NACA Airfoil](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/04_naca_airfoil_analysis) | External aerodynamics | Similar external flow concepts, single-phase |
+| [06 — Ahmed Body](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/06_ahmed_body_aerodynamics) | Bluff body aerodynamics | Similar drag analysis concepts |
 
 ### Learning Path
 
@@ -1097,4 +1097,4 @@ This project is the stepping stone to Project 12 (floating hull):
 
 ---
 
-*Part of the [OpenFOAM Tutorials](../../README.md) learning series.*
+*Part of the [OpenFOAM Tutorials](https://github.com/djeada/OpenFoam-Tutorials/blob/main/README.md) learning series.*

@@ -49,7 +49,7 @@ CFD codes and learning simulation techniques.
   shedding frequency.
 
 > **💡 Tip:** For background on CFD fundamentals and the governing Navier-Stokes equations,
-> see [`notes/01_short_intro_to_cfd.md`](../../notes/01_short_intro_to_cfd.md).
+> see [`notes/01_short_intro_to_cfd.md`](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/01_short_intro_to_cfd.md).
 
 ---
 
@@ -115,7 +115,7 @@ where `F_D` is the drag force, `ρ` is the fluid density, and `A` is the project
 | 500,000 | 0.3 | Drag crisis — supercritical |
 
 > **💡 Tip:** For details on turbulence modeling and when to use RANS vs LES, see
-> [`notes/06_turbulence_models.md`](../../notes/06_turbulence_models.md).
+> [`notes/06_turbulence_models.md`](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_turbulence_models.md).
 
 ---
 
@@ -243,7 +243,7 @@ cylinder/
 ```
 
 > **💡 Tip:** For a detailed explanation of the OpenFOAM case directory structure, see
-> [`notes/02_openfoam_cases.md`](../../notes/02_openfoam_cases.md).
+> [`notes/02_openfoam_cases.md`](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/02_openfoam_cases.md).
 
 ---
 
@@ -344,7 +344,7 @@ mergePatchPairs
 > **💡 Tip:** The `(100 40 1)` cell count gives 100 cells in the streamwise direction and
 > 40 in the cross-stream direction. The single cell in z makes this a 2D simulation (with
 > `empty` boundary condition on the front and back faces). For details on `blockMesh`, see
-> [`notes/04_meshing.md`](../../notes/04_meshing.md).
+> [`notes/04_meshing.md`](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/04_meshing.md).
 
 ---
 
@@ -502,7 +502,7 @@ All field files go in the `0/` directory. Each file specifies initial and bounda
 for one variable.
 
 > **💡 Tip:** For a comprehensive reference on boundary condition types, see
-> [`notes/05_boundary_conditions.md`](../../notes/05_boundary_conditions.md).
+> [`notes/05_boundary_conditions.md`](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/05_boundary_conditions.md).
 
 #### Velocity — `0/U`
 
@@ -813,7 +813,7 @@ RAS
 
 > **💡 Tip:** For a comparison of available turbulence models (k-$\varepsilon$, k-$\omega$ SST,
 > Spalart-Allmaras) and guidance on which to choose, see
-> [`notes/06_turbulence_models.md`](../../notes/06_turbulence_models.md).
+> [`notes/06_turbulence_models.md`](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_turbulence_models.md).
 
 ---
 
@@ -958,7 +958,7 @@ wallDist
 
 > **💡 Tip:** `linearUpwind` for the momentum equation provides a good balance between
 > accuracy and stability. For details on discretization schemes and their accuracy, see
-> [`notes/03_openfoam_dictionaries.md`](../../notes/03_openfoam_dictionaries.md).
+> [`notes/03_openfoam_dictionaries.md`](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/03_openfoam_dictionaries.md).
 
 #### `system/fvSolution`
 
@@ -1020,7 +1020,7 @@ relaxationFactors
 
 > **💡 Tip:** For an in-depth explanation of linear solvers (GAMG, PCG, smoothSolver)
 > and how to choose tolerances, see
-> [`notes/09_linear_solvers.md`](../../notes/09_linear_solvers.md).
+> [`notes/09_linear_solvers.md`](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/09_linear_solvers.md).
 
 #### `system/decomposeParDict`
 
@@ -1041,7 +1041,7 @@ method          scotch;
 ```
 
 > **💡 Tip:** For parallel decomposition strategies and MPI configuration, see
-> [`notes/07_parallelization.md`](../../notes/07_parallelization.md).
+> [`notes/07_parallelization.md`](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/07_parallelization.md).
 
 ---
 
@@ -1115,7 +1115,7 @@ ddtSchemes
 > **💡 Tip:** For vortex shedding at $Re = 100$ (laminar), you can use `pimpleFoam` with
 > `simulationType laminar` in `turbulenceProperties`. The Strouhal number should converge
 > to $St \approx 0.164$. For guidance on choosing time steps using the CFL condition, see
-> [`notes/08_cfl_number.md`](../../notes/08_cfl_number.md).
+> [`notes/08_cfl_number.md`](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/08_cfl_number.md).
 
 ---
 

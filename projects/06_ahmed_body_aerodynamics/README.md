@@ -1767,4 +1767,4 @@ For faster turnaround, exploit the geometric symmetry:
 
 ---
 
-*This tutorial is part of the [OpenFOAM Tutorials](../../README.md) collection.*
+*This tutorial is part of the [OpenFOAM Tutorials](https://github.com/djeada/OpenFoam-Tutorials/blob/main/README.md) collection.*

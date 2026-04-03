@@ -723,4 +723,4 @@ where $u$ is the local velocity, $\Delta t$ is the time step, and $\Delta x$ is 
 | **Hands-on:** NACA airfoil | `projects/04_naca_airfoil_analysis/` |
 
 
-*Last updated: 2025. Part of the [OpenFOAM-Tutorials](../README.md) repository.*
+*Last updated: 2025. Part of the [OpenFOAM-Tutorials](https://github.com/djeada/OpenFoam-Tutorials/blob/main/README.md) repository.*

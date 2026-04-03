@@ -383,8 +383,8 @@ front/back boundaries):
     with turbulent Prandtl number Prt = 0.85
 
 > **Further reading on boundary conditions:**
-> - [Boundary Conditions Guide](../../notes/05_boundary_conditions.md)
-> - [Turbulence Models](../../notes/06_turbulence_models.md)
+> - [Boundary Conditions Guide](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/05_boundary_conditions.md)
+> - [Turbulence Models](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_turbulence_models.md)
 
 ---
 
@@ -429,7 +429,7 @@ non-physical oscillations — critical for stability in compressible SIMPLE solv
 - All residuals must fall below $1 \times 10^{-4}$
 
 > **Further reading on linear solvers:**
-> - [Linear Solvers and Convergence](../../notes/09_linear_solvers.md)
+> - [Linear Solvers and Convergence](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/09_linear_solvers.md)
 
 ### 6.3 Run Control (controlDict)
 
@@ -720,7 +720,7 @@ They are ordered from simple parameter changes to more significant modifications
 - Remember to update wall functions accordingly
 - **Question:** Which model gives results closest to empirical correlations?
 
-> See [Turbulence Models](../../notes/06_turbulence_models.md) for detailed guidance.
+> See [Turbulence Models](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_turbulence_models.md) for detailed guidance.
 
 ### Exercise 6: Non-Uniform Wall Temperature
 
@@ -789,7 +789,7 @@ They are ordered from simple parameter changes to more significant modifications
   ```
 - **Question:** Is the result identical to the serial run? What is the speedup?
 
-> See [Parallelization Guide](../../notes/07_parallelization.md) for details.
+> See [Parallelization Guide](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/07_parallelization.md) for details.
 
 ### Exercise 10: Validate Against Analytical Solutions
 
@@ -872,24 +872,24 @@ If residuals stagnate above the target, try:
 
 | Note | Relevance |
 |---|---|
-| [01 — Introduction to CFD](../../notes/01_short_intro_to_cfd.md) | Governing equations (continuity, momentum, energy) |
-| [02 — OpenFOAM Cases](../../notes/02_openfoam_cases.md) | Case directory structure and file organization |
-| [03 — OpenFOAM Dictionaries](../../notes/03_openfoam_dictionaries.md) | Dictionary format, FoamFile headers, syntax |
-| [04 — Meshing](../../notes/04_meshing.md) | blockMesh usage, mesh quality, grading |
-| [05 — Boundary Conditions](../../notes/05_boundary_conditions.md) | BC types used in this project (fixedValue, wall functions) |
-| [06 — Turbulence Models](../../notes/06_turbulence_models.md) | k-epsilon model theory, wall functions, model selection |
-| [07 — Parallelization](../../notes/07_parallelization.md) | Running cases in parallel (Exercise 9) |
-| [08 — CFL Number](../../notes/08_cfl_number.md) | Stability and time stepping (relevant for transient extensions) |
-| [09 — Linear Solvers](../../notes/09_linear_solvers.md) | GAMG, smoothSolver, convergence, residuals |
+| [01 — Introduction to CFD](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/01_short_intro_to_cfd.md) | Governing equations (continuity, momentum, energy) |
+| [02 — OpenFOAM Cases](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/02_openfoam_cases.md) | Case directory structure and file organization |
+| [03 — OpenFOAM Dictionaries](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/03_openfoam_dictionaries.md) | Dictionary format, FoamFile headers, syntax |
+| [04 — Meshing](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/04_meshing.md) | blockMesh usage, mesh quality, grading |
+| [05 — Boundary Conditions](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/05_boundary_conditions.md) | BC types used in this project (fixedValue, wall functions) |
+| [06 — Turbulence Models](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_turbulence_models.md) | k-epsilon model theory, wall functions, model selection |
+| [07 — Parallelization](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/07_parallelization.md) | Running cases in parallel (Exercise 9) |
+| [08 — CFL Number](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/08_cfl_number.md) | Stability and time stepping (relevant for transient extensions) |
+| [09 — Linear Solvers](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/09_linear_solvers.md) | GAMG, smoothSolver, convergence, residuals |
 
 ### Related Projects
 
 | Project | What It Teaches | How It Connects |
 |---|---|---|
-| [01 — Lid-Driven Cavity](../01_lid_driven_cavity/) | Basic CFD setup, icoFoam | Foundation for understanding BCs and mesh |
-| [04 — NACA Airfoil](../04_naca_airfoil_analysis/) | External aerodynamics, turbulence | Same k-epsilon model, different application |
+| [01 — Lid-Driven Cavity](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/01_lid_driven_cavity) | Basic CFD setup, icoFoam | Foundation for understanding BCs and mesh |
+| [04 — NACA Airfoil](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/04_naca_airfoil_analysis) | External aerodynamics, turbulence | Same k-epsilon model, different application |
 
 ---
 
-*This project is part of the [OpenFOAM Tutorials](../../README.md) repository — a
+*This project is part of the [OpenFOAM Tutorials](https://github.com/djeada/OpenFoam-Tutorials/blob/main/README.md) repository — a
 hands-on learning path from CFD fundamentals to advanced simulations.*

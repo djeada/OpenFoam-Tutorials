@@ -190,7 +190,7 @@ the collapse and wave propagation. This keeps the case simple and focused on the
 VOF method itself. For larger-scale dam breaks, turbulence modelling (e.g., k-$\varepsilon$
 or LES) would be appropriate.
 
-See also: [Turbulence Models](../../notes/06_turbulence_models.md)
+See also: [Turbulence Models](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_turbulence_models.md)
 
 ---
 
@@ -342,8 +342,8 @@ maintain a sharp interface.
 | `system/setFieldsDict` | Defines where water starts (the "dam")                      |
 | `system/controlDict`   | Adjustable time stepping with CFL control                   |
 
-See also: [OpenFOAM Case Structure](../../notes/02_openfoam_cases.md),
-[OpenFOAM Dictionaries](../../notes/03_openfoam_dictionaries.md)
+See also: [OpenFOAM Case Structure](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/02_openfoam_cases.md),
+[OpenFOAM Dictionaries](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/03_openfoam_dictionaries.md)
 
 ---
 
@@ -402,7 +402,7 @@ The block is defined by 8 vertices forming a single hexahedral block:
 The `empty` type on `frontAndBack` tells OpenFOAM this is a 2D simulation — no
 equations are solved in the z-direction.
 
-See also: [Meshing](../../notes/04_meshing.md)
+See also: [Meshing](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/04_meshing.md)
 
 ---
 
@@ -500,7 +500,7 @@ velocity BC while correctly accounting for the body force (gravity) term. This
 prevents spurious velocities ("parasitic currents") near walls in
 gravity-dominated multiphase flows.
 
-See also: [Boundary Conditions](../../notes/05_boundary_conditions.md)
+See also: [Boundary Conditions](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/05_boundary_conditions.md)
 
 ---
 
@@ -561,7 +561,7 @@ The alpha Courant number is based on the velocity at the interface between fluid
 Because the interface advection equation requires high accuracy, `maxAlphaCo` is
 often set equal to or lower than `maxCo`. In our case, both are 0.5.
 
-See also: [CFL Number](../../notes/08_cfl_number.md)
+See also: [CFL Number](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/08_cfl_number.md)
 
 ### fvSolution — PIMPLE Algorithm
 
@@ -591,7 +591,7 @@ pressure-velocity coupling convergence.
 The alpha solver uses a very tight tolerance (1e-8) because small errors in the
 volume fraction field can lead to mass conservation issues and interface smearing.
 
-See also: [Linear Solvers](../../notes/09_linear_solvers.md)
+See also: [Linear Solvers](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/09_linear_solvers.md)
 
 ---
 
@@ -906,7 +906,7 @@ Convert this 2D case to a full 3D simulation:
 3. Change `frontAndBack` boundary conditions from `empty` to `noSlip`/`fixedFluxPressure`/`zeroGradient`
 4. Consider using parallel decomposition for the larger mesh
 
-See also: [Parallelization](../../notes/07_parallelization.md)
+See also: [Parallelization](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/07_parallelization.md)
 
 ### Exercise 5: Turbulence Model
 
@@ -916,7 +916,7 @@ For higher Reynolds number dam breaks, add turbulence modelling:
 2. Add `0/k`, `0/omega`, and `0/nut` initial condition files
 3. Set appropriate wall functions on boundaries
 
-See also: [Turbulence Models](../../notes/06_turbulence_models.md)
+See also: [Turbulence Models](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_turbulence_models.md)
 
 ### Exercise 6: Surface Tension Effects
 
@@ -969,16 +969,16 @@ Study the effect of surface tension by varying the `sigma` value in
 
 ### Related Notes in This Repository
 
-- [Introduction to CFD](../../notes/01_short_intro_to_cfd.md) — Fundamental CFD concepts
-- [OpenFOAM Cases](../../notes/02_openfoam_cases.md) — Case directory structure
-- [OpenFOAM Dictionaries](../../notes/03_openfoam_dictionaries.md) — Dictionary syntax
-- [Meshing](../../notes/04_meshing.md) — Mesh generation with blockMesh
-- [Boundary Conditions](../../notes/05_boundary_conditions.md) — BC types and usage
-- [Turbulence Models](../../notes/06_turbulence_models.md) — For Exercise 5
-- [Parallelization](../../notes/07_parallelization.md) — For Exercise 4 (3D)
-- [CFL Number](../../notes/08_cfl_number.md) — Time step control and stability
-- [Linear Solvers](../../notes/09_linear_solvers.md) — Solver algorithms
+- [Introduction to CFD](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/01_short_intro_to_cfd.md) — Fundamental CFD concepts
+- [OpenFOAM Cases](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/02_openfoam_cases.md) — Case directory structure
+- [OpenFOAM Dictionaries](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/03_openfoam_dictionaries.md) — Dictionary syntax
+- [Meshing](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/04_meshing.md) — Mesh generation with blockMesh
+- [Boundary Conditions](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/05_boundary_conditions.md) — BC types and usage
+- [Turbulence Models](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_turbulence_models.md) — For Exercise 5
+- [Parallelization](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/07_parallelization.md) — For Exercise 4 (3D)
+- [CFL Number](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/08_cfl_number.md) — Time step control and stability
+- [Linear Solvers](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/09_linear_solvers.md) — Solver algorithms
 
 ---
 
-*This tutorial is part of the [OpenFOAM Tutorials](../../README.md) repository.*
+*This tutorial is part of the [OpenFOAM Tutorials](https://github.com/djeada/OpenFoam-Tutorials/blob/main/README.md) repository.*

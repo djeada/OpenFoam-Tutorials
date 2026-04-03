@@ -127,18 +127,18 @@ Twelve self-contained guides covering every major concept you'll need. Read them
 
 | # | Note | Key Topics | Level |
 |---|------|------------|-------|
-| 01 | [**A Short Introduction to CFD**](notes/01_short_intro_to_cfd.md) | Navier-Stokes equations, CFD vs other approaches, CFD tools, finite volume method, discretization | 🟢 Beginner |
-| 02 | [**OpenFOAM Cases**](notes/02_openfoam_cases.md) | Case directory structure (`0/`, `constant/`, `system/`), setup workflow, running a case | 🟢 Beginner |
-| 03 | [**OpenFOAM Dictionaries**](notes/03_openfoam_dictionaries.md) | Dictionary syntax, `controlDict`, `fvSchemes`, `fvSolution`, `transportProperties` | 🟢 Beginner |
-| 04 | [**Meshing**](notes/04_meshing.md) | `blockMesh` fundamentals, `snappyHexMesh` workflow, mesh quality metrics, refinement strategies | 🟡 Intermediate |
-| 05 | [**Boundary & Initial Conditions**](notes/05_boundary_conditions.md) | Initial conditions, Dirichlet/Neumann types, `fixedValue`, `zeroGradient`, `inlet/outlet`, wall functions | 🟡 Intermediate |
-| 06 | [**Turbulence Models**](notes/06_turbulence_models.md) | RANS vs LES vs DNS, k-epsilon, k-omega SST, model selection guidelines, y+ requirements | 🟡 Intermediate |
-| 07 | [**Parallelization**](notes/07_parallelization.md) | Domain decomposition methods, `decomposePar`, MPI execution, scaling, `reconstructPar` | 🟡 Intermediate |
-| 08 | [**CFL Number**](notes/08_cfl_number.md) | Courant-Friedrichs-Lewy condition, stability criteria, adaptive time stepping, `maxCo` | 🔴 Advanced |
-| 09 | [**Linear Solvers**](notes/09_linear_solvers.md) | PCG, PBiCGStab, GAMG, preconditioners, tolerance settings, convergence troubleshooting | 🔴 Advanced |
-| 10 | [**icoFoam Solver Analysis**](notes/10_icofoam_solver_analysis.md) | PISO algorithm step-by-step, C++ source code walkthrough, pressure-velocity coupling | 🔴 Advanced |
-| 11 | [**Viscosity Models**](notes/11_viscosity_models.md) | Newtonian & non-Newtonian fluids, power-law, Bird-Carreau, Herschel-Bulkley, `transportProperties` | 🟡 Intermediate |
-| 12 | [**Multiphase Flows**](notes/12_multiphase_flows.md) | Volume of Fluid (VOF), `interFoam`, surface tension, `alpha` field, `setFields`, multiphase setup | 🟡 Intermediate |
+| 01 | [**A Short Introduction to CFD**](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/01_short_intro_to_cfd.md) | Navier-Stokes equations, CFD vs other approaches, CFD tools, finite volume method, discretization | 🟢 Beginner |
+| 02 | [**OpenFOAM Cases**](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/02_openfoam_cases.md) | Case directory structure (`0/`, `constant/`, `system/`), setup workflow, running a case | 🟢 Beginner |
+| 03 | [**OpenFOAM Dictionaries**](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/03_openfoam_dictionaries.md) | Dictionary syntax, `controlDict`, `fvSchemes`, `fvSolution`, `transportProperties` | 🟢 Beginner |
+| 04 | [**Meshing**](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/04_meshing.md) | `blockMesh` fundamentals, `snappyHexMesh` workflow, mesh quality metrics, refinement strategies | 🟡 Intermediate |
+| 05 | [**Boundary & Initial Conditions**](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/05_boundary_conditions.md) | Initial conditions, Dirichlet/Neumann types, `fixedValue`, `zeroGradient`, `inlet/outlet`, wall functions | 🟡 Intermediate |
+| 06 | [**Turbulence Models**](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_turbulence_models.md) | RANS vs LES vs DNS, k-epsilon, k-omega SST, model selection guidelines, y+ requirements | 🟡 Intermediate |
+| 07 | [**Parallelization**](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/07_parallelization.md) | Domain decomposition methods, `decomposePar`, MPI execution, scaling, `reconstructPar` | 🟡 Intermediate |
+| 08 | [**CFL Number**](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/08_cfl_number.md) | Courant-Friedrichs-Lewy condition, stability criteria, adaptive time stepping, `maxCo` | 🔴 Advanced |
+| 09 | [**Linear Solvers**](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/09_linear_solvers.md) | PCG, PBiCGStab, GAMG, preconditioners, tolerance settings, convergence troubleshooting | 🔴 Advanced |
+| 10 | [**icoFoam Solver Analysis**](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/10_icofoam_solver_analysis.md) | PISO algorithm step-by-step, C++ source code walkthrough, pressure-velocity coupling | 🔴 Advanced |
+| 11 | [**Viscosity Models**](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/11_viscosity_models.md) | Newtonian & non-Newtonian fluids, power-law, Bird-Carreau, Herschel-Bulkley, `transportProperties` | 🟡 Intermediate |
+| 12 | [**Multiphase Flows**](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/12_multiphase_flows.md) | Volume of Fluid (VOF), `interFoam`, surface tension, `alpha` field, `setFields`, multiphase setup | 🟡 Intermediate |
 
 ---
 
@@ -148,18 +148,18 @@ Twelve simulation projects arranged by increasing complexity. Each project direc
 
 | # | Project | Description | Solver | Mesh | Turbulence | Level |
 |---|---------|-------------|--------|------|------------|-------|
-| 01 | [**Lid-Driven Cavity**](projects/01_lid_driven_cavity/) | The "Hello World" of CFD — a square cavity with a moving top wall. Validates against Ghia et al. benchmark data. | `icoFoam` | `blockMesh` | Laminar | 🟢 Beginner |
-| 02 | [**Elbow**](projects/02_elbow/) | Flow through a curved pipe elbow. Demonstrates importing a Fluent mesh into OpenFOAM and post-processing in ParaView. | `icoFoam` | Fluent import | Laminar | 🟢 Beginner |
-| 03 | [**Flow Around a Cylinder**](projects/03_flow_around_cylinder/) | External flow past a circular cylinder. Introduces `snappyHexMesh` for geometry-based meshing and drag/lift computation. | `simpleFoam` | `snappyHexMesh` | Laminar/Low-Re | 🟡 Intermediate |
-| 04 | [**NACA Airfoil Analysis**](projects/04_naca_airfoil_analysis/) | Aerodynamic analysis of a NACA airfoil profile. Covers angle-of-attack sweeps, lift/drag coefficients, and pressure distributions. | `simpleFoam` | Structured | k-epsilon | 🟡 Intermediate |
-| 05 | [**Heated Pipe Flow**](projects/05_heated_pipe_flow/) | Conjugate heat transfer in a heated pipe. Introduces the energy equation, buoyancy effects, and thermal boundary conditions. | `buoyantSimpleFoam` | `blockMesh` | k-epsilon | 🟡 Intermediate |
-| 06 | [**Ahmed Body Aerodynamics**](projects/06_ahmed_body_aerodynamics/) | Full 3D automotive aerodynamics simulation of the Ahmed body — the standard reference geometry for vehicle aero studies. | `simpleFoam` | `snappyHexMesh` | k-omega SST | 🔴 Advanced |
-| 07 | [**Backward-Facing Step**](projects/07_backward_facing_step/) | Classic turbulent separated flow benchmark. Validates reattachment length against NASA experimental data (Xr/H ≈ 6.0). | `simpleFoam` | `blockMesh` | k-omega SST | 🔴 Advanced |
-| 08 | [**Dam Break**](projects/08_dam_break/) | Multiphase free-surface flow using Volume of Fluid (VOF). Water column collapse with gravity — transient interFoam simulation. | `interFoam` | `blockMesh` | Laminar | 🔴 Advanced |
-| 09 | [**Wind Turbine Blade**](projects/09_wind_turbine_blade/) | Rotating machinery simulation using the Multiple Reference Frame (MRF) approach. Introduces `topoSet` and `MRFProperties`. | `simpleFoam` | `blockMesh` | k-epsilon | 🔴 Advanced |
-| 10 | [**Mixing T-Junction**](projects/10_mixing_t_junction/) | Thermal mixing of hot (350 K) and cold (300 K) streams in a T-junction. Multi-block structured mesh with buoyancy coupling. | `buoyantSimpleFoam` | `blockMesh` | k-epsilon | 🔴 Advanced |
-| 11 | [**Boat Hull — Fixed**](projects/11_boat_hull_fixed/) | Fixed toy boat hull in calm water with free surface. Uses your own STL geometry with snappyHexMesh for drag and wave pattern analysis. | `interFoam` | `snappyHexMesh` | Laminar | 🔴 Advanced |
-| 12 | [**Boat Hull — Floating**](projects/12_boat_hull_floating/) | Floating rigid-body boat with 6-DoF motion. Dynamic mesh morphing with heave, pitch, and roll — the capstone project. | `interDyMFoam` | `snappyHexMesh` | Laminar | 🔴 Advanced |
+| 01 | [**Lid-Driven Cavity**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/01_lid_driven_cavity) | The "Hello World" of CFD — a square cavity with a moving top wall. Validates against Ghia et al. benchmark data. | `icoFoam` | `blockMesh` | Laminar | 🟢 Beginner |
+| 02 | [**Elbow**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/02_elbow) | Flow through a curved pipe elbow. Demonstrates importing a Fluent mesh into OpenFOAM and post-processing in ParaView. | `icoFoam` | Fluent import | Laminar | 🟢 Beginner |
+| 03 | [**Flow Around a Cylinder**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/03_flow_around_cylinder) | External flow past a circular cylinder. Introduces `snappyHexMesh` for geometry-based meshing and drag/lift computation. | `simpleFoam` | `snappyHexMesh` | Laminar/Low-Re | 🟡 Intermediate |
+| 04 | [**NACA Airfoil Analysis**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/04_naca_airfoil_analysis) | Aerodynamic analysis of a NACA airfoil profile. Covers angle-of-attack sweeps, lift/drag coefficients, and pressure distributions. | `simpleFoam` | Structured | k-epsilon | 🟡 Intermediate |
+| 05 | [**Heated Pipe Flow**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/05_heated_pipe_flow) | Conjugate heat transfer in a heated pipe. Introduces the energy equation, buoyancy effects, and thermal boundary conditions. | `buoyantSimpleFoam` | `blockMesh` | k-epsilon | 🟡 Intermediate |
+| 06 | [**Ahmed Body Aerodynamics**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/06_ahmed_body_aerodynamics) | Full 3D automotive aerodynamics simulation of the Ahmed body — the standard reference geometry for vehicle aero studies. | `simpleFoam` | `snappyHexMesh` | k-omega SST | 🔴 Advanced |
+| 07 | [**Backward-Facing Step**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/07_backward_facing_step) | Classic turbulent separated flow benchmark. Validates reattachment length against NASA experimental data (Xr/H ≈ 6.0). | `simpleFoam` | `blockMesh` | k-omega SST | 🔴 Advanced |
+| 08 | [**Dam Break**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/08_dam_break) | Multiphase free-surface flow using Volume of Fluid (VOF). Water column collapse with gravity — transient interFoam simulation. | `interFoam` | `blockMesh` | Laminar | 🔴 Advanced |
+| 09 | [**Wind Turbine Blade**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/09_wind_turbine_blade) | Rotating machinery simulation using the Multiple Reference Frame (MRF) approach. Introduces `topoSet` and `MRFProperties`. | `simpleFoam` | `blockMesh` | k-epsilon | 🔴 Advanced |
+| 10 | [**Mixing T-Junction**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/10_mixing_t_junction) | Thermal mixing of hot (350 K) and cold (300 K) streams in a T-junction. Multi-block structured mesh with buoyancy coupling. | `buoyantSimpleFoam` | `blockMesh` | k-epsilon | 🔴 Advanced |
+| 11 | [**Boat Hull — Fixed**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/11_boat_hull_fixed) | Fixed toy boat hull in calm water with free surface. Uses your own STL geometry with snappyHexMesh for drag and wave pattern analysis. | `interFoam` | `snappyHexMesh` | Laminar | 🔴 Advanced |
+| 12 | [**Boat Hull — Floating**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/12_boat_hull_floating) | Floating rigid-body boat with 6-DoF motion. Dynamic mesh morphing with heave, pitch, and roll — the capstone project. | `interDyMFoam` | `snappyHexMesh` | Laminar | 🔴 Advanced |
 
 ### Project Progression Map
 
@@ -230,7 +230,7 @@ paraFoam
 
 That's it! You should see velocity contours of the lid-driven cavity flow.
 
-> **📌 Next Steps:** Read through [Note 01 — Intro to CFD](notes/01_short_intro_to_cfd.md) to understand what just happened, then explore [Note 02 — Case Structure](notes/02_openfoam_cases.md) to understand *why* the directories are organized the way they are.
+> **📌 Next Steps:** Read through [Note 01 — Intro to CFD](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/01_short_intro_to_cfd.md) to understand what just happened, then explore [Note 02 — Case Structure](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/02_openfoam_cases.md) to understand *why* the directories are organized the way they are.
 
 ---
 
@@ -374,7 +374,7 @@ myCase/
     └── ...
 ```
 
-> **📖 Full details:** [Note 02 — OpenFOAM Cases](notes/02_openfoam_cases.md)
+> **📖 Full details:** [Note 02 — OpenFOAM Cases](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/02_openfoam_cases.md)
 
 ### Common Solvers
 
@@ -388,7 +388,7 @@ myCase/
 | `rhoSimpleFoam` | Compressible, turbulent | Steady-state | SIMPLE | High-speed aero, heat transfer |
 | `buoyantSimpleFoam` | Buoyant, turbulent | Steady-state | SIMPLE | Natural convection, HVAC |
 
-> **📖 Full details:** [Note 10 — icoFoam Solver Analysis](notes/10_icofoam_solver_analysis.md)
+> **📖 Full details:** [Note 10 — icoFoam Solver Analysis](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/10_icofoam_solver_analysis.md)
 
 ### Common Commands
 
@@ -405,7 +405,7 @@ myCase/
 | `postProcess -func 'forceCoeffs'` | Compute force coefficients | Drag, lift, moment calculations |
 | `foamLog` | Extract residuals from log | Monitoring convergence |
 
-> **📖 Full details:** [Note 03 — Dictionaries](notes/03_openfoam_dictionaries.md) and [Note 07 — Parallelization](notes/07_parallelization.md)
+> **📖 Full details:** [Note 03 — Dictionaries](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/03_openfoam_dictionaries.md) and [Note 07 — Parallelization](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/07_parallelization.md)
 
 ### Turbulence Model Quick Selector
 
@@ -425,7 +425,7 @@ Is the flow laminar?
         └── Need to capture vortex shedding? → LES (expensive!)
 ```
 
-> **📖 Full details:** [Note 06 — Turbulence Models](notes/06_turbulence_models.md)
+> **📖 Full details:** [Note 06 — Turbulence Models](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_turbulence_models.md)
 
 ---
 
@@ -468,7 +468,7 @@ Then open a Pull Request on GitHub with a clear description of what you've added
 - **Notes:** Use Markdown with clear headings, code blocks, and equations where relevant
 - **Projects:** Include a local `README.md` in each project directory explaining the case setup, expected results, and how to run it
 - **Code blocks:** Always specify the language (e.g., ` ```bash `, ` ```cpp `)
-- **File references:** Use relative links (e.g., `[Note 01](notes/01_short_intro_to_cfd.md)`)
+- **File references:** Use absolute links (e.g., `[Note 01](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/01_short_intro_to_cfd.md)`)
 
 ---
 
@@ -515,7 +515,7 @@ Then open a Pull Request on GitHub with a clear description of what you've added
 
 ## License
 
-This project is licensed under the [MIT License](LICENSE) — see the LICENSE file for details.
+This project is licensed under the [MIT License](https://github.com/djeada/OpenFoam-Tutorials/blob/main/LICENSE) — see the LICENSE file for details.
 
 You are free to use, modify, and distribute this material for any purpose. Attribution is appreciated but not required.
 

@@ -3,7 +3,7 @@
 This project contains two OpenFOAM airfoil cases built around a NACA 0012 profile:
 
 - a default steady RANS case in the project root
-- a separate transient animation case in [`transient_animation/`](./transient_animation)
+- a separate transient animation case in [`transient_animation/`](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/04_naca_airfoil_analysis/transient_animation)
 
 The current default case is intended to be runnable and visually useful. It is not yet a
 validation-grade reproduction of the NASA NACA 0012 benchmark.
@@ -21,7 +21,7 @@ validation-grade reproduction of the NASA NACA 0012 benchmark.
 
 ### Transient case
 
-- Directory: [`transient_animation/`](./transient_animation)
+- Directory: [`transient_animation/`](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/04_naca_airfoil_analysis/transient_animation)
 - Solver: `pimpleFoam`
 - Intended output: many saved time steps for animation and unsteady visualization
 - This is the case to use if you want actual time evolution instead of SIMPLE iterations
@@ -37,7 +37,7 @@ From the latest completed steady run:
 
 Results file:
 
-- [`postProcessing/forceCoeffs/0/forceCoeffs.dat`](./postProcessing/forceCoeffs/0/forceCoeffs.dat)
+- [`postProcessing/forceCoeffs/0/forceCoeffs.dat`](https://github.com/djeada/OpenFoam-Tutorials/blob/main/projects/04_naca_airfoil_analysis/postProcessing/forceCoeffs/0/forceCoeffs.dat)
 
 Important limitation:
 
@@ -48,7 +48,7 @@ Important limitation:
 
 `yPlus` output:
 
-- [`postProcessing/yPlus/0/yPlus.dat`](./postProcessing/yPlus/0/yPlus.dat)
+- [`postProcessing/yPlus/0/yPlus.dat`](https://github.com/djeada/OpenFoam-Tutorials/blob/main/projects/04_naca_airfoil_analysis/postProcessing/yPlus/0/yPlus.dat)
 
 ## Case Layout
 
@@ -92,18 +92,18 @@ Important limitation:
 
 Relevant files:
 
-- [`constant/transportProperties`](./constant/transportProperties)
-- [`constant/turbulenceProperties`](./constant/turbulenceProperties)
-- [`system/controlDict`](./system/controlDict)
+- [`constant/transportProperties`](https://github.com/djeada/OpenFoam-Tutorials/blob/main/projects/04_naca_airfoil_analysis/constant/transportProperties)
+- [`constant/turbulenceProperties`](https://github.com/djeada/OpenFoam-Tutorials/blob/main/projects/04_naca_airfoil_analysis/constant/turbulenceProperties)
+- [`system/controlDict`](https://github.com/djeada/OpenFoam-Tutorials/blob/main/projects/04_naca_airfoil_analysis/system/controlDict)
 
 ### Boundary conditions
 
 Root case fields:
 
-- [`0/U`](./0/U)
-- [`0/p`](./0/p)
-- [`0/nuTilda`](./0/nuTilda)
-- [`0/nut`](./0/nut)
+- [`0/U`](https://github.com/djeada/OpenFoam-Tutorials/blob/main/projects/04_naca_airfoil_analysis/0/U)
+- [`0/p`](https://github.com/djeada/OpenFoam-Tutorials/blob/main/projects/04_naca_airfoil_analysis/0/p)
+- [`0/nuTilda`](https://github.com/djeada/OpenFoam-Tutorials/blob/main/projects/04_naca_airfoil_analysis/0/nuTilda)
+- [`0/nut`](https://github.com/djeada/OpenFoam-Tutorials/blob/main/projects/04_naca_airfoil_analysis/0/nut)
 
 Patch types:
 
@@ -120,8 +120,8 @@ path.
 
 Current root workflow:
 
-1. [`Allrun`](./Allrun) restores clean fields from [`0.orig/`](./0.orig)
-2. [`mesh_generation_scripts/generate_naca0012_benchmark_geo.py`](./mesh_generation_scripts/generate_naca0012_benchmark_geo.py)
+1. [`Allrun`](https://github.com/djeada/OpenFoam-Tutorials/blob/main/projects/04_naca_airfoil_analysis/Allrun) restores clean fields from [`0.orig/`](https://github.com/djeada/OpenFoam-Tutorials/blob/main/projects/04_naca_airfoil_analysis/0.orig)
+2. [`mesh_generation_scripts/generate_naca0012_benchmark_geo.py`](https://github.com/djeada/OpenFoam-Tutorials/blob/main/projects/04_naca_airfoil_analysis/mesh_generation_scripts/generate_naca0012_benchmark_geo.py)
    writes a Gmsh geometry file
 3. Gmsh generates `constant/airfoil_benchmark.msh`
 4. `gmshToFoam` imports the mesh
@@ -183,7 +183,7 @@ From the project directory:
 ./open_paraview_streamlines.sh
 ```
 
-This opens ParaView with [`paraview_airfoil.py`](./paraview_airfoil.py) and builds the
+This opens ParaView with [`paraview_airfoil.py`](https://github.com/djeada/OpenFoam-Tutorials/blob/main/projects/04_naca_airfoil_analysis/paraview_airfoil.py) and builds the
 default scene automatically.
 
 Current default ParaView view:
@@ -208,7 +208,7 @@ Use:
 - `--scalar U` for velocity-magnitude style plots
 - `--scalar p` for pressure plots
 
-Manual notes are in [`paraview_guide.md`](./paraview_guide.md).
+Manual notes are in [`paraview_guide.md`](https://github.com/djeada/OpenFoam-Tutorials/blob/main/projects/04_naca_airfoil_analysis/paraview_guide.md).
 
 ## Important Interpretation Notes
 
@@ -222,7 +222,7 @@ That means:
 - the field becoming stationary is expected
 - you will not get a true animation from the root case
 - if you want real time evolution, use the transient case in
-  [`transient_animation/`](./transient_animation)
+  [`transient_animation/`](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/04_naca_airfoil_analysis/transient_animation)
 
 ### Why the internet images look stronger
 
