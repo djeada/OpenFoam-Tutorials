@@ -16,9 +16,9 @@ This philosophy has profound implications:
 Every OpenFOAM case follows the same three-directory convention. Below is a **complete** tree showing all the files you may encounter in a typical case:
 
 ```
-╔══════════════════════════════════════════════════════════════════════════════╗
+╔════════════════════════════════════════════════════════════════════════════╗
 ║                        OPENFOAM CASE DIRECTORY TREE                        ║
-╚══════════════════════════════════════════════════════════════════════════════╝
+╚════════════════════════════════════════════════════════════════════════════╝
 
 MyCase/
 │
@@ -387,7 +387,7 @@ boundaryField
 }
 ```
 
-### 2.6 Common Boundary Condition Types
+### Common Boundary Condition Types
 
 | BC Type              | What It Does                                    | Typical Use                |
 |----------------------|-------------------------------------------------|----------------------------|
@@ -405,8 +405,7 @@ boundaryField
 
 ## The `constant/` Directory — Physical Properties & Mesh
 
-The `constant/` directory defines the unchanging physical reality of your simulation: what fluid
-you are simulating, what turbulence model you are using, and the mesh geometry.
+The `constant/` directory defines the unchanging physical reality of your simulation: what fluid you are simulating, what turbulence model you are using, and the mesh geometry.
 
 ### transportProperties
 
@@ -441,7 +440,7 @@ nu              nu [ 0 2 -1 0 0 0 0 ] 1e-05;
 > - Cavity: `ν = 0.001` → with `U=1`, `L=0.1` → Re = 100 (laminar)
 > - Airfoil: `ν = 1e-05` → with `U=1`, `L=1` → Re = 100,000 (turbulent)
 
-### 3.2 turbulenceProperties
+### turbulenceProperties
 
 This file selects the turbulence modeling approach. It is only needed for turbulent cases.
 
@@ -477,21 +476,20 @@ RAS
 }
 ```
 
-| Keyword          | Options / Meaning                                         |
-|------------------|-----------------------------------------------------------|
+| Keyword          | Options / Meaning                                        |
+|------------------|----------------------------------------------------------|
 | `simulationType` | `laminar`, `RAS` (RANS), or `LES`                        |
 | `RASModel`       | `kEpsilon`, `kOmegaSST`, `SpalartAllmaras`, etc.         |
-| `turbulence`     | `on` / `off` — master switch                              |
-| `printCoeffs`    | Print model coefficients at startup                       |
+| `turbulence`     | `on` / `off` — master switch                             |
+| `printCoeffs`    | Print model coefficients at startup                      |
 
-### 3.3 The polyMesh/ Subdirectory — Mesh Data
+### The polyMesh/ Subdirectory — Mesh Data
 
-After running a meshing tool (`blockMesh`, `snappyHexMesh`, or importing), the mesh is stored
-in `constant/polyMesh/`. You rarely edit these files by hand — they are generated.
+After running a meshing tool (`blockMesh`, `snappyHexMesh`, or importing), the mesh is stored in `constant/polyMesh/`. You rarely edit these files by hand — they are generated.
 
 ```
 ╔══════════════════════════════════════════════════════════════════════════════╗
-║                  HOW MESH DATA IS STRUCTURED IN polyMesh/                   ║
+║                  HOW MESH DATA IS STRUCTURED IN polyMesh/                    ║
 ╚══════════════════════════════════════════════════════════════════════════════╝
 
   points           faces             owner / neighbour        boundary
@@ -511,17 +509,17 @@ in `constant/polyMesh/`. You rarely edit these files by hand — they are genera
   ┌─────────────────────────────────────────────────────┐
   │                                                     │
   │     3 ─────────── 2          A single hex cell:     │
-  │    /|            /|          • 8 points (vertices)   │
-  │   / |           / |          • 6 faces               │
+  │    /|            /|          • 8 points (vertices)  │
+  │   / |           / |          • 6 faces              │
   │  7 ─────────── 6  |          • Each face has an     │
-  │  |  |          |  |            owner cell and        │
+  │  |  |          |  |            owner cell and       │
   │  |  0 ─────────|── 1           (optionally) a       │
-  │  | /           | /             neighbour cell        │
-  │  |/            |/                                    │
-  │  4 ─────────── 5            Internal faces: shared   │
-  │                              between two cells       │
-  │                             Boundary faces: belong   │
-  │                              to one cell only        │
+  │  | /           | /             neighbour cell       │
+  │  |/            |/                                   │
+  │  4 ─────────── 5            Internal faces: shared  │
+  │                              between two cells      │
+  │                             Boundary faces: belong  │
+  │                              to one cell only       │
   └─────────────────────────────────────────────────────┘
 ```
 
@@ -536,30 +534,27 @@ in `constant/polyMesh/`. You rarely edit these files by hand — they are genera
 > **Tip:** Run `checkMesh` after generating your mesh. It validates topology, geometry,
 > non-orthogonality, skewness, and aspect ratio. Fix mesh issues *before* running the solver.
 
----
+## The `system/` Directory — Simulation Controls
 
-## 4. The `system/` Directory — Simulation Controls
+The `system/` directory is the brain of the simulation. Three files are **mandatory** for every case: `controlDict`, `fvSchemes`, and `fvSolution`.
 
-The `system/` directory is the brain of the simulation. Three files are **mandatory** for every
-case: `controlDict`, `fvSchemes`, and `fvSolution`.
-
-### 4.1 controlDict — Time & I/O Control
+### controlDict — Time & I/O Control
 
 ```
-╔══════════════════════════════════════════════════════════════════════════════╗
-║                     WHAT controlDict CONTROLS                              ║
-╠══════════════════════════════════════════════════════════════════════════════╣
-║                                                                            ║
-║   ┌─────────────┐  ┌──────────────┐  ┌─────────────────┐  ┌────────────┐  ║
-║   │ Which solver│  │  Start/stop  │  │  Time stepping  │  │   Output   │  ║
-║   │  to use     │  │    times     │  │   (deltaT)      │  │  control   │  ║
-║   └──────┬──────┘  └──────┬───────┘  └───────┬─────────┘  └─────┬──────┘  ║
-║          │                │                   │                  │         ║
-║          ▼                ▼                   ▼                  ▼         ║
-║     application      startFrom/           deltaT            writeControl  ║
-║                      stopAt/                                writeInterval ║
-║                      endTime                                purgeWrite    ║
-╚══════════════════════════════════════════════════════════════════════════════╝
+╔═════════════════════════════════════════════════════════════════════════════╗
+║                     WHAT controlDict CONTROLS                               ║
+╠═════════════════════════════════════════════════════════════════════════════╣
+║                                                                             ║
+║   ┌─────────────┐  ┌──────────────┐  ┌─────────────────┐  ┌────────────┐    ║
+║   │ Which solver│  │  Start/stop  │  │  Time stepping  │  │   Output   │    ║
+║   │  to use     │  │    times     │  │   (deltaT)      │  │  control   │    ║
+║   └──────┬──────┘  └──────┬───────┘  └───────┬─────────┘  └─────┬──────┘    ║
+║          │                │                   │                  │          ║
+║          ▼                ▼                   ▼                  ▼          ║
+║     application      startFrom/           deltaT            writeControl    ║
+║                      stopAt/                                writeInterval   ║
+║                      endTime                                purgeWrite      ║
+╚═════════════════════════════════════════════════════════════════════════════╝
 ```
 
 **Laminar case** — `projects/01_lid_driven_cavity/system/controlDict`:
@@ -645,10 +640,9 @@ runTimeModifiable true;
 | `writeCompression`   | `on` / `off` — gzip compression of output files                          |
 | `runTimeModifiable`  | `true` / `false` — re-read dictionaries at each time step                |
 
-### 4.2 fvSchemes — Discretization Schemes
+### fvSchemes — Discretization Schemes
 
-`fvSchemes` tells OpenFOAM *how* to approximate the continuous differential equations on the
-discrete mesh. Each category of mathematical operation gets its own sub-dictionary.
+`fvSchemes` tells OpenFOAM *how* to approximate the continuous differential equations on the discrete mesh. Each category of mathematical operation gets its own sub-dictionary.
 
 **Laminar case** — `projects/01_lid_driven_cavity/system/fvSchemes`:
 
@@ -747,7 +741,7 @@ fluxRequired
 > **⚠ Warning:** Setting `divSchemes { default none; }` means you must explicitly specify a
 > scheme for *every* divergence term. Missing one will crash the solver with a "no entry" error.
 
-### 4.3 fvSolution — Linear Solvers & Algorithms
+### fvSolution — Linear Solvers & Algorithms
 
 `fvSolution` controls *how* the discretized equations are solved: which linear solver to use
 for each variable, convergence tolerances, and the pressure-velocity coupling algorithm.
@@ -865,13 +859,11 @@ relaxationFactors
 > **Tip:** For steady-state SIMPLE cases, relaxation factors are crucial. Start with
 > `p = 0.3`, `U = 0.7`. If diverging, lower them. If converging too slowly, raise them slightly.
 
----
-
-## 5. Allrun & Allclean Scripts — Automation
+## Allrun & Allclean Scripts — Automation
 
 These shell scripts are the standard way to automate case execution and cleanup in OpenFOAM.
 
-### 5.1 Allrun — Running the Case
+### Allrun — Running the Case
 
 *Source: `projects/02_elbow/allrun`*
 
@@ -891,7 +883,7 @@ runApplication foamMeshToFluent
 runApplication foamDataToFluent
 ```
 
-**Key utilities from `RunFunctions`:**
+**Utilities from `RunFunctions`:**
 
 | Function            | What It Does                                                   |
 |---------------------|----------------------------------------------------------------|
@@ -901,7 +893,7 @@ runApplication foamDataToFluent
 | `getNumberOfProcessors` | Reads processor count from `system/decomposeParDict`     |
 | `restore0Dir`       | Copies `0.orig` to `0` (useful when `0/` gets overwritten)    |
 
-### 5.2 Allclean — Resetting the Case
+### Allclean — Resetting the Case
 
 *Source: `projects/02_elbow/allclean`*
 
@@ -917,29 +909,26 @@ rm -rf fluentInterface
 cleanCase
 ```
 
-The `cleanCase` function removes all generated data: time directories, `log.*` files,
-processor directories, `postProcessing/`, and temporary files.
+The `cleanCase` function removes all generated data: time directories, `log.*` files, processor directories, `postProcessing/`, and temporary files.
 
 > **Best practice:** Always provide both `Allrun` and `Allclean`. Anyone (including future you)
 > should be able to run `./Allclean && ./Allrun` to reproduce your simulation from scratch.
 
----
-
-## 6. Case Setup Workflow
+## Case Setup Workflow
 
 Setting up a new OpenFOAM case follows a well-defined sequence. Here is the complete workflow:
 
 ```
-╔══════════════════════════════════════════════════════════════════════════════╗
+╔════════════════════════════════════════════════════════════════════════════╗
 ║                     OPENFOAM CASE SETUP WORKFLOW                           ║
-╠══════════════════════════════════════════════════════════════════════════════╣
+╠════════════════════════════════════════════════════════════════════════════╣
 ║                                                                            ║
 ║  ┌──────────────┐     ┌──────────────┐     ┌──────────────────────────┐    ║
 ║  │  1. DEFINE   │     │  2. GENERATE │     │  3. SET INITIAL &        │    ║
 ║  │   GEOMETRY   │────►│     MESH     │────►│   BOUNDARY CONDITIONS    │    ║
 ║  │              │     │              │     │                          │    ║
 ║  │ blockMeshDict│     │ blockMesh or │     │ Edit files in 0/         │    ║
-║  │ STL files    │     │ snappyHexMesh│     │ U, p, k, epsilon, nut   │    ║
+║  │ STL files    │     │ snappyHexMesh│     │ U, p, k, epsilon, nut    │    ║
 ║  └──────────────┘     └──────────────┘     └────────────┬─────────────┘    ║
 ║                                                         │                  ║
 ║                                                         ▼                  ║
@@ -953,37 +942,27 @@ Setting up a new OpenFOAM case follows a well-defined sequence. Here is the comp
 ║  └──────────────┘     └──────────────┘     │ fvSolution               │    ║
 ║                                            └──────────────────────────┘    ║
 ║                                                                            ║
-║  Iterate: check results → adjust mesh/BCs/numerics → re-run               ║
-╚══════════════════════════════════════════════════════════════════════════════╝
+║  Iterate: check results → adjust mesh/BCs/numerics → re-run                ║
+╚════════════════════════════════════════════════════════════════════════════╝
 ```
 
 ### Step-by-Step Summary
 
-1. **Define Geometry** — Write a `blockMeshDict` for simple geometries, or prepare STL files
-   and a `snappyHexMeshDict` for complex ones.
-
+1. **Define Geometry** — Write a `blockMeshDict` for simple geometries, or prepare STL files and a `snappyHexMeshDict` for complex ones.
 2. **Generate Mesh** — Run `blockMesh` or `snappyHexMesh`. Always run `checkMesh` afterward.
-
-3. **Set Initial & Boundary Conditions** — Create field files in `0/` for every variable.
-   Make sure every patch in `constant/polyMesh/boundary` has a corresponding entry.
-
-4. **Configure Physics & Numerics** — Set up `transportProperties`, `turbulenceProperties`,
-   `controlDict`, `fvSchemes`, and `fvSolution`.
-
+3. **Set Initial & Boundary Conditions** — Create field files in `0/` for every variable. Make sure every patch in `constant/polyMesh/boundary` has a corresponding entry.
+4. **Configure Physics & Numerics** — Set up `transportProperties`, `turbulenceProperties`, `controlDict`, `fvSchemes`, and `fvSolution`.
 5. **Run the Solver** — Execute the application specified in `controlDict`.
-
 6. **Post-process** — Open results in ParaView (`paraFoam`) or use `postProcess` utilities.
 
----
-
-## 7. Comparing Two Real Cases
+## Comparing Two Real Cases
 
 The following table compares two projects from this repository to show how cases differ based
 on the physics being simulated:
 
 ```
-╔══════════════════════════════════════════════════════════════════════════════╗
-║              LAMINAR vs. TURBULENT CASE COMPARISON                         ║
+╔══════════════════════════════════════════════════════════════════════════╗
+║              LAMINAR vs. TURBULENT CASE COMPARISON                       ║
 ╠════════════════════╦════════════════════════╦════════════════════════════╣
 ║                    ║ 01_lid_driven_cavity   ║ 04_naca_airfoil_analysis   ║
 ╠════════════════════╬════════════════════════╬════════════════════════════╣
@@ -1007,7 +986,7 @@ on the physics being simulated:
 ╠════════════════════╬════════════════════════╬════════════════════════════╣
 ║ P-V coupling       ║ PISO                   ║ SIMPLE                     ║
 ╠════════════════════╬════════════════════════╬════════════════════════════╣
-║ Relaxation factors ║ Not needed             ║ p=0.3, U/k/ε=0.7          ║
+║ Relaxation factors ║ Not needed             ║ p=0.3, U/k/ε=0.7           ║
 ╠════════════════════╬════════════════════════╬════════════════════════════╣
 ║ End time           ║ 0.5 s                  ║ 1000 iterations            ║
 ╠════════════════════╬════════════════════════╬════════════════════════════╣
@@ -1022,25 +1001,21 @@ on the physics being simulated:
 Going from a laminar to a turbulent simulation adds several layers of complexity:
 
 1. **More field files** — You need `k`, `epsilon` (or `omega`), and `nut` in the `0/` directory.
-2. **Wall functions** — Wall boundaries need special BC types (`kqRWallFunction`,
-   `epsilonWallFunction`, `nutkWallFunction`) instead of simple `noSlip`.
+2. **Wall functions** — Wall boundaries need special BC types (`kqRWallFunction`, `epsilonWallFunction`, `nutkWallFunction`) instead of simple `noSlip`.
 3. **turbulenceProperties** — A new file in `constant/` selecting the RANS model.
-4. **Extra divergence schemes** — `fvSchemes` needs entries for `div(phi,k)` and
-   `div(phi,epsilon)` plus the Reynolds stress divergence terms.
+4. **Extra divergence schemes** — `fvSchemes` needs entries for `div(phi,k)` and `div(phi,epsilon)` plus the Reynolds stress divergence terms.
 5. **Extra linear solvers** — `fvSolution` needs solver entries for `k` and `epsilon`.
 6. **Relaxation factors** — Steady-state SIMPLE requires under-relaxation to stabilize.
 
----
-
-## 8. Time Directory Structure — Output During Simulation
+## Time Directory Structure — Output During Simulation
 
 As the solver runs, it writes field data to numbered directories corresponding to simulation
 time (or iteration number for steady-state solvers):
 
 ```
-╔══════════════════════════════════════════════════════════════════════════════╗
+╔════════════════════════════════════════════════════════════════════════════╗
 ║                   TIME DIRECTORIES DURING A RUN                            ║
-╚══════════════════════════════════════════════════════════════════════════════╝
+╚════════════════════════════════════════════════════════════════════════════╝
 
 Before running:                 After running (transient):
 ─────────────────               ──────────────────────────
@@ -1063,7 +1038,7 @@ MyCase/                         MyCase/
                                 └── log.icoFoam  ◄ solver log
 ```
 
-**Key points about time directories:**
+**Points about time directories:**
 
 - Each time directory has the **same structure as `0/`** — one file per field.
 - The solver may also write derived fields like `phi` (face flux) that were not in `0/`.
@@ -1074,12 +1049,9 @@ MyCase/                         MyCase/
 > **Tip:** Large 3D transient simulations can generate terabytes of data. Use `purgeWrite`,
 > `writeControl adjustableRunTime`, and `binary` format to manage disk usage.
 
----
+## blockMeshDict — Structured Mesh Generation
 
-## 9. blockMeshDict — Structured Mesh Generation
-
-For simple geometries, `blockMesh` is the go-to meshing tool. The configuration lives in
-`system/blockMeshDict`.
+For simple geometries, `blockMesh` is the go-to meshing tool. The configuration lives in `system/blockMeshDict`.
 
 *Source: `projects/01_lid_driven_cavity/system/blockMeshDict`*
 
@@ -1157,32 +1129,25 @@ mergePatchPairs
 > **Note:** `convertToMeters 0.1` means all vertex coordinates are multiplied by 0.1.
 > So vertex `(1 1 0)` becomes `(0.1 0.1 0)` in meters — a 0.1 m × 0.1 m cavity.
 
----
-
-## 10. Common Pitfalls & Tips
+## Common Pitfalls & Tips
 
 ### Pitfall #1: Patch Name Mismatch
-Every patch defined in `constant/polyMesh/boundary` must have a matching entry in every field
-file in `0/`. A typo (`Wall` vs `wall` vs `walls`) will crash the solver immediately.
+Every patch defined in `constant/polyMesh/boundary` must have a matching entry in every field file in `0/`. A typo (`Wall` vs `wall` vs `walls`) will crash the solver immediately.
 
 ### Pitfall #2: Missing Divergence Schemes
-If `divSchemes { default none; }`, you must list every divergence term explicitly. For turbulent
-cases, forgetting `div(phi,k)` or `div(phi,epsilon)` is a common error.
+If `divSchemes { default none; }`, you must list every divergence term explicitly. For turbulent cases, forgetting `div(phi,k)` or `div(phi,epsilon)` is a common error.
 
 ### Pitfall #3: Wrong Dimensions
-The dimensions array is checked at runtime. A velocity field with `[0 2 -1 ...]` instead of
-`[0 1 -1 ...]` will give a cryptic dimensions mismatch error.
+The dimensions array is checked at runtime. A velocity field with `[0 2 -1 ...]` instead of `[0 1 -1 ...]` will give a cryptic dimensions mismatch error.
 
 ### Pitfall #4: Steady-State Without Relaxation
 Running SIMPLE without relaxation factors almost always diverges. Always set them in `fvSolution`.
 
 ### Pitfall #5: Not Running checkMesh
-Skipping `checkMesh` after meshing is like skipping tests after coding. Non-orthogonality,
-skewness, and negative cell volumes will silently degrade your results or crash the solver.
+Skipping `checkMesh` after meshing is like skipping tests after coding. Non-orthogonality, skewness, and negative cell volumes will silently degrade your results or crash the solver.
 
 ### Pitfall #6: Deleting `0/` By Accident
-Some meshing tools (especially `snappyHexMesh`) overwrite fields in `0/`. Best practice: keep
-your initial conditions in `0.orig/` and use `restore0Dir` in your `Allrun` script.
+Some meshing tools (especially `snappyHexMesh`) overwrite fields in `0/`. Best practice: keep your initial conditions in `0.orig/` and use `restore0Dir` in your `Allrun` script.
 
 ### General Tips
 
@@ -1198,14 +1163,12 @@ your initial conditions in `0.orig/` and use `restore0Dir` in your `Allrun` scri
 > **💡 Read the solver source code.** OpenFOAM is open source. If the documentation is unclear,
 > `grep -r "keyword" $FOAM_SRC` will show you exactly how a keyword is used.
 
----
-
 ## Summary
 
 ```
-╔══════════════════════════════════════════════════════════════════════════════╗
+╔════════════════════════════════════════════════════════════════════════════╗
 ║                         OPENFOAM CASE CHEAT SHEET                          ║
-╠══════════════════════════════════════════════════════════════════════════════╣
+╠════════════════════════════════════════════════════════════════════════════╣
 ║                                                                            ║
 ║  Directory    File                    Purpose                              ║
 ║  ─────────    ────                    ───────                              ║
@@ -1226,5 +1189,5 @@ your initial conditions in `0.orig/` and use `restore0Dir` in your `Allrun` scri
 ║                                                                            ║
 ║  Scripts      Allrun                  Automate the full workflow           ║
 ║               Allclean                Reset case to clean state            ║
-╚══════════════════════════════════════════════════════════════════════════════╝
+╚════════════════════════════════════════════════════════════════════════════╝
 ```
