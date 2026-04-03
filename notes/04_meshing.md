@@ -1,42 +1,32 @@
 # Meshing in OpenFOAM
 
-Meshing is arguably the most critical step in any CFD simulation. The mesh — the
-discrete representation of your physical domain — directly controls solution
-accuracy, convergence behaviour, and computational cost. A careless mesh can
-produce results that look plausible but are quantitatively wrong; a well-crafted
-mesh makes everything downstream easier.
+Meshing is arguably the most critical step in any CFD simulation. The mesh — the discrete representation of your physical domain — directly controls solution accuracy, convergence behaviour, and computational cost. A careless mesh can produce results that look plausible but are quantitatively wrong; a well-crafted mesh makes everything downstream easier.
 
 ```
-    ╔══════════════════════════════════════════════════════════════════════╗
+    ╔════════════════════════════════════════════════════════════════════╗
     ║                  WHY MESHING MATTERS                               ║
-    ╠══════════════════════════════════════════════════════════════════════╣
+    ╠════════════════════════════════════════════════════════════════════╣
     ║                                                                    ║
     ║   Physical Domain          Discretised Domain        Numerical     ║
     ║   (continuous)             (mesh / grid)             Solution      ║
     ║                                                                    ║
-    ║   ┌─────────────┐         +-----+-----+-----+                     ║
-    ║   │  fluid /    │         |     |     |     |       u, p, T …     ║
-    ║   │  solid      │  ───►   +-----+-----+-----+  ───►  at each     ║
-    ║   │  region     │         |     |     |     |       cell centre   ║
-    ║   └─────────────┘         +-----+-----+-----+                     ║
+    ║   ┌─────────────┐         +-----+-----+-----+                      ║
+    ║   │  fluid /    │         |     |     |     |       u, p, T …      ║
+    ║   │  solid      │  ───►   +-----+-----+-----+  ───►  at each       ║
+    ║   │  region     │         |     |     |     |       cell centre    ║
+    ║   └─────────────┘         +-----+-----+-----+                      ║
     ║                                                                    ║
     ║   Mesh quality  ──►  Discretisation error  ──►  Solution accuracy  ║
-    ╚══════════════════════════════════════════════════════════════════════╝
+    ╚════════════════════════════════════════════════════════════════════╝
 ```
 
-OpenFOAM provides two native meshing utilities — `blockMesh` for structured
-hexahedral grids and `snappyHexMesh` for complex-geometry unstructured meshes —
-as well as converters for meshes created in external tools.
+OpenFOAM provides two native meshing utilities — `blockMesh` for structured hexahedral grids and `snappyHexMesh` for complex-geometry unstructured meshes — as well as converters for meshes created in external tools.
 
----
+## Mesh Fundamentals
 
-## 1  Mesh Fundamentals
+### What Is a Mesh?
 
-### 1.1  What Is a Mesh?
-
-A mesh (or grid) partitions the computational domain into a finite number of
-non-overlapping **cells** (control volumes). OpenFOAM stores values at **cell
-centres** and fluxes through **cell faces** — this is the finite-volume method.
+A mesh (or grid) partitions the computational domain into a finite number of non-overlapping **cells** (control volumes). OpenFOAM stores values at **cell centres** and fluxes through **cell faces** — this is the finite-volume method.
 
 ```
   Continuous domain               Discretised domain (mesh)
@@ -51,7 +41,7 @@ centres** and fluxes through **cell faces** — this is the finite-volume method
                                   Each small box = one cell
 ```
 
-### 1.2  Cell Types
+### Cell Types
 
 OpenFOAM is polyhedral-capable, but most meshes use one or more of these types:
 
@@ -77,7 +67,7 @@ OpenFOAM is polyhedral-capable, but most meshes use one or more of these types:
 | Automation      | Hard (structured) | Easy (auto-mesh)  | Used for layers  | snappyHexMesh     |
 | Typical use     | Simple geometry   | Complex geometry  | Boundary layers  | Adaptive meshes   |
 
-### 1.3  Structured vs Unstructured vs Hybrid
+### Structured vs Unstructured vs Hybrid
 
 | Feature            | Structured              | Unstructured             | Hybrid                 |
 |--------------------|-------------------------|--------------------------|------------------------|
@@ -87,12 +77,11 @@ OpenFOAM is polyhedral-capable, but most meshes use one or more of these types:
 | OpenFOAM tool      | `blockMesh`             | `snappyHexMesh`          | `snappyHexMesh`        |
 | Memory efficiency  | Best                    | Moderate                 | Good                   |
 
-### 1.4  Cell Quality Metrics
+### Cell Quality Metrics
 
 Three metrics dominate mesh quality assessment in OpenFOAM:
 
-**Non-orthogonality** — the angle between the face-normal vector and the vector
-connecting the two cell centres that share that face.
+**Non-orthogonality** — the angle between the face-normal vector and the vector connecting the two cell centres that share that face.
 
 ```
   GOOD  (orthogonal, ~0°)            BAD  (non-orthogonal, > 70°)
@@ -107,11 +96,9 @@ connecting the two cell centres that share that face.
   θ ≈ 0°   ✓ Excellent               θ > 70°  ✗ Poor accuracy
 ```
 
-**Skewness** — how far the intersection of vector d with the face is from the
-face centre. High skewness degrades gradient calculations.
+**Skewness** — how far the intersection of vector d with the face is from the face centre. High skewness degrades gradient calculations.
 
-**Aspect ratio** — ratio of longest to shortest cell dimension. High aspect
-ratios slow convergence and can cause instability.
+**Aspect ratio** — ratio of longest to shortest cell dimension. High aspect ratios slow convergence and can cause instability.
 
 ```
   Aspect ratio ≈ 1  (ideal)          Aspect ratio >> 1  (stretched)
@@ -128,21 +115,17 @@ ratios slow convergence and can cause instability.
 > before attempting a simulation — bad meshes waste far more time than good
 > meshes take to create.
 
----
+## blockMesh — Structured Meshing
 
-## 2  blockMesh — Structured Meshing
+###  Overview
 
-### 2.1  Overview
-
-`blockMesh` reads a dictionary called `blockMeshDict` (in the `system/`
-directory) and generates a **structured hexahedral mesh**. It is the go-to tool
-when:
+`blockMesh` reads a dictionary called `blockMeshDict` (in the `system/` directory) and generates a **structured hexahedral mesh**. It is the go-to tool when:
 
 - The geometry is simple (boxes, channels, pipes, wedges).
 - You need precise control over cell distribution and grading.
 - You want the highest numerical accuracy for a given cell count.
 
-### 2.2  blockMeshDict — Field by Field
+### blockMeshDict — Field by Field
 
 ```
   blockMeshDict Structure
@@ -167,13 +150,11 @@ when:
 
 #### convertToMeters
 
-A scalar multiplier applied to every vertex coordinate. If your coordinates are
-in millimetres, set `convertToMeters 0.001;`.
+A scalar multiplier applied to every vertex coordinate. If your coordinates are in millimetres, set `convertToMeters 0.001;`.
 
 #### vertices
 
-An ordered list of 3D points. **The index in the list IS the vertex label** —
-vertex 0 is the first entry, vertex 1 is the second, and so on.
+An ordered list of 3D points. **The index in the list IS the vertex label** — vertex 0 is the first entry, vertex 1 is the second, and so on.
 
 ```
   Vertex numbering for a single hex block:
@@ -204,15 +185,13 @@ hex (v0 v1 v2 v3 v4 v5 v6 v7) (nx ny nz) grading
 
 #### edges
 
-Optional curved edge definitions between vertex pairs, e.g.
-`arc 1 5 (0.5 0.1 0.5)` creates a circular arc through the midpoint.
+Optional curved edge definitions between vertex pairs, e.g. `arc 1 5 (0.5 0.1 0.5)` creates a circular arc through the midpoint.
 
 #### boundary
 
-Patch definitions. Each face is specified by four vertex labels ordered so the
-face normal points **out of the block** (right-hand rule).
+Patch definitions. Each face is specified by four vertex labels ordered so the face normal points **out of the block** (right-hand rule).
 
-### 2.3  Real Example — Lid-Driven Cavity
+### Real Example — Lid-Driven Cavity
 
 From `projects/01_lid_driven_cavity/system/blockMeshDict`:
 
@@ -277,12 +256,12 @@ boundary
 
          movingWall (lid, slides →)
        3 ═══════════════════════ 2
-       ║  +--+--+--+--+--+--+  ║
-       ║  |  |  |  |  |  |  |  ║
-  fixed║  +--+--+--+--+--+--+  ║fixed
-  Walls║  |  |  |  |  |  |  |  ║Walls
-       ║  +--+--+--+--+--+--+  ║
-       ║  |  |  |  |  |  |  |  ║
+       ║  +--+--+--+--+--+--+   ║
+       ║  |  |  |  |  |  |  |   ║
+  fixed║  +--+--+--+--+--+--+   ║ fixed
+  Walls║  |  |  |  |  |  |  |   ║ Walls
+       ║  +--+--+--+--+--+--+   ║
+       ║  |  |  |  |  |  |  |   ║
        0 ═══════════════════════ 1
               fixedWalls
 
@@ -293,10 +272,9 @@ boundary
 > **Note:** The `frontAndBack` patches are `type empty` — this tells OpenFOAM
 > this is a 2D simulation. Only one cell is needed in the z-direction.
 
-### 2.4  Real Example — Airfoil Background Mesh
+###  Real Example — Airfoil Background Mesh
 
-From `projects/04_naca_airfoil_analysis/system/blockMeshDict` — used as the
-background mesh for `snappyHexMesh`:
+From `projects/04_naca_airfoil_analysis/system/blockMeshDict` — used as the background mesh for `snappyHexMesh`:
 
 ```c
 convertToMeters 1;
@@ -355,21 +333,20 @@ boundary
   Airfoil background mesh domain  (2.5 m × 1.0 m)
 
   y = 0.5   3 ─────────────────────────────── 2
-             │  inlet          outlet          │
-             │  ←              →               │
-             │       ┌──airfoil──┐             │
-  y = 0      │       └───────────┘             │
-             │                                 │
+             │  inlet          outlet         │
+             │  ←              →              │
+             │       ┌──airfoil──┐            │
+  y = 0      │       └───────────┘            │
+             │                                │
   y = -0.5  0 ─────────────────────────────── 1
            x=-0.5                           x=2.0
 
   60 × 20 cells, uniform grading — snappyHexMesh refines near the airfoil
 ```
 
-### 2.5  Grading (Cell Size Distribution)
+### Grading (Cell Size Distribution)
 
-Grading controls how cell sizes vary across a block. `simpleGrading (1 1 1)`
-means uniform cells. Non-unity values create expansion ratios.
+Grading controls how cell sizes vary across a block. `simpleGrading (1 1 1)` means uniform cells. Non-unity values create expansion ratios.
 
 ```
   simpleGrading (1 1 1)            simpleGrading (4 1 1)
@@ -394,7 +371,7 @@ means uniform cells. Non-unity values create expansion ratios.
 > gradients. This gives better resolution where it matters without increasing
 > the total cell count.
 
-### 2.6  Multi-Block Meshes
+###  Multi-Block Meshes
 
 Complex geometries can be built from **multiple blocks** that share vertices:
 
@@ -415,52 +392,41 @@ Complex geometries can be built from **multiple blocks** that share vertices:
   Use mergePatchPairs to stitch non-conforming blocks.
 ```
 
----
+## snappyHexMesh — Complex Geometry Meshing
 
-## 3  snappyHexMesh — Complex Geometry Meshing
+`snappyHexMesh` creates unstructured hex-dominant meshes around complex geometries defined by **STL surface files**. It is the primary tool for real-world industrial cases where `blockMesh` alone cannot represent the geometry.
 
-### 3.1  Overview
-
-`snappyHexMesh` creates unstructured hex-dominant meshes around complex
-geometries defined by **STL surface files**. It is the primary tool for
-real-world industrial cases where `blockMesh` alone cannot represent the
-geometry.
-
-### 3.2  The Three-Step Process
+### The Three-Step Process
 
 ```
   ╔═══════════════════════════════════════════════════════════════════════════╗
-  ║               snappyHexMesh  —  Three-Step Mesh Generation              ║
+  ║               snappyHexMesh  —  Three-Step Mesh Generation               ║
   ╠═══════════════════════════════════════════════════════════════════════════╣
-  ║                                                                         ║
-  ║  Step 0             Step 1               Step 2              Step 3     ║
-  ║  BACKGROUND         CASTELLATED          SNAPPED             LAYER      ║
-  ║  MESH               MESH                 MESH                ADDITION   ║
-  ║                                                                         ║
-  ║  +----------+       +--+--+--+--+        +--+--+-..          +--+--+-.. ║
-  ║  |          |       |  |  |xx|  |        |  |  / ·\          |  | /===\ ║
-  ║  |          | ───►  |--+--+--+--| ───►   |--+-·    · ───►   |--+·||| | ║
-  ║  |          |       |  |  |xx|  |        |  |  \ ·/          |  | \===/ ║
-  ║  +----------+       +--+--+--+--+        +--+--+-··          +--+--+-.. ║
-  ║                                                                         ║
-  ║  blockMesh           Cells inside         Surface mesh        Boundary  ║
-  ║  creates this        geometry are         vertices snap       layer     ║
-  ║                      removed (xx)         to STL surface      cells     ║
-  ║                      + refinement                             extruded  ║
-  ╚═══════════════════════════════════════════════════════════════════════════╝
+  ║                                                                          ║
+  ║  Step 0             Step 1               Step 2              Step 3      ║
+  ║  BACKGROUND         CASTELLATED          SNAPPED             LAYER       ║
+  ║  MESH               MESH                 MESH                ADDITION    ║
+  ║                                                                          ║
+  ║  +----------+       +--+--+--+--+        +--+--+-..          +--+--+-..  ║
+  ║  |          |       |  |  |xx|  |        |  |  / ·\          |  | /===\  ║
+  ║  |          | ───►  |--+--+--+--| ───►   |--+-·    · ───►   |--+·||   || ║
+  ║  |          |       |  |  |xx|  |        |  |  \ ·/          |  | \===/  ║
+  ║  +----------+       +--+--+--+--+        +--+--+-··          +--+--+-..  ║
+  ║                                                                          ║
+  ║  blockMesh           Cells inside         Surface mesh        Boundary   ║
+  ║  creates this        geometry are         vertices snap       layer      ║
+  ║                      removed (xx)         to STL surface      cells      ║
+  ║                      + refinement                             extruded   ║
+  ╚══════════════════════════════════════════════════════════════════════════╝
 ```
 
-**Step 1 — Castellated mesh:** Refines the background mesh near surfaces and
-removes cells that fall inside the geometry (or outside, depending on
-`locationInMesh`).
+**Step 1 — Castellated mesh:** Refines the background mesh near surfaces and removes cells that fall inside the geometry (or outside, depending on `locationInMesh`).
 
-**Step 2 — Snapping:** Iteratively moves surface vertices onto the STL geometry
-to create a body-fitted mesh.
+**Step 2 — Snapping:** Iteratively moves surface vertices onto the STL geometry to create a body-fitted mesh.
 
-**Step 3 — Layer addition:** Extrudes prismatic boundary-layer cells from
-specified surfaces. (Optional — controlled by `addLayers` flag.)
+**Step 3 — Layer addition:** Extrudes prismatic boundary-layer cells from specified surfaces. (Optional — controlled by `addLayers` flag.)
 
-### 3.3  snappyHexMeshDict — Structure
+### snappyHexMeshDict — Structure
 
 The dictionary has five major sections:
 
@@ -485,7 +451,7 @@ The dictionary has five major sections:
   └──────────────────────────────────┘
 ```
 
-### 3.4  Real Example — NACA Airfoil snappyHexMeshDict
+###  Real Example — NACA Airfoil snappyHexMeshDict
 
 From `projects/04_naca_airfoil_analysis/system/snappyHexMeshDict`:
 
@@ -617,27 +583,21 @@ meshQualityControls
 }
 ```
 
-### 3.5  STL Geometry Handling
+###  STL Geometry Handling
 
-snappyHexMesh reads surface geometry from **STL files** (ASCII or binary)
-placed in `constant/triSurface/`. The NACA airfoil project uses a binary STL
-file (`airfoil.stl`, ~40 KB) exported from a CAD tool.
+snappyHexMesh reads surface geometry from **STL files** (ASCII or binary) placed in `constant/triSurface/`. The NACA airfoil project uses a binary STL file (`airfoil.stl`, ~40 KB) exported from a CAD tool.
 
 > **Tip:** Ensure your STL surface is **watertight** (no gaps or overlaps).
 > Non-watertight surfaces cause snappyHexMesh to fail at the castellated mesh
 > step because it cannot determine inside vs outside.
 
----
+##  Mesh from External Sources
 
-## 4  Mesh from External Sources
+Not every mesh needs to be generated inside OpenFOAM. External tools often have superior meshing capabilities for complex geometries.
 
-Not every mesh needs to be generated inside OpenFOAM. External tools often have
-superior meshing capabilities for complex geometries.
+###  Fluent Mesh Import
 
-### 4.1  Fluent Mesh Import
-
-The `02_elbow` project imports a mesh created in ANSYS Fluent using the
-`fluentMeshToFoam` converter.
+The `02_elbow` project imports a mesh created in ANSYS Fluent using the `fluentMeshToFoam` converter.
 
 From `projects/02_elbow/allrun`:
 
@@ -657,18 +617,17 @@ runApplication foamMeshToFluent
 runApplication foamDataToFluent
 ```
 
-The key line is `runApplication fluentMeshToFoam elbow.msh` — this reads the
-Fluent `.msh` file and creates an OpenFOAM mesh in `constant/polyMesh/`.
+The key line is `runApplication fluentMeshToFoam elbow.msh` — this reads the Fluent `.msh` file and creates an OpenFOAM mesh in `constant/polyMesh/`.
 
 ```
   External mesh workflow:
 
-  ┌──────────────┐     ┌────────────────────┐     ┌──────────────────┐
-  │ External tool │     │  Converter utility  │     │  OpenFOAM case   │
-  │              │     │                    │     │                  │
-  │ ANSYS Fluent │────►│ fluentMeshToFoam   │────►│ constant/        │
-  │ elbow.msh    │     │                    │     │   polyMesh/      │
-  └──────────────┘     └────────────────────┘     │     points       │
+  ┌───────────────┐     ┌────────────────────┐     ┌──────────────────┐
+  │ External tool │     │  Converter utility │     │  OpenFOAM case   │
+  │               │     │                    │     │                  │
+  │ ANSYS Fluent  │────►│ fluentMeshToFoam   │────►│ constant/        │
+  │ elbow.msh     │     │                    │     │   polyMesh/      │
+  └───────────────┘     └────────────────────┘     │     points       │
                                                    │     faces        │
                                                    │     owner        │
                                                    │     neighbour    │
@@ -676,7 +635,7 @@ Fluent `.msh` file and creates an OpenFOAM mesh in `constant/polyMesh/`.
                                                    └──────────────────┘
 ```
 
-### 4.2  Other Converters
+### Other Converters
 
 | Converter              | Source Format           | Usage                        |
 |------------------------|-------------------------|------------------------------|
@@ -691,23 +650,21 @@ Fluent `.msh` file and creates an OpenFOAM mesh in `constant/polyMesh/`.
 > that the conversion produced a valid OpenFOAM mesh. Boundary names and types
 > may need manual correction in `constant/polyMesh/boundary`.
 
----
+## Mesh Quality Assessment
 
-## 5  Mesh Quality Assessment
+### The `checkMesh` Utility
 
-### 5.1  The `checkMesh` Utility
-
-Run `checkMesh` in your case directory to get a comprehensive quality report.
-It checks geometry, topology, and quality metrics.
+Run `checkMesh` in your case directory to get a comprehensive quality report. It checks geometry, topology, and quality metrics.
 
 Typical output sections:
+
 - **Mesh stats:** cell count, face count, point count
 - **Overall domain bounding box**
 - **Cell types:** hex, tet, prism, etc.
 - **Topology checks:** boundary openness, face ordering
 - **Geometry checks:** non-orthogonality, skewness, aspect ratio
 
-### 5.2  Key Quality Thresholds
+### Quality Thresholds
 
 | Metric              | Ideal       | Acceptable    | Problematic   | What It Means                          |
 |---------------------|-------------|---------------|---------------|----------------------------------------|
@@ -717,7 +674,7 @@ Typical output sections:
 | Min volume          | > 0         | > 0           | ≤ 0           | Negative volume = inverted cell        |
 | Min determinant     | > 0.1       | > 0.001       | ≤ 0           | Cell shape regularity measure          |
 
-### 5.3  Visualising Non-Orthogonality
+### Visualising Non-Orthogonality
 
 ```
   GOOD (orthogonal):                    BAD (non-orthogonal):
@@ -727,7 +684,8 @@ Typical output sections:
   |   C1 ──┼──► C2  |                   |  C1 /    \ C2
   |        |        |                   |    / θ    \
   +--------+--------+                   +--+/        \+--
-                                             face
+                                               face
+
   d = C2 − C1                           d = C2 − C1
   n = face normal                       n = face normal
   n ∥ d  →  θ = 0°  ✓                  n ∦ d  →  θ >> 0°  ✗
@@ -736,7 +694,7 @@ Typical output sections:
   Large non-orthogonality requires correctors (increasing cost).
 ```
 
-### 5.4  Quality Controls in snappyHexMeshDict
+### Quality Controls in snappyHexMeshDict
 
 The `meshQualityControls` section in the NACA airfoil case (§ 3.4) enforces
 quality during mesh generation. Key settings from that file:
@@ -753,11 +711,9 @@ minDeterminant       0.001   // reject degenerate cells
 > the thresholds. Instead, improve the background mesh resolution, adjust the
 > STL geometry, or tune `nSmoothPatch` / `nRelaxIter` in `snapControls`.
 
----
+## Mesh Refinement Strategies
 
-## 6  Mesh Refinement Strategies
-
-### 6.1  Uniform Refinement
+### Uniform Refinement
 
 The simplest approach: increase cell count in all directions equally.
 
@@ -778,11 +734,9 @@ The simplest approach: increase cell count in all directions equally.
 
 Simple, but expensive. Doubling resolution in 3D increases cell count by **8×**.
 
-### 6.2  Adaptive / Local Refinement
+### Adaptive / Local Refinement
 
-Refine only where needed — near walls, in wake regions, around features. This
-is exactly what snappyHexMesh's `refinementSurfaces` and `refinementRegions`
-achieve.
+Refine only where needed — near walls, in wake regions, around features. This is exactly what snappyHexMesh's `refinementSurfaces` and `refinementRegions` achieve.
 
 ```
   Local refinement around an airfoil:
@@ -792,7 +746,7 @@ achieve.
   +-----+--+--+--+--+--+--+--+--+-----+-----+
   |     |  |  |  |  |  |  |  |  |     |     |
   +-----+--+-++-++-++-++-++--+--+-----+-----+
-  |     |  |~~~~~~~~~airfoil|  |  |     |     |
+  |     |  |~~~~~~~~~airfoil |  |     |     |
   +-----+--+-++-++-++-++-++--+--+-----+-----+
   |     |  |  |  |  |  |  |  |  |     |     |
   +-----+--+--+--+--+--+--+--+--+-----+-----+
@@ -802,10 +756,9 @@ achieve.
   Coarse far-field  →  Fine near surface
 ```
 
-### 6.3  Boundary Layer Meshing
+### Boundary Layer Meshing
 
-Resolving the boundary layer requires thin, high-aspect-ratio cells near walls.
-The first cell height is governed by the **y+** value:
+Resolving the boundary layer requires thin, high-aspect-ratio cells near walls. The first cell height is governed by the **y+** value:
 
 ```
   y+ ≈ (y · uτ) / ν
@@ -821,17 +774,15 @@ The first cell height is governed by the **y+** value:
   |      | to freestream        |           |
 ```
 
-The `addLayersControls` section in snappyHexMeshDict controls boundary layer
-mesh generation. Key parameters:
+The `addLayersControls` section in snappyHexMeshDict controls boundary layer mesh generation. Key parameters:
 
 - `nSurfaceLayers` — number of layers per surface patch
 - `expansionRatio` — growth ratio between successive layers
 - `finalLayerThickness` — thickness of outermost layer (relative or absolute)
 
-### 6.4  Grid Independence Study
+###  Grid Independence Study
 
-A simulation result is only trustworthy if it does not change significantly when
-the mesh is refined. A grid independence study uses 3+ meshes:
+A simulation result is only trustworthy if it does not change significantly when the mesh is refined. A grid independence study uses 3+ meshes:
 
 ```
   Grid Independence Study Workflow:
@@ -856,14 +807,12 @@ the mesh is refined. A grid independence study uses 3+ meshes:
 > **Tip:** Always report your grid independence study in publications. A single
 > mesh result without convergence evidence is not credible.
 
----
-
-## 7  Practical Meshing Workflow
+## Practical Meshing Workflow
 
 ```
-  ╔═══════════════════════════════════════════════════════════════════════════╗
-  ║                 COMPLETE MESHING WORKFLOW                                ║
-  ╠═══════════════════════════════════════════════════════════════════════════╣
+  ╔═════════════════════════════════════════════════════════════════════════╗
+  ║                 COMPLETE MESHING WORKFLOW                               ║
+  ╠═════════════════════════════════════════════════════════════════════════╣
   ║                                                                         ║
   ║  1. Prepare Geometry                                                    ║
   ║     │  • Clean CAD model, export STL (if using snappyHexMesh)           ║
@@ -882,7 +831,7 @@ the mesh is refined. A grid independence study uses 3+ meshes:
   ║  4. Assess Quality                                                      ║
   ║     │  • Check non-orthogonality, skewness, aspect ratio                ║
   ║     │  • Visualise in ParaView — look for distorted cells               ║
-  ║     │  • If quality is poor → go back to step 2 or 3 and adjust        ║
+  ║     │  • If quality is poor → go back to step 2 or 3 and adjust         ║
   ║     ▼                                                                   ║
   ║  5. Run Simulation                                                      ║
   ║     │  • If solver diverges → suspect mesh quality first                ║
@@ -891,12 +840,10 @@ the mesh is refined. A grid independence study uses 3+ meshes:
   ║        • Repeat with 2-3 mesh densities                                 ║
   ║        • Confirm results are mesh-independent                           ║
   ║                                                                         ║
-  ╚═══════════════════════════════════════════════════════════════════════════╝
+  ╚═════════════════════════════════════════════════════════════════════════╝
 ```
 
----
-
-## 8  Comparison: blockMesh vs snappyHexMesh
+##  Comparison: blockMesh vs snappyHexMesh
 
 | Feature                  | blockMesh                         | snappyHexMesh                        |
 |--------------------------|-----------------------------------|--------------------------------------|
@@ -913,59 +860,31 @@ the mesh is refined. A grid independence study uses 3+ meshes:
 | This repo                | `01_lid_driven_cavity`            | `04_naca_airfoil_analysis`           |
 | External mesh equivalent | —                                 | `02_elbow` (imported from Fluent)    |
 
----
+## Common Meshing Pitfalls & Tips
 
-## 9  Common Meshing Pitfalls & Tips
+| # | Pitfall                                                      | Fix                                                                                                           |
+| - | ------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| 1 | Running a simulation on a mesh you haven't checked           | Always run `checkMesh` before solving.                                                                        |
+| 2 | Non-watertight STL surfaces causing `snappyHexMesh` to crash | Inspect STL in ParaView or MeshLab; check for open edges, self-intersections, and duplicate triangles.        |
+| 3 | `locationInMesh` point falls inside the geometry body        | Ensure the point is in the **fluid region** (outside the solid); verify coordinates against STL bounding box. |
+| 4 | Too-coarse background mesh for `snappyHexMesh`               | Use sufficient resolution in `blockMeshDict`; ensure several cells across smallest geometric features.        |
+| 5 | Ignoring mesh independence                                   | Run at least 3 mesh densities and compare key output quantities.                                              |
+| 6 | Extremely high aspect ratio cells in boundary layers         | Use gradual expansion ratios (1.1–1.3); avoid sudden size jumps to maintain accuracy and convergence.         |
+| 7 | 2D simulations with more than one cell in z-direction        | Use exactly 1 cell in z and set front/back patches to `type empty`.                                           |
+| 8 | Boundary patches mismatch between mesh and field files       | Ensure patch names match exactly across mesh dictionaries and field files (`0/U`, `0/p`, etc.).               |
 
-> **Pitfall:** Running a simulation on a mesh you haven't checked.
-> **Fix:** Always run `checkMesh` before solving. Always.
-
-> **Pitfall:** Non-watertight STL surfaces causing snappyHexMesh to crash.
-> **Fix:** Inspect STL in ParaView or MeshLab. Look for open edges,
-> self-intersections, and duplicate triangles.
-
-> **Pitfall:** `locationInMesh` point falls inside the geometry body.
-> **Fix:** The point must be in the **fluid region** (outside the solid body).
-> Check coordinates carefully against your STL bounding box.
-
-> **Pitfall:** Too-coarse background mesh for snappyHexMesh.
-> **Fix:** The background mesh should have at least a few cells across the
-> smallest geometric feature. Increase `blockMeshDict` resolution.
-
-> **Pitfall:** Ignoring mesh independence — reporting results from a single mesh.
-> **Fix:** Run at least 3 mesh densities. Compare a key output quantity.
-
-> **Pitfall:** Extremely high aspect ratio cells in boundary layers.
-> **Fix:** Use gradual expansion ratios (1.1–1.3). Sudden jumps in cell size
-> degrade solution accuracy and can cause convergence issues.
-
-> **Pitfall:** 2D simulations with more than one cell in the z-direction.
-> **Fix:** For 2D cases, use exactly 1 cell in z and `type empty` patches on
-> front and back faces (see the cavity example in § 2.3).
-
-> **Pitfall:** Boundary patches not matching between mesh and field files.
-> **Fix:** Patch names in `blockMeshDict` / `snappyHexMeshDict` must exactly
-> match the patch names used in `0/U`, `0/p`, and other field files.
-
----
 
 ## 10  Quick Reference
 
-```
-  ┌──────────────────────────────────────────────────────────────┐
-  │                   MESHING COMMANDS CHEATSHEET                │
-  ├──────────────────────────────────────────────────────────────┤
-  │                                                              │
-  │  blockMesh                Generate structured mesh           │
-  │  snappyHexMesh            Generate complex-geometry mesh     │
-  │  checkMesh                Check mesh quality                 │
-  │  checkMesh -allGeometry   Extended geometry checks           │
-  │  checkMesh -allTopology   Extended topology checks           │
-  │  fluentMeshToFoam f.msh   Import Fluent mesh                │
-  │  gmshToFoam f.msh         Import Gmsh mesh                  │
-  │  transformPoints -scale '(0.001 0.001 0.001)'  Scale mesh   │
-  │  renumberMesh             Optimise cell ordering             │
-  │  refineMesh               Refine existing mesh               │
-  │                                                              │
-  └──────────────────────────────────────────────────────────────┘
-```
+| Command                                        | Description                      |
+| ---------------------------------------------- | -------------------------------- |
+| `blockMesh`                                    | Generate structured mesh         |
+| `snappyHexMesh`                                | Generate complex-geometry mesh   |
+| `checkMesh`                                    | Check mesh quality               |
+| `checkMesh -allGeometry`                       | Perform extended geometry checks |
+| `checkMesh -allTopology`                       | Perform extended topology checks |
+| `fluentMeshToFoam f.msh`                       | Import Fluent mesh               |
+| `gmshToFoam f.msh`                             | Import Gmsh mesh                 |
+| `transformPoints -scale '(0.001 0.001 0.001)'` | Scale mesh                       |
+| `renumberMesh`                                 | Optimize cell ordering           |
+| `refineMesh`                                   | Refine existing mesh             |
