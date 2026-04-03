@@ -5,13 +5,13 @@
 ---
 
 > **Cross-references:**
-> - [01 — Short Intro to CFD](01_short_intro_to_cfd.md)
-> - [03 — OpenFOAM Dictionaries](03_openfoam_dictionaries.md)
-> - [04 — Meshing](04_meshing.md)
-> - [05 — Boundary Conditions](05_boundary_conditions.md)
-> - [06 — Turbulence Models](06_turbulence_models.md)
-> - [08 — CFL Number](08_cfl_number.md)
-> - [10 — icoFoam Solver Analysis](10_icofoam_solver_analysis.md)
+> - [01 — Short Intro to CFD](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/01_short_intro_to_cfd.md)
+> - [03 — OpenFOAM Dictionaries](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/03_openfoam_dictionaries.md)
+> - [04 — Meshing](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/04_meshing.md)
+> - [05 — Boundary Conditions](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/05_boundary_conditions.md)
+> - [06 — Turbulence Models](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_turbulence_models.md)
+> - [08 — CFL Number](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/08_cfl_number.md)
+> - [10 — icoFoam Solver Analysis](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/10_icofoam_solver_analysis.md)
 
 ---
 
@@ -76,7 +76,7 @@ Multiphase flows are everywhere in engineering and nature:
 ```
 
 > **⚠️ Key insight:** Single-phase CFD is already complex (see
-> [06 — Turbulence Models](06_turbulence_models.md)). Multiphase adds an
+> [06 — Turbulence Models](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_turbulence_models.md)). Multiphase adds an
 > entirely new layer: tracking where each phase *is* in space and time, and
 > correctly handling the physics at the interface.
 
@@ -509,7 +509,7 @@ functions
 
 > **💡 Tip:** Note the **two** Courant number limits: `maxCo` for the flow and
 > `maxAlphaCo` for the interface. The solver uses whichever gives the smaller
-> time step. See [08 — CFL Number](08_cfl_number.md) for a thorough explanation.
+> time step. See [08 — CFL Number](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/08_cfl_number.md) for a thorough explanation.
 
 ### 5.6 Numerical Schemes (fvSchemes)
 
@@ -719,7 +719,7 @@ tension:
 
 Time stepping in multiphase simulations requires special attention because the
 interface transport has its own stability constraint. See
-[08 — CFL Number](08_cfl_number.md) for the general theory.
+[08 — CFL Number](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/08_cfl_number.md) for the general theory.
 
 ### 7.1 Two Courant Numbers
 
@@ -819,7 +819,7 @@ evolution in ParaView.
 **What it demonstrates:**
 - VOF with a complex geometry (boat hull STL)
 - `snappyHexMesh` for meshing around a hull
-  (see [04 — Meshing](04_meshing.md) for snappyHexMesh details)
+  (see [04 — Meshing](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/04_meshing.md) for snappyHexMesh details)
 - Free surface interaction with a solid body
 - Steady-state-like multiphase (hull fixed in a flow)
 
@@ -828,7 +828,7 @@ evolution in ParaView.
 - Geometry: imported from `boat_hull.stl` via snappyHexMesh
 - Mesh: snappyHexMesh with surface refinement near hull and waterline
 - Phases: water and air (same properties as dam break)
-- Turbulence: likely k-ω SST (see [06 — Turbulence Models](06_turbulence_models.md))
+- Turbulence: likely k-ω SST (see [06 — Turbulence Models](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_turbulence_models.md))
 
 **What the student learns:** How to combine VOF multiphase with complex geometry
 meshing — the realistic workflow for naval CFD. The interaction between mesh
@@ -1050,20 +1050,20 @@ basis for seakeeping, wave energy, and offshore engineering simulations.
 
 | Topic | Note |
 |-------|------|
-| CFD fundamentals | [01 — Short Intro to CFD](01_short_intro_to_cfd.md) |
-| Case structure for multiphase | [02 — OpenFOAM Cases](02_openfoam_cases.md) |
-| Dictionary files (fvSchemes, fvSolution) | [03 — OpenFOAM Dictionaries](03_openfoam_dictionaries.md) |
-| Meshing (blockMesh, snappyHexMesh) | [04 — Meshing](04_meshing.md) |
-| Boundary conditions for α, U, p | [05 — Boundary Conditions](05_boundary_conditions.md) |
-| Turbulence in multiphase flows | [06 — Turbulence Models](06_turbulence_models.md) |
-| Parallel runs for large cases | [07 — Parallelization](07_parallelization.md) |
-| CFL number and time stepping | [08 — CFL Number](08_cfl_number.md) |
-| Pressure solvers (p_rgh) | [09 — Linear Solvers](09_linear_solvers.md) |
-| Solver internals (PISO algorithm) | [10 — icoFoam Solver Analysis](10_icofoam_solver_analysis.md) |
+| CFD fundamentals | [01 — Short Intro to CFD](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/01_short_intro_to_cfd.md) |
+| Case structure for multiphase | [02 — OpenFOAM Cases](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/02_openfoam_cases.md) |
+| Dictionary files (fvSchemes, fvSolution) | [03 — OpenFOAM Dictionaries](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/03_openfoam_dictionaries.md) |
+| Meshing (blockMesh, snappyHexMesh) | [04 — Meshing](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/04_meshing.md) |
+| Boundary conditions for α, U, p | [05 — Boundary Conditions](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/05_boundary_conditions.md) |
+| Turbulence in multiphase flows | [06 — Turbulence Models](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_turbulence_models.md) |
+| Parallel runs for large cases | [07 — Parallelization](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/07_parallelization.md) |
+| CFL number and time stepping | [08 — CFL Number](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/08_cfl_number.md) |
+| Pressure solvers (p_rgh) | [09 — Linear Solvers](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/09_linear_solvers.md) |
+| Solver internals (PISO algorithm) | [10 — icoFoam Solver Analysis](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/10_icofoam_solver_analysis.md) |
 | **Hands-on:** Dam break (VOF basics) | `projects/08_dam_break/` |
 | **Hands-on:** Fixed hull (VOF + snappyHex) | `projects/11_boat_hull_fixed/` |
 | **Hands-on:** Floating hull (dynamic mesh + 6-DoF) | `projects/12_boat_hull_floating/` |
 
 ---
 
-*Last updated: 2025. Part of the [OpenFOAM-Tutorials](../README.md) repository.*
+*Last updated: 2025. Part of the [OpenFOAM-Tutorials](https://github.com/djeada/OpenFoam-Tutorials/blob/main/README.md) repository.*

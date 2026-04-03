@@ -160,10 +160,10 @@ This is well within the laminar regime (Re ≪ 2300 for internal flow), which
 justifies the use of `icoFoam` without a turbulence model.
 
 > **See also:**
-> [notes/04_meshing.md](../../notes/04_meshing.md) for general meshing theory,
-> [notes/05_boundary_conditions.md](../../notes/05_boundary_conditions.md) for a
+> [notes/04_meshing.md](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/04_meshing.md) for general meshing theory,
+> [notes/05_boundary_conditions.md](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/05_boundary_conditions.md) for a
 > deeper dive into boundary condition types, and
-> [notes/10_icofoam_solver_analysis.md](../../notes/10_icofoam_solver_analysis.md)
+> [notes/10_icofoam_solver_analysis.md](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/10_icofoam_solver_analysis.md)
 > for a detailed walkthrough of the icoFoam solver algorithm.
 
 ---
@@ -269,7 +269,7 @@ to inspect include non-orthogonality (the 2 non-orthogonal correctors help manag
 moderate values), skewness, and aspect ratio.
 
 > **Further reading:**
-> [notes/04_meshing.md](../../notes/04_meshing.md) covers meshing strategies,
+> [notes/04_meshing.md](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/04_meshing.md) covers meshing strategies,
 > quality metrics, `blockMesh` vs external tools, and troubleshooting.
 
 ---
@@ -744,11 +744,11 @@ Run the full `allrun` script to generate the Fluent export files in
 
    | Note file                        | Relevance                                            |
    |----------------------------------|------------------------------------------------------|
-   | [01_short_intro_to_cfd.md](../../notes/01_short_intro_to_cfd.md) | Fundamental CFD concepts, governing equations |
-   | [02_openfoam_cases.md](../../notes/02_openfoam_cases.md)         | OpenFOAM case directory structure (0/, constant/, system/) |
-   | [03_openfoam_dictionaries.md](../../notes/03_openfoam_dictionaries.md) | Dictionary syntax used in controldict, fvschemes, etc. |
-   | [04_meshing.md](../../notes/04_meshing.md)                       | Mesh generation; blockMesh vs imported meshes |
-   | [05_boundary_conditions.md](../../notes/05_boundary_conditions.md) | fixedValue, zeroGradient, noSlip, empty types |
-   | [08_cfl_number.md](../../notes/08_cfl_number.md)                 | CFL condition and time-step selection |
-   | [09_linear_solvers.md](../../notes/09_linear_solvers.md)         | PCG, smoothSolver, DIC, symGaussSeidel |
-   | [10_icofoam_solver_analysis.md](../../notes/10_icofoam_solver_analysis.md) | Detailed analysis of the icoFoam algorithm |
+   | [01_short_intro_to_cfd.md](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/01_short_intro_to_cfd.md) | Fundamental CFD concepts, governing equations |
+   | [02_openfoam_cases.md](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/02_openfoam_cases.md)         | OpenFOAM case directory structure (0/, constant/, system/) |
+   | [03_openfoam_dictionaries.md](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/03_openfoam_dictionaries.md) | Dictionary syntax used in controldict, fvschemes, etc. |
+   | [04_meshing.md](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/04_meshing.md)                       | Mesh generation; blockMesh vs imported meshes |
+   | [05_boundary_conditions.md](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/05_boundary_conditions.md) | fixedValue, zeroGradient, noSlip, empty types |
+   | [08_cfl_number.md](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/08_cfl_number.md)                 | CFL condition and time-step selection |
+   | [09_linear_solvers.md](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/09_linear_solvers.md)         | PCG, smoothSolver, DIC, symGaussSeidel |
+   | [10_icofoam_solver_analysis.md](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/10_icofoam_solver_analysis.md) | Detailed analysis of the icoFoam algorithm |

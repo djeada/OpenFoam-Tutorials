@@ -1,13 +1,13 @@
 # `icoFoam` Solver — Complete Analysis
 
 > **Cross-references:**
-> - [01 — Short Intro to CFD](01_short_intro_to_cfd.md)
-> - [02 — OpenFOAM Cases](02_openfoam_cases.md)
-> - [03 — OpenFOAM Dictionaries](03_openfoam_dictionaries.md)
-> - [04 — Meshing](04_meshing.md)
-> - [05 — Boundary Conditions](05_boundary_conditions.md)
-> - [08 — CFL Number](08_cfl_number.md)
-> - [09 — Linear Solvers](09_linear_solvers.md)
+> - [01 — Short Intro to CFD](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/01_short_intro_to_cfd.md)
+> - [02 — OpenFOAM Cases](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/02_openfoam_cases.md)
+> - [03 — OpenFOAM Dictionaries](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/03_openfoam_dictionaries.md)
+> - [04 — Meshing](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/04_meshing.md)
+> - [05 — Boundary Conditions](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/05_boundary_conditions.md)
+> - [08 — CFL Number](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/08_cfl_number.md)
+> - [09 — Linear Solvers](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/09_linear_solvers.md)
 
 ---
 
@@ -38,7 +38,7 @@ the **PISO** (Pressure-Implicit with Splitting of Operators) algorithm.
 - **Incompressible** — Density does not change with pressure. Valid for liquids and
   low-speed gas flows (Mach < 0.3). This eliminates the energy equation entirely.
 - **Laminar** — The flow is smooth and orderly. No turbulent eddies. No turbulence
-  model is needed or included. See [06 — Turbulence Models](06_turbulence_models.md)
+  model is needed or included. See [06 — Turbulence Models](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_turbulence_models.md)
   for what to use when turbulence matters.
 - **Newtonian** — Shear stress is linearly proportional to strain rate. The viscosity
   $\nu$ is a constant. Water, air, and most common fluids are Newtonian. Blood, polymers,
@@ -196,7 +196,7 @@ corrections (typically 2).
 
 PISO is efficient for transient problems because it performs **no outer iterations**
 within a time step. It relies on a small time step (CFL < 1, see
-[08 — CFL Number](08_cfl_number.md)) so that the change per step is small enough
+[08 — CFL Number](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/08_cfl_number.md)) so that the change per step is small enough
 that one momentum prediction + a few corrections suffice. This makes it faster
 per-time-step than iterative methods like SIMPLE, but it demands small $\Delta t$.
 
@@ -302,7 +302,7 @@ dimensionedScalar nu(...);
 
 ### 4d. Courant Number Check
 
-`CourantNo.H` computes the CFL number (see [08 — CFL Number](08_cfl_number.md)):
+`CourantNo.H` computes the CFL number (see [08 — CFL Number](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/08_cfl_number.md)):
 
 $$Co = \max_f \frac{|\phi_f|}{|d| \cdot |S_f|} \cdot \Delta t$$
 
@@ -615,8 +615,8 @@ to use each is critical.
 ## 6. icoFoam in Practice — Real Project Configuration
 
 Below are the ACTUAL configuration files from our tutorial projects that use icoFoam.
-See [02 — OpenFOAM Cases](02_openfoam_cases.md) for the general case structure and
-[03 — OpenFOAM Dictionaries](03_openfoam_dictionaries.md) for dictionary syntax.
+See [02 — OpenFOAM Cases](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/02_openfoam_cases.md) for the general case structure and
+[03 — OpenFOAM Dictionaries](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/03_openfoam_dictionaries.md) for dictionary syntax.
 
 ### 6.1 Lid-Driven Cavity (`projects/01_lid_driven_cavity/`)
 

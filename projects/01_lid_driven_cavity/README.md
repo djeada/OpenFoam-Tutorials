@@ -82,9 +82,9 @@ At $Re = 100$, the flow is well within the laminar regime. The primary vortex fo
 - **Boundary layers**: Thin regions of high velocity gradient along all walls, particularly beneath the moving lid.
 
 > **Further reading:**
-> - [Introduction to CFD concepts](../../notes/01_short_intro_to_cfd.md)
-> - [Detailed icoFoam solver analysis](../../notes/10_icofoam_solver_analysis.md)
-> - [CFL number and time stepping](../../notes/08_cfl_number.md)
+> - [Introduction to CFD concepts](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/01_short_intro_to_cfd.md)
+> - [Detailed icoFoam solver analysis](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/10_icofoam_solver_analysis.md)
+> - [CFL number and time stepping](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/08_cfl_number.md)
 
 ---
 
@@ -117,7 +117,7 @@ The standard OpenFOAM "three-directory" structure is used:
 - **`constant/`** holds time-invariant data: physical properties and the mesh.
 - **`system/`** contains all simulation control parameters.
 
-> **Further reading:** [OpenFOAM case structure](../../notes/02_openfoam_cases.md) and [OpenFOAM dictionaries](../../notes/03_openfoam_dictionaries.md)
+> **Further reading:** [OpenFOAM case structure](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/02_openfoam_cases.md) and [OpenFOAM dictionaries](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/03_openfoam_dictionaries.md)
 
 ---
 
@@ -184,7 +184,7 @@ The block is defined by 8 vertices forming a hexahedron:
       fixedWalls on left (x=0), right (x=0.1), bottom (y=0)
 ```
 
-> **Further reading:** [Meshing in OpenFOAM](../../notes/04_meshing.md)
+> **Further reading:** [Meshing in OpenFOAM](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/04_meshing.md)
 
 ---
 
@@ -208,7 +208,7 @@ All boundary conditions are defined in `0/U` and `0/p`.
 - **`empty`**: Tells OpenFOAM to ignore these faces for calculation, enabling a 2D simulation in the x-y plane.
 - **Pressure reference**: Since the cavity has no inlet or outlet, pressure is only defined up to a constant. The `pRefCell 0` and `pRefValue 0` settings in `fvSolution` pin cell 0 to p = 0 to anchor the pressure field.
 
-> **Further reading:** [Boundary conditions in OpenFOAM](../../notes/05_boundary_conditions.md)
+> **Further reading:** [Boundary conditions in OpenFOAM](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/05_boundary_conditions.md)
 
 ---
 
@@ -276,7 +276,7 @@ A CFL of 0.2 is well below the stability limit of 1.0, ensuring a stable explici
 | `pRefCell` | `0` | Reference pressure cell index |
 | `pRefValue` | `0` | Reference pressure value (anchors the pressure field) |
 
-> **Further reading:** [Linear solvers in OpenFOAM](../../notes/09_linear_solvers.md)
+> **Further reading:** [Linear solvers in OpenFOAM](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/09_linear_solvers.md)
 
 ---
 
@@ -444,7 +444,7 @@ Modify `constant/transportProperties` to change `ν` and observe different flow 
 | 0.0001 | 1000 | Stronger vortex, visible corner vortices, longer to converge |
 | 0.00001 | 10000 | Unsteady flow, requires finer mesh and smaller time step |
 
-> **Note:** At $Re > 1000$, you may need to reduce `deltaT` and refine the mesh to maintain stability and accuracy. See [CFL number](../../notes/08_cfl_number.md).
+> **Note:** At $Re > 1000$, you may need to reduce `deltaT` and refine the mesh to maintain stability and accuracy. See [CFL number](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/08_cfl_number.md).
 
 ### 2. Increase Mesh Resolution
 
@@ -516,12 +516,12 @@ Once comfortable with icoFoam, try `pisoFoam` (supports turbulence models) on th
 
 | Note | Topic |
 |---|---|
-| [01 — Introduction to CFD](../../notes/01_short_intro_to_cfd.md) | Fundamental CFD concepts |
-| [02 — OpenFOAM Cases](../../notes/02_openfoam_cases.md) | Case directory structure |
-| [03 — OpenFOAM Dictionaries](../../notes/03_openfoam_dictionaries.md) | Dictionary file format |
-| [04 — Meshing](../../notes/04_meshing.md) | blockMesh and mesh generation |
-| [05 — Boundary Conditions](../../notes/05_boundary_conditions.md) | BC types and usage |
-| [06 — Turbulence Models](../../notes/06_turbulence_models.md) | For extending to turbulent cases |
-| [08 — CFL Number](../../notes/08_cfl_number.md) | Time step stability |
-| [09 — Linear Solvers](../../notes/09_linear_solvers.md) | PCG, smoothSolver, preconditioners |
-| [10 — icoFoam Analysis](../../notes/10_icofoam_solver_analysis.md) | Deep dive into the icoFoam solver |
+| [01 — Introduction to CFD](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/01_short_intro_to_cfd.md) | Fundamental CFD concepts |
+| [02 — OpenFOAM Cases](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/02_openfoam_cases.md) | Case directory structure |
+| [03 — OpenFOAM Dictionaries](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/03_openfoam_dictionaries.md) | Dictionary file format |
+| [04 — Meshing](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/04_meshing.md) | blockMesh and mesh generation |
+| [05 — Boundary Conditions](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/05_boundary_conditions.md) | BC types and usage |
+| [06 — Turbulence Models](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_turbulence_models.md) | For extending to turbulent cases |
+| [08 — CFL Number](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/08_cfl_number.md) | Time step stability |
+| [09 — Linear Solvers](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/09_linear_solvers.md) | PCG, smoothSolver, preconditioners |
+| [10 — icoFoam Analysis](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/10_icofoam_solver_analysis.md) | Deep dive into the icoFoam solver |

@@ -946,4 +946,4 @@ notes in the `notes/` directory:
 
 ---
 
-*This case is part of the [OpenFOAM Tutorials](../../README.md) learning series.*
+*This case is part of the [OpenFOAM Tutorials](https://github.com/djeada/OpenFoam-Tutorials/blob/main/README.md) learning series.*

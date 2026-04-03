@@ -5,9 +5,9 @@ binary project file, and no database — just human-readable text organized into
 This design makes OpenFOAM cases easy to version-control, script, and reproduce.
 
 This note is the deep-dive reference for every dictionary you will encounter in a typical
-simulation. For boundary condition theory see [05_boundary_conditions.md](05_boundary_conditions.md),
-for turbulence model selection see [06_turbulence_models.md](06_turbulence_models.md), and for
-solver math see [09_linear_solvers.md](09_linear_solvers.md).
+simulation. For boundary condition theory see [05_boundary_conditions.md](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/05_boundary_conditions.md),
+for turbulence model selection see [06_turbulence_models.md](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_turbulence_models.md), and for
+solver math see [09_linear_solvers.md](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/09_linear_solvers.md).
 
 ---
 
@@ -981,7 +981,7 @@ RAS
 
 > **Tip:** For most external aerodynamics cases, `kOmegaSST` is the recommended starting point.
 > The NACA project uses `kEpsilon` for simplicity, but for production work you would switch.
-> See [06_turbulence_models.md](06_turbulence_models.md) for detailed theory.
+> See [06_turbulence_models.md](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_turbulence_models.md) for detailed theory.
 
 ---
 
@@ -1173,7 +1173,7 @@ boundaryField
 | `nutkWallFunction` | Wall func. | Wall function for $\nu_t$ based on k |
 
 > **Tip:** For a complete treatment of boundary conditions, including inlet turbulence
-> estimation and wall function theory, see [05_boundary_conditions.md](05_boundary_conditions.md).
+> estimation and wall function theory, see [05_boundary_conditions.md](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/05_boundary_conditions.md).
 
 ---
 
@@ -1203,7 +1203,7 @@ OpenFOAM.
 | `boundary` | Named patches: `{ type patch; faces ( (f0 f1 f2 f3) ... ); }` |
 | `mergePatchPairs` | Pairs of patches to merge for multi-block topologies |
 
-> For detailed meshing workflows including `snappyHexMesh`, see [04_meshing.md](04_meshing.md).
+> For detailed meshing workflows including `snappyHexMesh`, see [04_meshing.md](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/04_meshing.md).
 
 ---
 
@@ -1233,7 +1233,7 @@ method              scotch;  // decomposition method
 | `simple` | Geometric splitting with fixed divisions | When you know the geometry well |
 | `manual` | User specifies processor per cell | Special cases |
 
-> For a full treatment of parallel execution, see [07_parallelization.md](07_parallelization.md).
+> For a full treatment of parallel execution, see [07_parallelization.md](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/07_parallelization.md).
 
 ---
 

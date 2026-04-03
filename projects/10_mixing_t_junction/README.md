@@ -1103,19 +1103,19 @@ Extend the 2D case to 3D by:
 
 | Note | Topic | Relevance |
 |---|---|---|
-| [01 — Introduction to CFD](../../notes/01_short_intro_to_cfd.md) | Fundamental CFD concepts | Governing equations overview |
-| [02 — OpenFOAM Cases](../../notes/02_openfoam_cases.md) | Case directory structure | Understanding 0/, constant/, system/ |
-| [03 — OpenFOAM Dictionaries](../../notes/03_openfoam_dictionaries.md) | Dictionary file format | FoamFile headers and syntax |
-| [04 — Meshing](../../notes/04_meshing.md) | Meshing theory | Multi-block mesh concepts |
-| [05 — Boundary Conditions](../../notes/05_boundary_conditions.md) | BC types and usage | Wall functions, inlet/outlet BCs |
-| [06 — Schemes and Solvers](../../notes/06_schemes_and_solvers.md) | Numerical methods | SIMPLE algorithm, discretization |
-| [08 — CFL Number](../../notes/08_cfl_number.md) | Time stepping | Relevant for transient extensions |
+| [01 — Introduction to CFD](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/01_short_intro_to_cfd.md) | Fundamental CFD concepts | Governing equations overview |
+| [02 — OpenFOAM Cases](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/02_openfoam_cases.md) | Case directory structure | Understanding 0/, constant/, system/ |
+| [03 — OpenFOAM Dictionaries](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/03_openfoam_dictionaries.md) | Dictionary file format | FoamFile headers and syntax |
+| [04 — Meshing](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/04_meshing.md) | Meshing theory | Multi-block mesh concepts |
+| [05 — Boundary Conditions](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/05_boundary_conditions.md) | BC types and usage | Wall functions, inlet/outlet BCs |
+| [06 — Schemes and Solvers](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_schemes_and_solvers.md) | Numerical methods | SIMPLE algorithm, discretization |
+| [08 — CFL Number](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/08_cfl_number.md) | Time stepping | Relevant for transient extensions |
 
 > **Further reading:**
-> - [Meshing Notes](../../notes/04_meshing.md) for multi-block mesh theory
-> - [Boundary Conditions](../../notes/05_boundary_conditions.md) for wall functions and thermal BCs
-> - [Schemes and Solvers](../../notes/06_schemes_and_solvers.md) for SIMPLE algorithm details
+> - [Meshing Notes](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/04_meshing.md) for multi-block mesh theory
+> - [Boundary Conditions](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/05_boundary_conditions.md) for wall functions and thermal BCs
+> - [Schemes and Solvers](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_schemes_and_solvers.md) for SIMPLE algorithm details
 
 ---
 
-*This tutorial is part of the [OpenFOAM Tutorials](../../README.md) collection.*
+*This tutorial is part of the [OpenFOAM Tutorials](https://github.com/djeada/OpenFoam-Tutorials/blob/main/README.md) collection.*

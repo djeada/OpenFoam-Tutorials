@@ -2,9 +2,9 @@
 
 > **Lecture 7 — Part 1: Models in OpenFOAM — Viscosity**
 >
-> **Prerequisites:** [Short Intro to CFD](01_short_intro_to_cfd.md),
-> [OpenFOAM Dictionaries](03_openfoam_dictionaries.md),
-> [Turbulence Models](06_turbulence_models.md)
+> **Prerequisites:** [Short Intro to CFD](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/01_short_intro_to_cfd.md),
+> [OpenFOAM Dictionaries](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/03_openfoam_dictionaries.md),
+> [Turbulence Models](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_turbulence_models.md)
 >
 > **Key files:** `constant/transportProperties`
 
@@ -242,7 +242,7 @@ nu              [0 2 -1 0 0 0 0] 1e-06;  // Water at 20°C
 
 > **💡 Tip:** The `[0 2 -1 0 0 0 0]` is OpenFOAM's dimension set:
 > `[kg m s K mol A cd]`. So `[0 2 -1 0 0 0 0]` means m²/s — exactly
-> the units of kinematic viscosity. See [OpenFOAM Dictionaries](03_openfoam_dictionaries.md)
+> the units of kinematic viscosity. See [OpenFOAM Dictionaries](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/03_openfoam_dictionaries.md)
 > for details on dimension sets.
 
 ### 3.2 Power Law
@@ -484,7 +484,7 @@ models) the viscosity field is updated every time step.
       └── fvSolution
 ```
 
-See [OpenFOAM Cases](02_openfoam_cases.md) for the full case directory structure.
+See [OpenFOAM Cases](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/02_openfoam_cases.md) for the full case directory structure.
 
 ### Structure of the Dictionary
 
@@ -666,7 +666,7 @@ where:
 > is the only viscosity that matters.
 
 For detailed coverage of how turbulence models compute $\nu_t$, see
-[Turbulence Models](06_turbulence_models.md).
+[Turbulence Models](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_turbulence_models.md).
 
 ### Turbulent Viscosity Ratio
 
@@ -809,7 +809,7 @@ When combining non-Newtonian models with turbulence:
 
 > **⚠️ Warning:** Most standard wall functions in OpenFOAM are designed
 > for Newtonian fluids. Non-Newtonian turbulent simulations near walls
-> require careful validation. See [Boundary Conditions](05_boundary_conditions.md)
+> require careful validation. See [Boundary Conditions](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/05_boundary_conditions.md)
 > for wall function details.
 
 ---
@@ -930,4 +930,4 @@ If that's not what you intended, check your $\nu$ value.
 
 ---
 
-*Last updated: 2025. Part of the [OpenFOAM-Tutorials](../README.md) repository.*
+*Last updated: 2025. Part of the [OpenFOAM-Tutorials](https://github.com/djeada/OpenFoam-Tutorials/blob/main/README.md) repository.*

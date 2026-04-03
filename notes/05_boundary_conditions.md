@@ -118,7 +118,7 @@ IV. **Restart from a previous solution:** Copy a time directory from a coarser m
 mapFields ../coarse_case -sourceTime latestTime
 ```
 
-V. **Turbulent fields need sensible ICs:** If using RANS turbulence models, initialize `k`, `epsilon` (or `omega`), and `nut` with physically reasonable values — not zero. See [notes/06_turbulence_models.md](06_turbulence_models.md) for how to calculate appropriate initial values.
+V. **Turbulent fields need sensible ICs:** If using RANS turbulence models, initialize `k`, `epsilon` (or `omega`), and `nut` with physically reasonable values — not zero. See [notes/06_turbulence_models.md](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_turbulence_models.md) for how to calculate appropriate initial values.
 
 > **⚠️ Common Pitfall:** Setting `internalField uniform 0` for turbulent kinetic energy `k`
 > will cause most turbulence models to crash at the very first iteration, because the turbulent

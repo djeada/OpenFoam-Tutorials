@@ -1153,6 +1153,6 @@ If you want to switch from $k$-$\varepsilon$ (as used in our NACA project) to $k
 
 ---
 
-*This document is part of the [OpenFOAM Tutorials](../README.md) series.
+*This document is part of the [OpenFOAM Tutorials](https://github.com/djeada/OpenFoam-Tutorials/blob/main/README.md) series.
 See `projects/04_naca_airfoil_analysis/` for a complete working example of
 turbulent flow simulation using the $k$-$\varepsilon$ model with simpleFoam.*
