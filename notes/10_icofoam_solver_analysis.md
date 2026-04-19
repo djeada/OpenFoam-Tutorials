@@ -1,24 +1,16 @@
 # `icoFoam` Solver
 
-`icoFoam` is the simplest transient CFD solver in OpenFOAM. It solves the
-**incompressible Navier-Stokes equations** for **laminar**, **Newtonian** fluids using
-the **PISO** (Pressure-Implicit with Splitting of Operators) algorithm.
+`icoFoam` is the simplest transient CFD solver in OpenFOAM. It solves the **incompressible Navier-Stokes equations** for **laminar**, **Newtonian** fluids using the **PISO** (Pressure-Implicit with Splitting of Operators) algorithm.
 
-```
-┌──────────────────────────────────────────────────────────────────────┐
-│                      icoFoam AT A GLANCE                             │
-├──────────────────────────────────────────────────────────────────────┤
-│  Flow regime  :  Incompressible  (constant density ρ)               │
-│  Viscosity    :  Newtonian       (constant viscosity μ)             │
-│  Turbulence   :  Laminar ONLY    (no turbulence model)              │
-│  Time         :  Transient       (time-dependent)                   │
-│  Algorithm    :  PISO            (pressure-velocity coupling)       │
-│  Typical Re   :  < ~2000         (before turbulence onset)          │
-├──────────────────────────────────────────────────────────────────────┤
-│  Source file  :  applications/solvers/incompressible/icoFoam/       │
-│                  icoFoam.C                                           │
-└──────────────────────────────────────────────────────────────────────┘
-```
+| **Property**     | **Description**                                                  |
+|------------------|------------------------------------------------------------------|
+| Flow regime      | Incompressible (constant density $\rho$)                        |
+| Viscosity        | Newtonian (constant viscosity $\mu$)                            |
+| Turbulence       | Laminar ONLY (no turbulence model)                              |
+| Time             | Transient (time-dependent)                                      |
+| Algorithm        | PISO (pressure–velocity coupling)                               |
+| Typical Re       | $< \sim 2000$ (before turbulence onset)                         |
+| Source file      | `applications/solvers/incompressible/icoFoam/icoFoam.C`         |
 
 **What do these terms mean physically?**
 
@@ -35,9 +27,7 @@ the **PISO** (Pressure-Implicit with Splitting of Operators) algorithm.
 Re < 2000, Stokes flow, lid-driven cavity, creeping flows). For anything more complex,
 see Section 8 (Limitations) and Section 9 (Related Solvers).
 
----
-
-## 2. The Incompressible Navier-Stokes Equations
+## The Incompressible Navier-Stokes Equations
 
 icoFoam solves two coupled equations — the **continuity** (mass conservation) and
 **momentum** equations for an incompressible Newtonian fluid:
