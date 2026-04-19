@@ -1,11 +1,5 @@
 # Turbulence and Turbulence Modeling in OpenFOAM
 
-## A Comprehensive Guide for CFD Practitioners
-
----
-
-## 1. What Is Turbulence?
-
 Turbulence is the chaotic, seemingly random motion of fluid particles. Almost every
 flow in engineering practice is turbulent — from air flowing over a car to water in a
 pipe. Understanding and modeling turbulence is the single most important challenge
@@ -57,16 +51,15 @@ flow becomes fully turbulent:
         Re_x < 5×10⁵              Re_x > 5×10⁵
 ```
 
-Key features of turbulent flow:
+Features of turbulent flow:
+
 - **Irregular**: Velocity fluctuates randomly in time and space
 - **Diffusive**: Greatly enhances mixing of momentum, heat, and mass
 - **3D and rotational**: Always three-dimensional, always has vorticity
 - **Dissipative**: Kinetic energy is continuously converted to heat
 - **Multi-scale**: Contains eddies ranging from the flow domain size down to tiny Kolmogorov scales
 
----
-
-## 2. The Energy Cascade
+## The Energy Cascade
 
 One of the most fundamental concepts in turbulence is the **energy cascade**,
 described by Richardson (1922) and formalized by Kolmogorov (1941).
@@ -1095,63 +1088,49 @@ Always verify these quantities after a turbulence simulation:
 
 If you want to switch from $k$-$\varepsilon$ (as used in our NACA project) to $k$-$\omega$ SST:
 
-```
-  1. constant/turbulenceProperties:
-     - Change RASModel from "kEpsilon" to "kOmegaSST"
+## 🔧 Switching to k-$\omega$ SST (Setup Guide)
 
-  2. Delete:  0/epsilon
-     Create:  0/omega    (dimensions [0 0 -1 0 0 0 0])
+1. **constant/turbulenceProperties**
+   - Change `RASModel` from `"kEpsilon"` to `"kOmegaSST"`
 
-  3. Update wall BCs:
-     - nut:     nutkWallFunction → nutUSpaldingWallFunction (optional, works either way)
-     - k:       kqRWallFunction  → kqRWallFunction (no change needed)
-     - omega:   new file with omegaWallFunction at walls
+2. **Fields**
+   - Delete: `0/epsilon`
+   - Create: `0/omega` with dimensions: $[0\ 0\ -1\ 0\ 0\ 0\ 0]$
 
-  4. system/fvSchemes:
-     - Change div(phi,epsilon) to div(phi,omega)
+3. **Wall Boundary Conditions**
+   - `nut`: `nutkWallFunction` → `nutUSpaldingWallFunction` (optional, works either way)
+   - `k`: `kqRWallFunction` → `kqRWallFunction` (no change needed)
+   - `omega`: create new file with `omegaWallFunction` at walls
 
-  5. system/fvSolution:
-     - Change epsilon solver to omega solver
-     - Update residualControl to use "(k|omega)" instead of "(k|epsilon)"
+4. **system/fvSchemes**
+   - Change $\text{div}(\phi, \epsilon)$ → $\text{div}(\phi, \omega)$
 
-  6. Refine mesh near walls:
-     - k-ω SST works best with y⁺ ≈ 1 (can also use wall functions)
-```
+5. **system/fvSolution**
+   - Replace epsilon solver with omega solver
+   - Update `residualControl`: use `"(k|omega)"` instead of `"(k|epsilon)"`
 
----
+6. **Mesh Refinement Near Walls**
+   - k-$\omega$ SST works best with $y^+ \approx 1$ (can also use wall functions)
+## Cheat Sheet
 
-## 13. Summary
-
-```
-  ╔═══════════════════════════════════════════════════════════════════╗
-  ║                  TURBULENCE MODELING CHEAT SHEET                 ║
-  ╠═══════════════════════════════════════════════════════════════════╣
-  ║                                                                   ║
-  ║  Re < 2000     →  Laminar (no model)                             ║
-  ║  Re > 4000     →  Need turbulence model                          ║
-  ║                                                                   ║
-  ║  DEFAULT CHOICE: k-ω SST  (kOmegaSST)                           ║
-  ║                                                                   ║
-  ║  Attached BL, aerospace  →  Spalart-Allmaras                     ║
-  ║  General industrial      →  k-ε standard                         ║
-  ║  Separation, pressure gr →  k-ω SST  ★                          ║
-  ║  Strong swirl / rotation →  RSM (LRR/SSG)                       ║
-  ║  Transient, high detail  →  LES (WALE or dynamic)               ║
-  ║  Fundamental research    →  DNS (if Re allows)                   ║
-  ║                                                                   ║
-  ║  WALL TREATMENT:                                                  ║
-  ║    Wall functions  →  y⁺ ≈ 30-100  (cheaper mesh)               ║
-  ║    Resolve BL      →  y⁺ ≈ 1      (more accurate)               ║
-  ║    NEVER y⁺ = 5-30 (buffer layer)                                ║
-  ║                                                                   ║
-  ║  INITIAL CONDITIONS:                                              ║
-  ║    k = 1.5·(U·I)²           I = turbulence intensity             ║
-  ║    ε = Cμ^0.75·k^1.5/l      l = turbulence length scale         ║
-  ║                                                                   ║
-  ╚═══════════════════════════════════════════════════════════════════╝
-```
-
----
+| **Category**            | **Guideline / Formula**                                                                 |
+|------------------------|------------------------------------------------------------------------------------------|
+| **Flow Regime**        | $Re < 2000$ → Laminar (no model)                                                        |
+|                        | $Re > 4000$ → Need turbulence model                                                     |
+| **Default Choice**     | k-$\omega$ SST (`kOmegaSST`)                                                            |
+| **Model Selection**    | Attached BL (aerospace) → Spalart–Allmaras                                              |
+|                        | General industrial → k-$\varepsilon$ (standard)                                         |
+|                        | Separation, pressure gradients → **k-$\omega$ SST** ★                                   |
+|                        | Strong swirl / rotation → RSM (LRR/SSG)                                                 |
+|                        | Transient, high detail → LES (WALE or dynamic)                                          |
+|                        | Fundamental research → DNS (if $Re$ allows)                                             |
+| **Wall Treatment**     | Wall functions → $y^+ \approx 30$–$100$ (cheaper mesh)                                  |
+|                        | Resolve BL → $y^+ \approx 1$ (more accurate)                                            |
+|                        | ⚠️ Never use $y^+ = 5$–$30$ (buffer layer)                                               |
+| **Initial Conditions** | $k = 1.5 \cdot (U \cdot I)^2$                                                           |
+|                        | $\varepsilon = C_\mu^{0.75} \cdot \frac{k^{1.5}}{l}$                                    |
+| **Parameters**         | $I$ = turbulence intensity                                                              |
+|                        | $l$ = turbulence length scale                                                           |
 
 *This document is part of the [OpenFOAM Tutorials](https://github.com/djeada/OpenFoam-Tutorials/blob/main/README.md) series.
 See `projects/04_naca_airfoil_analysis/` for a complete working example of
