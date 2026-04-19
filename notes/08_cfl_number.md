@@ -1,29 +1,17 @@
 # The CFL Number: Stability, Time Stepping, and OpenFOAM Practice
 
-## Introduction — What the CFL Number Really Means
-
-The Courant-Friedrichs-Lewy (CFL) number answers one critical question in every
-CFD simulation:
+The Courant-Friedrichs-Lewy (CFL) number answers one critical question in every CFD simulation:
 
 > **"How far does information travel through the grid relative to the cell size
 > during a single time step?"**
 
-Named after Richard Courant, Kurt Friedrichs, and Hans Lewy, who published the
-condition in 1928, the CFL number is a dimensionless ratio that governs whether
-a numerical simulation will produce meaningful results or blow up spectacularly.
+Named after Richard Courant, Kurt Friedrichs, and Hans Lewy, who published the condition in 1928, the CFL number is a dimensionless ratio that governs whether a numerical simulation will produce meaningful results or blow up spectacularly.
 
-Think of it this way: your simulation marches forward in discrete time steps. At
-each step, the solver looks at neighboring cells to compute what happens next. If
-the flow moves information *faster* than the solver can track — skipping over
-cells entirely — the solver is blind to what actually happened. The result?
-Instability, divergence, and garbage output.
-
----
+Think of it this way: your simulation marches forward in discrete time steps. At each step, the solver looks at neighboring cells to compute what happens next. If the flow moves information *faster* than the solver can track — skipping over cells entirely — the solver is blind to what actually happened. The result? Instability, divergence, and garbage output.
 
 ## Physical Intuition — Information Travel on a Grid
 
-The CFL number connects three quantities: the flow velocity, the time step, and
-the grid spacing. Here is what that looks like on a 1D grid:
+The CFL number connects three quantities: the flow velocity, the time step, and the grid spacing. Here is what that looks like on a 1D grid:
 
 ```
                         u = velocity
@@ -60,8 +48,6 @@ the grid spacing. Here is what that looks like on a 1D grid:
 > reconstruct its path. $CFL < 1$ means your "frame rate" is fast enough to
 > capture the physics.
 
----
-
 ## The CFL Condition — Derived
 
 ### One-Dimensional Formula
@@ -77,14 +63,14 @@ Stability requires: $CFL \leq CFL_{max}$
 For most explicit schemes: $CFL_{max} = 1$
 
 Where:
+
 - $u$ — the local flow velocity (m/s)
 - $\Delta t$ — the simulation time step (s)
 - $\Delta x$ — the grid cell size (m)
 
 ### Two-Dimensional Extension
 
-In 2D, information can travel in both the x and y directions simultaneously.
-The CFL condition becomes:
+In 2D, information can travel in both the x and y directions simultaneously. The CFL condition becomes:
 
 $$
 CFL = \frac{u \cdot \Delta t}{\Delta x} + \frac{v \cdot \Delta t}{\Delta y} \leq CFL_{max}
@@ -101,25 +87,21 @@ $$
 CFL = \frac{u \cdot \Delta t}{\Delta x} + \frac{v \cdot \Delta t}{\Delta y} + \frac{w \cdot \Delta t}{\Delta z} \leq CFL_{max}
 $$
 
-In OpenFOAM's finite volume framework, this is computed per-cell using the
-face fluxes and cell volumes, which naturally handles non-uniform and
-unstructured meshes:
+In OpenFOAM's finite volume framework, this is computed per-cell using the face fluxes and cell volumes, which naturally handles non-uniform and unstructured meshes:
 
 $$
 Co_{cell} = \frac{\sum_f |\phi_f|}{2 \cdot V_{cell}} \cdot \Delta t
 $$
 
 Where:
+
 - $\phi_f$ = face flux (volumetric flow rate through face f)
 - $V_{cell}$ = cell volume
 - $\sum_f$ = sum over all faces of the cell
 
 ### Connection to Von Neumann Stability Analysis
 
-The CFL condition can be derived rigorously via von Neumann stability analysis.
-The idea: decompose the numerical error into Fourier modes and check whether
-each mode grows or decays over time. For the first-order upwind scheme applied
-to the linear advection equation:
+The CFL condition can be derived rigorously via von Neumann stability analysis. The idea: decompose the numerical error into Fourier modes and check whether each mode grows or decays over time. For the first-order upwind scheme applied to the linear advection equation:
 
 Amplification factor: $|g| = |1 - CFL \cdot (1 - e^{-ik\Delta x})|$
 
@@ -127,10 +109,7 @@ For stability: $|g| \leq 1$ for all wavenumbers $k$
 
 This yields: $0 \leq CFL \leq 1$
 
-The key takeaway: the CFL limit is not a rule of thumb — it is a **mathematical
-requirement** for stability of explicit time integration.
-
----
+The CFL limit is not a rule of thumb — it is a **mathematical requirement** for stability of explicit time integration.
 
 ## Visual: What Happens When CFL > 1
 
@@ -172,13 +151,9 @@ requirement** for stability of explicit time integration.
 > schemes. The simulation may run for a while before oscillations grow large
 > enough to crash it. Always monitor your Courant number!
 
----
-
 ## Explicit vs Implicit Time Integration Schemes
 
-This is one of the most important practical distinctions in CFD. The CFL
-condition applies *strictly* only to explicit schemes, but understanding why
-helps you choose the right approach.
+This is one of the most important practical distinctions in CFD. The CFL condition applies *strictly* only to explicit schemes, but understanding why helps you choose the right approach.
 
 ### How the Schemes Differ
 
@@ -218,11 +193,7 @@ helps you choose the right approach.
 
 ### Why Implicit Schemes Tolerate Higher CFL
 
-Implicit schemes include unknown future values in the discretization. This means
-the solution at $t + \Delta t$ depends on *all* cells simultaneously (through the matrix
-system), not just immediate neighbors. The domain of dependence of the numerical
-scheme is effectively the entire domain — it always contains the physical domain
-of dependence, regardless of CFL.
+Implicit schemes include unknown future values in the discretization. This means the solution at $t + \Delta t$ depends on *all* cells simultaneously (through the matrix system), not just immediate neighbors. The domain of dependence of the numerical scheme is effectively the entire domain — it always contains the physical domain of dependence, regardless of CFL.
 
 > **Trade-off**: Implicit schemes let you take bigger time steps, but each step
 > costs more (you must assemble and solve a large sparse linear system). The
@@ -230,9 +201,7 @@ of dependence, regardless of CFL.
 
 ### The PIMPLE Algorithm — Best of Both Worlds?
 
-OpenFOAM's `pimpleFoam` uses the PIMPLE algorithm (PISO + SIMPLE), which
-performs outer correction loops within each time step. This allows it to run
-at $CFL > 1$ while maintaining reasonable accuracy:
+OpenFOAM's `pimpleFoam` uses the PIMPLE algorithm (PISO + SIMPLE), which performs outer correction loops within each time step. This allows it to run at $CFL > 1$ while maintaining reasonable accuracy:
 
 ```
     Standard PISO (CFL ≤ 1):              PIMPLE (CFL can exceed 1):
@@ -254,8 +223,7 @@ at $CFL > 1$ while maintaining reasonable accuracy:
 
 ### How OpenFOAM Reports the Courant Number
 
-Every transient OpenFOAM solver computes and prints the Courant number at each
-time step. A typical log output looks like:
+Every transient OpenFOAM solver computes and prints the Courant number at each time step. A typical log output looks like:
 
 ```
     Time = 0.005
@@ -267,6 +235,7 @@ time step. A typical log output looks like:
 ```
 
 What these mean:
+
 - **mean**: The volume-weighted average CFL across all cells
 - **max**: The highest CFL in any single cell (this is the critical one!)
 
@@ -275,8 +244,7 @@ What these mean:
 
 ### The CourantNo.H Include
 
-Inside OpenFOAM's transient solvers, the Courant number calculation is handled
-by an included header file `CourantNo.H`. The logic is essentially:
+Inside OpenFOAM's transient solvers, the Courant number calculation is handled by an included header file `CourantNo.H`. The logic is essentially:
 
 ```cpp
 // Simplified from OpenFOAM's CourantNo.H
@@ -295,8 +263,7 @@ Info<< "Courant Number mean: " << meanCoNum
     << " max: " << CoNum << endl;
 ```
 
-This computes per-cell Courant numbers using face fluxes ($\phi$) and cell volumes
-($V$), then reports the global maximum and mean.
+This computes per-cell Courant numbers using face fluxes ($\phi$) and cell volumes ($V$), then reports the global maximum and mean.
 
 ### Real Code: Lid-Driven Cavity (Transient, Fixed $\Delta t$)
 
@@ -342,12 +309,12 @@ timePrecision   6;
 runTimeModifiable true;
 ```
 
-Key observations for CFL:
+Observations for CFL:
+
 - **`application icoFoam`** — transient, laminar, incompressible (explicit-like PISO)
 - **`deltaT 0.001`** — fixed time step of 1 ms
 - **No `adjustTimeStep`** — the user pre-calculated $\Delta t$ to keep CFL safe
-- For a 1 m/s lid velocity and typical cavity mesh (~0.01 m cells):
-  $CFL \approx 1.0 \times 0.001 / 0.01 = 0.1$ ✓
+- For a 1 m/s lid velocity and typical cavity mesh (~0.01 m cells): $CFL \approx 1.0 \times 0.001 / 0.01 = 0.1$ ✓
 
 ### Real Code: NACA Airfoil (Steady-State, No CFL Concern)
 
@@ -385,26 +352,22 @@ timePrecision   6;
 runTimeModifiable true;
 ```
 
-Key observations:
+Observations:
+
 - **`application simpleFoam`** — steady-state RANS solver (SIMPLE algorithm)
 - **`endTime 1000`** — these are *iteration* counts, not physical time
 - **`deltaT 0.1`** — acts as under-relaxation pseudo-time step
 - **No CFL concern** — SIMPLE iterates toward steady state; there is no physical
   time marching so the Courant number has no stability meaning here
 
-> **Key Insight**: Steady-state solvers like simpleFoam do not have a CFL
+> **Insight**: Steady-state solvers like simpleFoam do not have a CFL
 > stability constraint. The `deltaT` in simpleFoam controls iteration stepping,
 > not physical time advancement. Stability is governed by under-relaxation
 > factors in `fvSolution` instead.
 
----
-
 ## Automatic Time Step Adjustment
 
-For transient cases where flow conditions change significantly (startup,
-vortex shedding, sudden inflows), a fixed time step is often either too
-conservative (slow) or too aggressive (unstable). OpenFOAM can adjust $\Delta t$
-automatically.
+For transient cases where flow conditions change significantly (startup, vortex shedding, sudden inflows), a fixed time step is often either too conservative (slow) or too aggressive (unstable). OpenFOAM can adjust $\Delta t$ automatically.
 
 ### Configuration
 
@@ -416,8 +379,7 @@ maxCo           0.5;       // Target maximum Courant number
 maxDeltaT       0.01;      // Upper bound on time step (seconds)
 ```
 
-OpenFOAM will compute the Courant number at each step and scale $\Delta t$ so that
-the maximum Courant number stays at or below `maxCo`.
+OpenFOAM will compute the Courant number at each step and scale $\Delta t$ so that the maximum Courant number stays at or below `maxCo`.
 
 ### How It Works — Adaptive $\Delta t$ Over Time
 
@@ -459,12 +421,9 @@ the maximum Courant number stays at or below `maxCo`.
 > (not `timeStep`) so that output is written at regular physical time intervals
 > rather than at every variable-sized step.
 
----
-
 ## CFL Guidelines for Different OpenFOAM Solvers
 
-Not all solvers have the same CFL requirements. The algorithm used determines
-how strictly the CFL condition must be enforced:
+Not all solvers have the same CFL requirements. The algorithm used determines how strictly the CFL condition must be enforced:
 
 | Solver        | Algorithm | Type                 | Typical CFL | Notes                                       |
 |---------------|-----------|----------------------|-------------|---------------------------------------------|
@@ -491,13 +450,9 @@ how strictly the CFL condition must be enforced:
                     rhoPimpleFoam
 ```
 
----
-
 ## Acoustic CFL — Compressible Flows
 
-For incompressible flows, the CFL condition involves only the flow velocity $u$.
-But for compressible flows, pressure waves (sound) travel at the speed of sound
-$c$, which is often *much faster* than the flow itself.
+For incompressible flows, the CFL condition involves only the flow velocity $u$. But for compressible flows, pressure waves (sound) travel at the speed of sound $c$, which is often *much faster* than the flow itself.
 
 ### The Acoustic CFL Condition
 
@@ -506,6 +461,7 @@ CFL_{acoustic} = \frac{(|u| + c) \cdot \Delta t}{\Delta x}
 $$
 
 Where:
+
 - $u$ = flow velocity
 - $c$ = speed of sound (343 m/s in air at 20°C!)
 - $\Delta t$ = time step
@@ -533,14 +489,9 @@ Where:
 > compressible solver (sonicFoam) on a similar mesh, expect to need a time step
 > that is **orders of magnitude smaller**. Plan your compute budget accordingly.
 
----
-
 ## Interface CFL for Multiphase Flows
 
-Multiphase solvers like `interFoam` track the interface between fluids (e.g.,
-water and air) using the Volume of Fluid (VOF) method. The interface is
-represented by the volume fraction field $\alpha$ (alpha), and it requires its own
-CFL condition.
+Multiphase solvers like `interFoam` track the interface between fluids (e.g., water and air) using the Volume of Fluid (VOF) method. The interface is represented by the volume fraction field $\alpha$ (alpha), and it requires its own CFL condition.
 
 ### Why a Separate Interface CFL?
 
@@ -586,8 +537,6 @@ The solver takes the *more restrictive* of the two:
 > `maxAlphaCo` at 0.2–0.4. A sharp interface is critical for accurate results.
 > The extra cost of smaller time steps is usually worth it.
 
----
-
 ## Practical Guidelines Summary
 
 Here are recommended CFL values for common simulation scenarios:
@@ -608,8 +557,6 @@ Here are recommended CFL values for common simulation scenarios:
 > **Rule of Thumb**: When in doubt, start with CFL = 0.5 and `adjustTimeStep
 > yes`. Monitor the simulation for a few hundred steps. If it's stable and the
 > Courant number is well below your limit, you can cautiously increase maxCo.
-
----
 
 ## Troubleshooting CFL-Related Problems
 
@@ -644,7 +591,7 @@ that are 1000× smaller than necessary:
     ┌──────────────────────────────────────────────────────┐
     │  • Increase deltaT (if using fixed time step)        │
     │  • Enable adjustTimeStep with appropriate maxCo      │
-    │  • Check if your mesh has a few extremely small       │
+    │  • Check if your mesh has a few extremely small      │
     │    cells that force tiny Δt for the whole domain     │
     │    → Coarsen those cells or use local time stepping  │
     └──────────────────────────────────────────────────────┘
@@ -657,7 +604,7 @@ This usually means highly non-uniform mesh or large velocity gradients:
 ```
     ┌─────────────────────────────────────────────────┐
     │                                                 │
-    │  Near wall (tiny cells):    CFL = 8.5  ← !!    │
+    │  Near wall (tiny cells):    CFL = 8.5  ← !!     │
     │  In freestream (big cells): CFL = 0.01          │
     │                                                 │
     │  The solver reports max CFL = 8.5               │
@@ -666,7 +613,7 @@ This usually means highly non-uniform mesh or large velocity gradients:
     │  Fix: Use adjustTimeStep (lets Δt adapt)        │
     │       or switch to pimpleFoam (tolerates high   │
     │       CFL with outer corrections)               │
-    │       or improve mesh grading (smoother          │
+    │       or improve mesh grading (smoother         │
     │       cell size transitions)                    │
     └─────────────────────────────────────────────────┘
 ```
@@ -674,8 +621,6 @@ This usually means highly non-uniform mesh or large velocity gradients:
 > **Tip**: Use `foamMonitor` or plot the Courant number field in ParaView
 > (`Co` field if written) to visualize *where* CFL is highest. This often
 > reveals mesh problems you did not expect.
-
----
 
 ## Calculating CFL Before Running — Estimate Your Time Step
 
@@ -688,6 +633,7 @@ $$
 $$
 
 Where:
+
 - $CFL_{target}$ = your desired maximum CFL (e.g., 0.5)
 - $\Delta x_{min}$ = your smallest cell size (check with checkMesh)
 - $u_{max}$ = expected maximum velocity in the domain
@@ -700,28 +646,28 @@ Where:
     │  Step 1: Find smallest cell size                            │
     │  ─────────────────────────────                              │
     │  Run:  checkMesh | grep "Min volume"                        │
-    │  Δx_min ≈ (Min volume)^(1/3)    for hex cells              │
+    │  Δx_min ≈ (Min volume)^(1/3)    for hex cells               │
     │                                                             │
     │  Example: Min volume = 1e-9 m³                              │
-    │           Δx_min ≈ (1e-9)^(1/3) = 0.001 m = 1 mm          │
+    │           Δx_min ≈ (1e-9)^(1/3) = 0.001 m = 1 mm            │
     │                                                             │
     │  Step 2: Estimate maximum velocity                          │
     │  ────────────────────────────────                           │
     │  From boundary conditions, inlet velocity, or               │
     │  analytical estimates.                                      │
     │                                                             │
-    │  Example: Lid-driven cavity with U_lid = 1 m/s             │
-    │           u_max ≈ 1 m/s (may be slightly higher locally)   │
+    │  Example: Lid-driven cavity with U_lid = 1 m/s              │
+    │           u_max ≈ 1 m/s (may be slightly higher locally)    │
     │                                                             │
     │  Step 3: Compute Δt                                         │
     │  ──────────────────                                         │
-    │  Δt = CFL_target × Δx_min / u_max                          │
-    │  Δt = 0.5 × 0.001 / 1.0                                    │
+    │  Δt = CFL_target × Δx_min / u_max                           │
+    │  Δt = 0.5 × 0.001 / 1.0                                     │
     │  Δt = 0.0005 s                                              │
     │                                                             │
     │  Step 4: Round down for safety                              │
     │  ────────────────────────────                               │
-    │  Use Δt = 0.0005 s or Δt = 0.001 s with CFL monitoring     │
+    │  Use Δt = 0.0005 s or Δt = 0.001 s with CFL monitoring      │
     │                                                             │
     └─────────────────────────────────────────────────────────────┘
 ```
@@ -740,34 +686,4 @@ Where:
     At endTime = 1 s, that is 40,000 time steps.
     Consider: Is this feasible? If not, coarsen the mesh
     or use pimpleFoam with higher CFL tolerance.
-```
-
----
-
-## Key Takeaways
-
-```
-    ╔══════════════════════════════════════════════════════════════╗
-    ║                    CFL NUMBER CHEAT SHEET                   ║
-    ╠══════════════════════════════════════════════════════════════╣
-    ║                                                              ║
-    ║  CFL = u·Δt/Δx     Keep ≤ 1 for explicit solvers            ║
-    ║                                                              ║
-    ║  ALWAYS check max Courant number, not just the mean          ║
-    ║                                                              ║
-    ║  Use adjustTimeStep for complex transient flows              ║
-    ║                                                              ║
-    ║  Steady-state solvers (SIMPLE) have NO CFL constraint        ║
-    ║                                                              ║
-    ║  PIMPLE can exceed CFL = 1 thanks to outer corrections       ║
-    ║                                                              ║
-    ║  Compressible flows: CFL uses (u + c), not just u            ║
-    ║                                                              ║
-    ║  Multiphase flows: check BOTH maxCo AND maxAlphaCo           ║
-    ║                                                              ║
-    ║  Estimate Δt BEFORE running: Δt = CFL × Δx_min / u_max      ║
-    ║                                                              ║
-    ║  When in doubt: CFL = 0.5, adjustTimeStep yes                ║
-    ║                                                              ║
-    ╚══════════════════════════════════════════════════════════════╝
 ```
