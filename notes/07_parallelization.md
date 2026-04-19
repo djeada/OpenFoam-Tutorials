@@ -2,61 +2,47 @@
 
 ## Introduction: Why Parallelize?
 
-Computational fluid dynamics simulations can require enormous amounts of processing time. A mesh
-with millions of cells solving transient turbulent flow may take days or even weeks on a single
-processor core. **Parallelization** splits the work across multiple processor cores, dramatically
-reducing wall-clock time.
+Computational fluid dynamics simulations can require enormous amounts of processing time. A mesh with millions of cells solving transient turbulent flow may take days or even weeks on a single processor core. **Parallelization** splits the work across multiple processor cores, dramatically reducing wall-clock time.
 
-OpenFOAM uses **MPI (Message Passing Interface)** for parallel communication. Each processor
-works on its own portion of the mesh and exchanges data with neighboring processors at shared
-boundaries. This is the **domain decomposition** approach — the single most important concept
-in OpenFOAM parallelization.
+OpenFOAM uses **MPI (Message Passing Interface)** for parallel communication. Each processor works on its own portion of the mesh and exchanges data with neighboring processors at shared boundaries. This is the **domain decomposition** approach — the single most important concept in OpenFOAM parallelization.
 
 ### Amdahl's Law — The Fundamental Limit
 
-Not all parts of a simulation can be parallelized. Amdahl's law states that the maximum speedup
-is limited by the serial (non-parallelizable) fraction of the code:
+Not all parts of a simulation can be parallelized. Amdahl's law states that the maximum speedup is limited by the serial (non-parallelizable) fraction of the code:
 
-```
-                    1
-  Speedup = ─────────────────
-             (1 - P) + P / N
+$$
+\text{Speedup} = \frac{1}{(1 - P) + \frac{P}{N}}
+$$
 
-  Where:
-    P = fraction of code that is parallelizable
-    N = number of processors
-```
+Where:
 
-Even with infinite processors, if 5% of your code is serial, maximum speedup is only 20×. This
-is why efficient decomposition and minimizing communication overhead are critical.
+- $P$ = fraction of code that is parallelizable  
+- $N$ = number of processors
 
----
+Even with infinite processors, if 5% of your code is serial, maximum speedup is only 20×. This is why efficient decomposition and minimizing communication overhead are critical.
 
 ## Domain Decomposition Concept
 
-Domain decomposition divides the computational mesh into **N subdomains**, one per processor.
-Each processor solves the governing equations only on its subdomain, then communicates boundary
-data with its neighbors.
+Domain decomposition divides the computational mesh into **N subdomains**, one per processor. Each processor solves the governing equations only on its subdomain, then communicates boundary data with its neighbors.
 
 ```
   Original Domain (1 processor)              Decomposed Domain (4 processors)
   ┌─────────────────────────────┐            ┌──────────────┬──────────────┐
   │                             │            │              │              │
-  │                             │            │   Proc 0     │   Proc 1    │
-  │                             │            │  (cells:     │  (cells:    │
-  │       Full Mesh             │   ──────→  │   0..2499)   │   2500..4999│
+  │                             │            │   Proc 0     │   Proc 1     │
+  │                             │            │  (cells:     │  (cells:     │
+  │       Full Mesh             │   ──────→  │   0..2499)   │   2500..4999 │
   │       10,000 cells          │            ├──────────────┼──────────────┤
   │                             │            │              │              │
-  │                             │            │   Proc 2     │   Proc 3    │
-  │                             │            │  (cells:     │  (cells:    │
-  │                             │            │   5000..7499) │  7500..9999│
+  │                             │            │   Proc 2     │   Proc 3     │
+  │                             │            │  (cells:     │  (cells:     │
+  │                             │            │  5000..7499) │  7500..9999  │
   └─────────────────────────────┘            └──────────────┴──────────────┘
 ```
 
 ### How Data Is Split
 
-When `decomposePar` runs, it creates **N directories** (`processor0/`, `processor1/`, ...) each
-containing a complete OpenFOAM case with:
+When `decomposePar` runs, it creates **N directories** (`processor0/`, `processor1/`, ...) each containing a complete OpenFOAM case with:
 
 - Its portion of the mesh (in `constant/polyMesh/`)
 - Its portion of the field data (in `0/` and subsequent time directories)
@@ -64,43 +50,34 @@ containing a complete OpenFOAM case with:
 
 ### Processor Boundaries — Ghost Cells and Halo Exchange
 
-At the interfaces between subdomains, OpenFOAM creates special **processor patches**. These
-patches have **ghost cells** (also called halo cells) that store copies of values from the
-neighboring processor's cells. Before each solver iteration, processors exchange these values
-via MPI.
+At the interfaces between subdomains, OpenFOAM creates special **processor patches**. These patches have **ghost cells** (also called halo cells) that store copies of values from the neighboring processor's cells. Before each solver iteration, processors exchange these values via MPI.
 
 ```
          Processor 0                    Processor 1
   ┌────────────────────────┐     ┌────────────────────────┐
   │                        │     │                        │
-  │  ┌────┬────┬────┬─ ─ ─│─ ─ ─│─ ─ ┬────┬────┬────┐   │
+  │  ┌────┬────┬────┬─ ─ ─ │─ ─ ─│─ ─  ┬────┬────┬────┐   │
   │  │    │    │    │ghost │     │ghost│    │    │    │   │
-  │  │ c1 │ c2 │ c3 │cell │◄───►│cell │ c4 │ c5 │ c6 │   │
+  │  │ c1 │ c2 │ c3 │cell  │◄───►│cell │ c4 │ c5 │ c6 │   │
   │  │    │    │    │(c4') │     │(c3')│    │    │    │   │
-  │  └────┴────┴────┴─ ─ ─│─ ─ ─│─ ─ ┴────┴────┴────┘   │
+  │  └────┴────┴────┴─ ─ ─ │─ ─ ─│─ ─  ┴────┴────┴────┘   │
   │                        │     │                        │
   └────────────────────────┘     └────────────────────────┘
               ▲          MPI Exchange           ▲
               │    (boundary values synced      │
               │     every iteration)            │
-              └────────────────────────────────┘
+              └─────────────────────────────────┘
 ```
 
-The ghost cells ensure that gradient calculations and flux computations at processor boundaries
-remain accurate, as if the mesh were still a single domain.
-
----
+The ghost cells ensure that gradient calculations and flux computations at processor boundaries remain accurate, as if the mesh were still a single domain.
 
 ## Decomposition Methods
 
-OpenFOAM supports several decomposition methods, each with different trade-offs. The method is
-specified in the `system/decomposeParDict` file.
+OpenFOAM supports several decomposition methods, each with different trade-offs. The method is specified in the `system/decomposeParDict` file.
 
 ### Simple — Geometric Slicing Along Axes
 
-The **simple** method divides the domain by splitting it geometrically along the x, y, and z
-axes according to specified counts. It is fast but produces poor load balancing for non-uniform
-meshes.
+The **simple** method divides the domain by splitting it geometrically along the x, y, and z axes according to specified counts. It is fast but produces poor load balancing for non-uniform meshes.
 
 ```
   Simple decomposition: n = (4, 1, 1) — split into 4 along X-axis
@@ -127,9 +104,7 @@ meshes.
 
 ### Hierarchical — Multi-Level Splitting
 
-The **hierarchical** method is similar to simple but applies the splits in a specified order
-(e.g., first along X, then Y, then Z). This gives slightly more control over the decomposition
-shape and is useful when the domain has a preferred direction.
+The **hierarchical** method is similar to simple but applies the splits in a specified order (e.g., first along X, then Y, then Z). This gives slightly more control over the decomposition shape and is useful when the domain has a preferred direction.
 
 ```
   Hierarchical decomposition: n = (2, 2, 1), order = xyz
@@ -144,10 +119,7 @@ shape and is useful when the domain has a preferred direction.
 
 ### Scotch — Graph-Based Optimal Partitioning (Recommended)
 
-The **scotch** method uses the PT-Scotch graph partitioning library to minimize the number of
-inter-processor cell faces (communication volume) while keeping the cell count balanced across
-processors. It works well for complex geometries and non-uniform meshes, and is generally the
-**recommended method** for production runs.
+The **scotch** method uses the PT-Scotch graph partitioning library to minimize the number of inter-processor cell faces (communication volume) while keeping the cell count balanced across processors. It works well for complex geometries and non-uniform meshes, and is generally the **recommended method** for production runs.
 
 ```
   Scotch decomposition of an irregular mesh:
@@ -172,9 +144,7 @@ processors. It works well for complex geometries and non-uniform meshes, and is 
 
 ### Metis — Similar to Scotch
 
-The **metis** method uses the METIS graph partitioning library. It produces similar results to
-scotch and can sometimes be faster or produce slightly different partitions. Requires METIS to
-be installed.
+The **metis** method uses the METIS graph partitioning library. It produces similar results to scotch and can sometimes be faster or produce slightly different partitions. Requires METIS to be installed.
 
 ### Comparison Table
 
@@ -185,12 +155,9 @@ be installed.
 | scotch       | High              | Moderate  | Excellent      | **Production runs**, complex geometries    |
 | metis        | High              | Moderate  | Excellent      | Alternative to scotch, large-scale runs    |
 
----
-
 ## The `decomposeParDict` — Deep Dive
 
-The `system/decomposeParDict` controls how `decomposePar` splits the mesh. Below is a complete,
-annotated example.
+The `system/decomposeParDict` controls how `decomposePar` splits the mesh. Below is a complete, annotated example.
 
 ### Complete Example: Scotch Method (Recommended)
 
@@ -286,8 +253,6 @@ hierarchicalCoeffs
 | `distributed`        | No       | `yes` if case data is distributed across network nodes           |
 | `roots`              | No       | Root paths for distributed data on each node                     |
 
----
-
 ## The Complete Parallel Workflow
 
 The parallel workflow in OpenFOAM follows a strict sequence of steps:
@@ -310,9 +275,7 @@ The parallel workflow in OpenFOAM follows a strict sequence of steps:
 
 ### Step 1: Mesh Generation
 
-Generate the mesh as usual with `blockMesh`, `snappyHexMesh`, or by importing from external
-tools (e.g., `fluentMeshToFoam` as used in the elbow tutorial). The mesh exists as a single
-domain at this point.
+Generate the mesh as usual with `blockMesh`, `snappyHexMesh`, or by importing from external tools (e.g., `fluentMeshToFoam` as used in the elbow tutorial). The mesh exists as a single domain at this point.
 
 ### Step 2: Domain Decomposition
 
@@ -354,8 +317,7 @@ This creates the processor directories:
 mpirun -np 4 icoFoam -parallel
 ```
 
-Each processor writes its own time directories inside its `processorN/` folder. During the run,
-all processors communicate via MPI to exchange boundary data at processor interfaces.
+Each processor writes its own time directories inside its `processorN/` folder. During the run, all processors communicate via MPI to exchange boundary data at processor interfaces.
 
 ### Step 4: Reconstruct Results
 
@@ -363,10 +325,7 @@ all processors communicate via MPI to exchange boundary data at processor interf
 reconstructPar
 ```
 
-This merges the field data from all `processorN/` directories back into the top-level case
-directory, producing unified time directories for post-processing.
-
----
+This merges the field data from all `processorN/` directories back into the top-level case directory, producing unified time directories for post-processing.
 
 ## Running in Parallel — Detailed Guide
 
@@ -407,13 +366,11 @@ Then run:
 mpirun -np 24 --hostfile hostfile simpleFoam -parallel
 ```
 
-Ensure the case directory is accessible on all nodes (shared filesystem like NFS or Lustre),
-and set `distributed no;` in `decomposeParDict` when using a shared filesystem.
+Ensure the case directory is accessible on all nodes (shared filesystem like NFS or Lustre), and set `distributed no;` in `decomposeParDict` when using a shared filesystem.
 
 ### Example: Parallel Allrun Script
 
-Based on the elbow tutorial's `allrun` script structure, here is how you would adapt a case
-for parallel execution:
+Based on the elbow tutorial's `allrun` script structure, here is how you would adapt a case for parallel execution:
 
 ```bash
 #!/bin/sh
@@ -440,8 +397,7 @@ runApplication reconstructPar
 #------------------------------------------------------------------------------
 ```
 
-The key difference from a serial script is the addition of `decomposePar`, the use of
-`runParallel` instead of `runApplication` for the solver, and `reconstructPar` at the end.
+The key difference from a serial script is the addition of `decomposePar`, the use of `runParallel` instead of `runApplication` for the solver, and `reconstructPar` at the end.
 
 ### Monitoring Parallel Runs
 
@@ -457,8 +413,6 @@ grep "Solving for Ux" log.icoFoam | tail -5
 # Monitor system resources
 htop    # or top — check CPU usage across cores
 ```
-
----
 
 ## Reconstruction — Options and Strategies
 
@@ -487,17 +441,25 @@ reconstructPar -latestTime
 
 For very large cases, reconstruction can take significant time and disk space. Alternatives:
 
-- **`paraFoam -builtin`** — ParaView can read decomposed data directly without reconstruction.
-  Launch with:
-  ```bash
-  paraFoam -builtin -case .
-  ```
-  Then select the `processor0/..processorN/` directories as a decomposed case.
+**`paraFoam -builtin`**
 
-- **Post-process in parallel** — Many OpenFOAM post-processing utilities support `-parallel`:
-  ```bash
-  mpirun -np 4 postProcess -func wallShearStress -parallel
-  ```
+ParaView can read decomposed data directly without reconstruction.
+
+Launch with:
+
+```bash
+paraFoam -builtin -case .
+```
+
+Then select the `processor0/..processorN/` directories as a decomposed case.
+
+**Post-process in parallel**
+
+Many OpenFOAM post-processing utilities support `-parallel`:
+
+```bash
+mpirun -np 4 postProcess -func wallShearStress -parallel
+```
 
 ### Reconstruction Reference
 
@@ -509,8 +471,6 @@ For very large cases, reconstruction can take significant time and disk space. A
 | `reconstructPar -latestTime`         | Reconstruct the latest time step only    |
 | `reconstructPar -newTimes`           | Reconstruct only times not yet done      |
 | `reconstructPar -fields '(U p)'`    | Reconstruct only velocity and pressure   |
-
----
 
 ## Performance Optimization
 
@@ -527,27 +487,29 @@ The ideal processor count depends on the mesh size. A common rule of thumb:
    50,000,000 cell mesh  →  250 to 1000 processors
 ```
 
-Going below 50k cells/processor usually degrades performance because communication overhead
-dominates. Going above 200k cells/processor leaves performance on the table.
+Going below 50k cells/processor usually degrades performance because communication overhead dominates. Going above 200k cells/processor leaves performance on the table.
 
 ### Speedup and Scaling
 
-```
+```text
   Speedup
-  │
-  │         ╱ Ideal (linear speedup: S = N)
-  │        ╱
-  │       ╱
-  │      ╱    ╱── Actual (good decomposition)
-  │     ╱   ╱
-  │    ╱  ╱
-  │   ╱ ╱     ╱── Actual (poor decomposition / too few cells)
-  │  ╱╱     ╱
-  │ ╱╱    ╱
-  │╱╱───╱─────────── Diminishing returns
-  │╱──╱
-  └──────────────────────────── Number of Processors
-  1   2   4   8  16  32  64
+    │
+    │                                   ╱  Ideal (linear speedup: S = N)
+    │                                 ╱
+    │                               ╱
+    │                             ╱
+    │                           ╱
+    │                        ──╯      Actual (good decomposition)
+    │                     ──╯
+    │                  ──╯
+    │               ──╯
+    │            ──╯              Actual (poor decomposition / too few cells)
+    │         ──╯        ─────────╯
+    │      ──╯    ───────╯
+    │   ──╯  ─────╯
+    │──╯──────────────────────────────────── Diminishing returns
+    └─────────────────────────────────────── Number of Processors
+      1   2   4   8   16   32   64
 ```
 
 In practice, you rarely achieve linear speedup. The gap between ideal and actual comes from:
@@ -559,12 +521,9 @@ In practice, you rarely achieve linear speedup. The gap between ideal and actual
 
 ### Amdahl's Law vs Gustafson's Law
 
-**Amdahl's law** says: for a fixed problem size, speedup is limited by the serial fraction.
-If 10% of the work is serial, max speedup is 10× no matter how many processors you add.
+**Amdahl's law** says: for a fixed problem size, speedup is limited by the serial fraction. If 10% of the work is serial, max speedup is 10× no matter how many  processors you add.
 
-**Gustafson's law** says: as you add processors, you can increase the problem size proportionally,
-and the serial fraction becomes negligible. This is the more practical view for CFD — you
-typically run bigger meshes when you have more processors available.
+**Gustafson's law** says: as you add processors, you can increase the problem size proportionally, and the serial fraction becomes negligible. This is the more practical view for CFD — you typically run bigger meshes when you have more processors available.
 
 ### Load Balancing Considerations
 
@@ -584,9 +543,7 @@ Use `scotch` or `metis` for best load balancing on non-uniform meshes.
 
 ### Network vs Computation
 
-For **shared-memory** systems (single workstation, multi-core), communication is fast through
-shared memory. For **distributed-memory** clusters (multiple nodes connected by a network),
-communication speed is limited by network bandwidth and latency.
+For **shared-memory** systems (single workstation, multi-core), communication is fast through shared memory. For **distributed-memory** clusters (multiple nodes connected by a network), communication speed is limited by network bandwidth and latency.
 
 | System Type              | Communication | Ideal For                                |
 |--------------------------|---------------|------------------------------------------|
@@ -594,36 +551,31 @@ communication speed is limited by network bandwidth and latency.
 | Cluster (Ethernet)       | ~1 Gbps       | Medium cases, limited scaling            |
 | Cluster (InfiniBand)     | ~100 Gbps     | Large-scale production, good scaling     |
 
----
-
 ## Practical Tips
 
 ### When NOT to Parallelize
 
-- **Small meshes** (< 50,000 cells): Overhead from decomposition, communication, and
-  reconstruction often exceeds the time saved. Run serial instead.
-- **Very short runs**: If your simulation finishes in seconds, the startup and teardown
-  time of MPI will dominate.
-- **Debugging**: Always debug your case setup on a serial run first. Parallel error messages
-  are harder to read and often less informative.
+- **Small meshes** (< 50,000 cells): Overhead from decomposition, communication, and reconstruction often exceeds the time saved. Run serial instead.
+- **Very short runs**: If your simulation finishes in seconds, the startup and teardown time of MPI will dominate.
+- **Debugging**: Always debug your case setup on a serial run first. Parallel error messages are harder to read and often less informative.
 
 ### Debugging Parallel Runs
 
 If a parallel run crashes:
 
-1. **Check all processor logs** — the error may only appear in one processor's output:
-   ```bash
-   grep -r "FOAM FATAL" processor*/
-   grep -i "error" log.simpleFoam
-   ```
+I. **Check all processor logs** — the error may only appear in one processor's output:
 
-2. **Run on 1 processor in parallel mode** to isolate MPI issues from solver issues:
-   ```bash
-   mpirun -np 1 icoFoam -parallel
-   ```
+```bash
+grep -r "FOAM FATAL" processor*/
+grep -i "error" log.simpleFoam
+```
+II. **Run on 1 processor in parallel mode** to isolate MPI issues from solver issues:
 
-3. **Check decomposition quality** — visualize the decomposition in ParaView to ensure
-   all processors have reasonable cell counts and shapes.
+```bash
+mpirun -np 1 icoFoam -parallel
+```
+
+III. **Check decomposition quality** — visualize the decomposition in ParaView to ensure all processors have reasonable cell counts and shapes.
 
 ### Common Errors and Solutions
 
@@ -653,8 +605,6 @@ which decomposePar
 which reconstructPar
 ```
 
----
-
 ## Reference: Common Parallel Commands
 
 | Command                                          | Description                                        |
@@ -671,8 +621,6 @@ which reconstructPar
 | `reconstructPar -fields '(U p)'`                | Reconstruct only specific fields                   |
 | `reconstructPar -newTimes`                       | Reconstruct only new (not yet reconstructed) times |
 | `paraFoam -builtin`                              | View decomposed results without reconstruction     |
-
----
 
 ## Putting It All Together — Example for the Lid-Driven Cavity
 
@@ -720,6 +668,4 @@ paraFoam
 rm -rf processor*
 ```
 
-This workflow applies identically to any OpenFOAM case — just change the solver name and
-adjust `numberOfSubdomains` based on your mesh size and available cores.
-
+This workflow applies identically to any OpenFOAM case — just change the solver name and adjust `numberOfSubdomains` based on your mesh size and available cores.
