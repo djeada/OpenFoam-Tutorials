@@ -1,17 +1,4 @@
-# `icoFoam` Solver — Complete Analysis
-
-> **Cross-references:**
-> - [01 — Short Intro to CFD](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/01_short_intro_to_cfd.md)
-> - [02 — OpenFOAM Cases](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/02_openfoam_cases.md)
-> - [03 — OpenFOAM Dictionaries](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/03_openfoam_dictionaries.md)
-> - [04 — Meshing](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/04_meshing.md)
-> - [05 — Boundary Conditions](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/05_boundary_conditions.md)
-> - [08 — CFL Number](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/08_cfl_number.md)
-> - [09 — Linear Solvers](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/09_linear_solvers.md)
-
----
-
-## 1. Introduction — What icoFoam Solves
+# `icoFoam` Solver
 
 `icoFoam` is the simplest transient CFD solver in OpenFOAM. It solves the
 **incompressible Navier-Stokes equations** for **laminar**, **Newtonian** fluids using
