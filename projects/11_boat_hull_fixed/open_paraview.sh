@@ -1,10 +1,9 @@
 #!/bin/bash
 # =========================================================================
-#  Open ParaView for the fixed boat hull case
+#  Open the fixed boat hull results in ParaView
 #
-#  Launches ParaView with the streamlines visualization script.
-#  For a plain view without streamlines, run:
-#    paraview boat_hull_fixed.foam
+#  For the prepared view (centre slice, hull, streamlines) use
+#  ./open_paraview_streamlines.sh instead.
 # =========================================================================
 set -euo pipefail
 cd "${0%/*}" || exit 1
@@ -16,4 +15,4 @@ if ! command -v paraview &>/dev/null; then
     exit 1
 fi
 
-paraview --script paraview_streamlines.py
+paraview boat_hull_fixed.foam

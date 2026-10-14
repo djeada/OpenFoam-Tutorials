@@ -17,8 +17,8 @@ FoamFile
 
 convertToMeters 1;
 
-// Domain: 2m long (x) x 0.1m tall (y) x 0.01m deep (z)
-// Approximates a 2D heated rectangular duct
+// Domain: 2 m long (x) x 0.1 m tall (y) x 0.01 m deep (z)
+// One cell in z with empty patches gives a 2D channel between parallel plates
 
 vertices
 (

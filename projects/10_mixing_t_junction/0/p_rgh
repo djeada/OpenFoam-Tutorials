@@ -8,9 +8,9 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-dimensions      [0 2 -2 0 0 0 0];
+dimensions      [1 -1 -2 0 0 0 0];
 
-internalField   uniform 0;
+internalField   uniform 100000;
 
 boundaryField
 {
@@ -27,13 +27,13 @@ boundaryField
     outlet
     {
         type            fixedValue;
-        value           uniform 0;
+        value           uniform 100000;
     }
 
     walls
     {
         type            fixedFluxPressure;
-        value           uniform 0;
+        value           uniform 100000;
     }
 
     frontAndBack

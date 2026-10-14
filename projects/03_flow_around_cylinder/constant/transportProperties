@@ -1,9 +1,9 @@
 /*--------------------------------*- C++ -*----------------------------------*\
-| =========                 |                                                 |
-| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v2012                                 |
-|   \\  /    A nd           | Web:      www.OpenFOAM.org                      |
-|    \\/     M anipulation  |                                                 |
+  =========                 |
+  \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox
+   \\    /   O peration     | Website:  https://openfoam.org
+    \\  /    A nd           | Version:  6
+     \\/     M anipulation  |
 \*---------------------------------------------------------------------------*/
 FoamFile
 {
@@ -18,6 +18,6 @@ transportModel  Newtonian;
 
 nu              [0 2 -1 0 0 0 0] 0.005;
 
-// Re = U_inf * D / nu = 1 * 1 / 0.005 = 200
+// Re = U_inf * D / nu = 1 * 1 / 0.005 = 200 (U_inf = 1 m/s, D = 1 m)
 
 // ************************************************************************* //

@@ -10,32 +10,32 @@ FoamFile
 
 dimensions      [1 -1 -2 0 0 0 0];
 
-internalField   uniform 0;
+internalField   uniform 100000;
 
 boundaryField
 {
     mainInlet
     {
         type            calculated;
-        value           uniform 0;
+        value           uniform 100000;
     }
 
     branchInlet
     {
         type            calculated;
-        value           uniform 0;
+        value           uniform 100000;
     }
 
     outlet
     {
         type            calculated;
-        value           uniform 0;
+        value           uniform 100000;
     }
 
     walls
     {
         type            calculated;
-        value           uniform 0;
+        value           uniform 100000;
     }
 
     frontAndBack

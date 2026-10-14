@@ -14,7 +14,7 @@ thermoType
     mixture         pureMixture;
     transport       const;
     thermo          hConst;
-    equationOfState perfectGas;
+    equationOfState Boussinesq;
     specie          specie;
     energy          sensibleEnthalpy;
 }
@@ -24,6 +24,13 @@ mixture
     specie
     {
         molWeight   18.0;
+    }
+
+    equationOfState
+    {
+        rho0        990;        // kg/m^3, water near 325 K
+        T0          325;        // K, reference temperature
+        beta        4.5e-4;     // 1/K, thermal expansion coefficient
     }
 
     thermodynamics

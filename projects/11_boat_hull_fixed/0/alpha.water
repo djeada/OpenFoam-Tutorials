@@ -15,8 +15,10 @@ boundaryField
 {
     inlet
     {
+        // Water below the waterline, air above. setFields writes the face
+        // values (boxToFace in system/setFieldsDict); 0 is only a default.
         type            fixedValue;
-        value           uniform 1;
+        value           uniform 0;
     }
 
     outlet

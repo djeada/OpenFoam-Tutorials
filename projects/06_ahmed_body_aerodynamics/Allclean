@@ -1,6 +1,8 @@
 #!/bin/bash
 #------------------------------------------------------------------------------
-# Allclean script for Ahmed body aerodynamics
+# Allclean: remove generated mesh, results and logs.
+# Tracked inputs (0/, system/, constant/triSurface/*.stl, images/, verify.py)
+# are kept.
 #------------------------------------------------------------------------------
 cd "${0%/*}" || exit
 . ${WM_PROJECT_DIR:?}/bin/tools/CleanFunctions
@@ -10,6 +12,7 @@ rm -rf processor*
 rm -rf constant/extendedFeatureEdgeMesh
 rm -f constant/triSurface/*.eMesh
 rm -rf postProcessing
+rm -f log.*
 rm -f *.foam
 
 echo "Case cleaned."

@@ -22,4 +22,14 @@ regions
             volScalarFieldValue alpha.water 1
         );
     }
+
+    // Boundary faces below the waterline: sets the inlet alpha.water profile
+    boxToFace
+    {
+        box (-10 -10 -10) (10 10 0);
+        fieldValues
+        (
+            volScalarFieldValue alpha.water 1
+        );
+    }
 );

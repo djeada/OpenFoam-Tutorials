@@ -1,37 +1,35 @@
 #!/bin/bash
-# ============================================================================
-# Allrun — floating boat hull simulation with interDyMFoam
-# ============================================================================
+# Allrun - floating boat hull: mesh with snappyHexMesh, then interFoam with
+# 6-DoF rigid-body motion (OpenFOAM.org v6: dynamic mesh is part of interFoam)
 cd "${0%/*}" || exit
 . "${WM_PROJECT_DIR:?}"/bin/tools/RunFunctions
 
-# ---- Copy and scale STL (mm → m) ------------------------------------------
-echo "Copying STL from repository root..."
+# setFields overwrites 0/alpha.water; restore the tracked file on exit
+alpha_backup=$(mktemp)
+cp 0/alpha.water "$alpha_backup"
+restore_alpha() {
+    cp "$alpha_backup" 0/alpha.water
+    rm -f "$alpha_backup"
+}
+trap restore_alpha EXIT
+
+# Hull geometry from the repository root, converted from mm to m
+mkdir -p constant/triSurface
 cp ../../boat_hull.stl constant/triSurface/boat_hull.stl
+runApplication surfaceTransformPoints -scale '(0.001 0.001 0.001)' \
+    constant/triSurface/boat_hull.stl constant/triSurface/boat_hull.stl
 
-echo "Scaling STL from millimeters to meters..."
-runApplication surfaceTransformPoints \
-    -scale '(0.001 0.001 0.001)' \
-    constant/triSurface/boat_hull.stl \
-    constant/triSurface/boat_hull.stl
-
-# ---- Mesh generation -------------------------------------------------------
+# Mesh: background block, feature edges, snapping to the hull, quality check
 runApplication blockMesh
-
 runApplication surfaceFeatureExtract
-
 runApplication snappyHexMesh -overwrite
-
 runApplication checkMesh
 
-# ---- Field initialisation --------------------------------------------------
+# Water below z = 0, air above
 runApplication setFields
 
-# ---- Run solver ------------------------------------------------------------
-runApplication interDyMFoam
+# Solve (hull heave motion is computed in-line by sixDoFRigidBodyMotion)
+runApplication interFoam
 
 echo ""
-echo "========================================="
-echo "  Simulation complete."
-echo "  Post-process with: paraFoam"
-echo "========================================="
+echo "Done. Check the run with: python3 verify.py"

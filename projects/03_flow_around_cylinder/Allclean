@@ -37,4 +37,7 @@ rm -f log.*
 rm -f *.OpenFOAM *.foam
 rm -f 0/Phi 0/phi
 
+# Generated mesh files (images/ and verify.py are kept)
+rm -f constant/cylinder.geo constant/cylinder.msh
+
 echo "Case cleaned."

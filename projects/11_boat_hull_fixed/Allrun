@@ -12,6 +12,7 @@ restore_alpha() {
 trap restore_alpha EXIT
 
 # Copy and scale STL from repo root (mm → m)
+mkdir -p constant/triSurface
 cp ../../boat_hull.stl constant/triSurface/boat_hull.stl
 runApplication surfaceTransformPoints -scale '(0.001 0.001 0.001)' \
     constant/triSurface/boat_hull.stl constant/triSurface/boat_hull.stl

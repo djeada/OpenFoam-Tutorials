@@ -1,15 +1,15 @@
 #!/bin/bash
 #------------------------------------------------------------------------------
-# Allclean script for backward-facing step case
+# Allclean - remove mesh, time directories, logs and post-processing output.
+# Keeps 0/, constant/*Properties, system/, images/ and verify.py.
 #------------------------------------------------------------------------------
 cd "${0%/*}" || exit 1
 
-# Source OpenFOAM run functions
-. ${WM_PROJECT_DIR:?}/bin/tools/CleanFunctions
+. "${WM_PROJECT_DIR:?OpenFOAM environment not sourced}/bin/tools/CleanFunctions"
 
 cleanCase
-rm -rf processor*
-rm -f log.*
+rm -rf processor* logs
+rm -f log.* backward_step.foam
 
 echo "Case cleaned."
 

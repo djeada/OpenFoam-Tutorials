@@ -1,0 +1,40 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Website:  www.openfoam.org                      |
+|   \\  /    A nd           | Version:  6                                     |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      sampleDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// Used with: postProcess -func sampleDict -latestTime
+// Samples U on a line inside the first cell row above bottomWall
+// (bottomWall is at y = -0.0127 m, first cell centre at y = -0.01263 m).
+// x runs from just after the step to just before the outlet (x = 0.381 m).
+
+type            sets;
+libs            ("libsampling.so");
+interpolationScheme cell;
+setFormat       raw;
+fields          (U);
+
+sets
+(
+    nearWall
+    {
+        type        lineUniform;
+        axis        x;
+        start       (0.0001 -0.0126 0);
+        end         (0.3809 -0.0126 0);
+        nPoints     1000;
+    }
+);
+
+// ************************************************************************* //

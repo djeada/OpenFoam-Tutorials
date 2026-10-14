@@ -1,8 +1,8 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v2312                                 |
-|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|  \\    /   O peration     | Version:  6                                     |
+|   \\  /    A nd           | Website:  www.openfoam.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
 FoamFile
@@ -14,13 +14,12 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// Define a cylindrical cell zone for the MRF rotating region.
-// The cylinder is centered at (1.0, 0.5) with radius 0.3m,
-// extending through the full z-depth of the domain.
+// Cylindrical cellZone "rotatingZone" used by constant/MRFProperties.
+// Axis along z through (1.0, 0.5), radius 0.3 m, spanning the full domain depth.
 
 actions
 (
-    // Step 1: Create a cellSet from a cylinder selection
+    // 1. Select cells whose centres lie inside the cylinder
     {
         name    rotatingZone;
         type    cellSet;
@@ -28,13 +27,13 @@ actions
         source  cylinderToCell;
         sourceInfo
         {
-            p1      (1.0 0.5 -1);   // cylinder start (extends beyond domain)
-            p2      (1.0 0.5  1);   // cylinder end   (extends beyond domain)
+            p1      (1.0 0.5 -1);   // cylinder start (outside domain)
+            p2      (1.0 0.5  1);   // cylinder end   (outside domain)
             radius  0.3;
         }
     }
 
-    // Step 2: Convert the cellSet to a cellZone (required by MRF)
+    // 2. Convert the cellSet to a cellZone (MRF refers to zones)
     {
         name    rotatingZone;
         type    cellZoneSet;

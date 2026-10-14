@@ -28,7 +28,6 @@ divSchemes
 laplacianSchemes
 {
     default         Gauss linear corrected;
-    laplacian(diffusivity,cellDisplacement) Gauss linear corrected;
 }
 
 interpolationSchemes
@@ -39,14 +38,6 @@ interpolationSchemes
 snGradSchemes
 {
     default         corrected;
-}
-
-fluxRequired
-{
-    default         no;
-    pcorr           ;
-    p_rgh           ;
-    alpha.water     ;
 }
 
 // ************************************************************************* //

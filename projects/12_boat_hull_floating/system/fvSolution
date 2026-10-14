@@ -59,26 +59,12 @@ solvers
         $U;
         relTol          0;
     }
-
-    cellDisplacement
-    {
-        solver          PCG;
-        preconditioner  DIC;
-        tolerance       1e-06;
-        relTol          0;
-    }
-
-    cellDisplacementFinal
-    {
-        $cellDisplacement;
-        relTol          0;
-    }
 }
 
 PIMPLE
 {
     momentumPredictor   no;
-    nOuterCorrectors    2;
+    nOuterCorrectors    3;
     nCorrectors         3;
     nNonOrthogonalCorrectors 1;
     correctPhi          yes;

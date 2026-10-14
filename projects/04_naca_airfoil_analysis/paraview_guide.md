@@ -1,8 +1,8 @@
-# ParaView View For This Case
+# Manual ParaView view for the steady case
 
-To get a view closer to the reference image:
+The scripted view is `./open_paraview.sh`. To build a comparable view by hand:
 
-1. Open `airfoil.foam` in ParaView.
+1. Open `airfoil.foam` in ParaView (created by `./Allrun`).
 2. In the mesh parts list, enable only `internalMesh` and `patch/airfoil`.
 3. Click `Apply`.
 4. Set the view direction to `+Z` so you look normal to the 2D plane.
@@ -23,4 +23,4 @@ Suggested camera:
 - Focal Point: `(0.5, 0.0, 0.0)`
 - View Up: `(0, 1, 0)`
 
-This case is now set to about `8°` nose-up angle of attack by rotating the airfoil geometry while keeping the freestream horizontal.
+The airfoil is rotated by 4 degrees nose-up about the quarter chord (`--angle-deg -4` in `make_mesh.sh`) while the freestream stays horizontal, so the angle of attack is +4 degrees.

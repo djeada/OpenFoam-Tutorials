@@ -65,16 +65,16 @@ OpenFoam-Tutorials/
 ├── projects/                           ← 🔬 Hands-On Simulations (12 projects)
 │   ├── 01_lid_driven_cavity/              Classic benchmark — icoFoam, blockMesh
 │   ├── 02_elbow/                          Curved pipe flow — Fluent mesh import
-│   ├── 03_flow_around_cylinder/           External flow — snappyHexMesh
-│   ├── 04_naca_airfoil_analysis/          Airfoil aerodynamics — k-epsilon
-│   ├── 05_heated_pipe_flow/               Conjugate heat transfer — buoyantSimpleFoam
+│   ├── 03_flow_around_cylinder/           External flow — Gmsh mesh, pimpleFoam
+│   ├── 04_naca_airfoil_analysis/          Airfoil aerodynamics — Spalart-Allmaras, Gmsh mesh
+│   ├── 05_heated_pipe_flow/               Heated turbulent pipe flow — buoyantSimpleFoam
 │   ├── 06_ahmed_body_aerodynamics/        Automotive aero — k-omega SST
 │   ├── 07_backward_facing_step/           Separated flow validation — k-omega SST
 │   ├── 08_dam_break/                      Multiphase VOF — interFoam
 │   ├── 09_wind_turbine_blade/             Rotating machinery — MRF + simpleFoam
 │   ├── 10_mixing_t_junction/              Thermal mixing — buoyantSimpleFoam
 │   ├── 11_boat_hull_fixed/                Fixed hull in water — interFoam + snappyHexMesh
-│   └── 12_boat_hull_floating/             Floating body dynamics — interDyMFoam + 6-DoF
+│   └── 12_boat_hull_floating/             Floating body dynamics — interFoam + 6-DoF
 │
 ├── document.pdf                        ← 📄 Supplementary reference document
 ├── LICENSE                             ← ⚖️  MIT License
@@ -104,13 +104,13 @@ Follow this roadmap from left to right. Each stage builds on the previous one.
  │                      │         │                      │        │                      │
  │  🔬 Projects         │         │  🔬 Projects         │        │  🔬 Projects         │
  │  ─────────────────   │         │  ─────────────────   │        │  ─────────────────   │
- │  01 Lid-Driven       │         │  03 Cylinder Flow    │        │  05 Ahmed Body       │
- │     Cavity           │         │  04 NACA Airfoil     │        │  06 Backward Step    │
- │  02 Elbow Flow       │         │  04 Heated Pipe      │        │  07 Dam Break (VOF)  │
- │                      │         │                      │        │  08 Wind Turbine     │
- │                      │         │                      │        │  09 T-Junction Mix   │
- │                      │         │                      │        │  10 Boat Hull Fixed  │
- │                      │         │                      │        │  11 Boat Hull Float  │
+ │  01 Lid-Driven       │         │  03 Cylinder Flow    │        │  06 Ahmed Body       │
+ │     Cavity           │         │  04 NACA Airfoil     │        │  07 Backward Step    │
+ │  02 Elbow Flow       │         │  05 Heated Pipe      │        │  08 Dam Break (VOF)  │
+ │                      │         │                      │        │  09 Wind Turbine     │
+ │                      │         │                      │        │  10 T-Junction Mix   │
+ │                      │         │                      │        │  11 Boat Hull Fixed  │
+ │                      │         │                      │        │  12 Boat Hull Float  │
  │                      │         │                      │        │                      │
  └──────────────────────┘         └──────────────────────┘        └──────────────────────┘
 
@@ -150,16 +150,16 @@ Twelve simulation projects arranged by increasing complexity. Each project direc
 |---|---------|-------------|--------|------|------------|-------|
 | 01 | [**Lid-Driven Cavity**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/01_lid_driven_cavity) | The "Hello World" of CFD — a square cavity with a moving top wall. Validates against Ghia et al. benchmark data. | `icoFoam` | `blockMesh` | Laminar | 🟢 Beginner |
 | 02 | [**Elbow**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/02_elbow) | Flow through a curved pipe elbow. Demonstrates importing a Fluent mesh into OpenFOAM and post-processing in ParaView. | `icoFoam` | Fluent import | Laminar | 🟢 Beginner |
-| 03 | [**Flow Around a Cylinder**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/03_flow_around_cylinder) | External flow past a circular cylinder. Introduces `snappyHexMesh` for geometry-based meshing and drag/lift computation. | `simpleFoam` | `snappyHexMesh` | Laminar/Low-Re | 🟡 Intermediate |
-| 04 | [**NACA Airfoil Analysis**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/04_naca_airfoil_analysis) | Aerodynamic analysis of a NACA airfoil profile. Covers angle-of-attack sweeps, lift/drag coefficients, and pressure distributions. | `simpleFoam` | Structured | k-epsilon | 🟡 Intermediate |
-| 05 | [**Heated Pipe Flow**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/05_heated_pipe_flow) | Conjugate heat transfer in a heated pipe. Introduces the energy equation, buoyancy effects, and thermal boundary conditions. | `buoyantSimpleFoam` | `blockMesh` | k-epsilon | 🟡 Intermediate |
+| 03 | [**Flow Around a Cylinder**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/03_flow_around_cylinder) | External flow past a circular cylinder at Re = 200. Introduces importing an externally generated Gmsh mesh (`gmshToFoam`), vortex shedding and drag/lift/Strouhal evaluation. | `pimpleFoam` | Gmsh import | Laminar | 🟡 Intermediate |
+| 04 | [**NACA Airfoil Analysis**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/04_naca_airfoil_analysis) | Steady RANS of a NACA 0012 airfoil at a fixed angle of attack on a Gmsh-generated mesh. Covers lift/drag/moment coefficients and pressure distribution. | `simpleFoam` | Gmsh import | Spalart-Allmaras | 🟡 Intermediate |
+| 05 | [**Heated Pipe Flow**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/05_heated_pipe_flow) | Turbulent heated pipe flow (single region, not conjugate). Introduces the energy equation, buoyancy effects, thermal boundary conditions and an energy-balance check. | `buoyantSimpleFoam` | `blockMesh` | k-epsilon | 🟡 Intermediate |
 | 06 | [**Ahmed Body Aerodynamics**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/06_ahmed_body_aerodynamics) | Full 3D automotive aerodynamics simulation of the Ahmed body — the standard reference geometry for vehicle aero studies. | `simpleFoam` | `snappyHexMesh` | k-omega SST | 🔴 Advanced |
-| 07 | [**Backward-Facing Step**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/07_backward_facing_step) | Classic turbulent separated flow benchmark. Validates reattachment length against NASA experimental data (Xr/H ≈ 6.0). | `simpleFoam` | `blockMesh` | k-omega SST | 🔴 Advanced |
+| 07 | [**Backward-Facing Step**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/07_backward_facing_step) | Classic turbulent separated flow benchmark. Reattachment length is measured from the wall shear stress (Xr/H ≈ 9.0 for this setup, kept as a regression baseline). | `simpleFoam` | `blockMesh` | k-omega SST | 🔴 Advanced |
 | 08 | [**Dam Break**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/08_dam_break) | Multiphase free-surface flow using Volume of Fluid (VOF). Water column collapse with gravity — transient interFoam simulation. | `interFoam` | `blockMesh` | Laminar | 🔴 Advanced |
-| 09 | [**Wind Turbine Blade**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/09_wind_turbine_blade) | Rotating machinery simulation using the Multiple Reference Frame (MRF) approach. Introduces `topoSet` and `MRFProperties`. | `simpleFoam` | `blockMesh` | k-epsilon | 🔴 Advanced |
+| 09 | [**Wind Turbine Blade**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/09_wind_turbine_blade) | Demonstrates the Multiple Reference Frame (MRF) approach with a rotating cell zone (no blades). Introduces `topoSet` and `MRFProperties`. | `simpleFoam` | `blockMesh` | k-epsilon | 🔴 Advanced |
 | 10 | [**Mixing T-Junction**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/10_mixing_t_junction) | Thermal mixing of hot (350 K) and cold (300 K) streams in a T-junction. Multi-block structured mesh with buoyancy coupling. | `buoyantSimpleFoam` | `blockMesh` | k-epsilon | 🔴 Advanced |
 | 11 | [**Boat Hull — Fixed**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/11_boat_hull_fixed) | Fixed toy boat hull in calm water with free surface. Uses your own STL geometry with snappyHexMesh for drag and wave pattern analysis. | `interFoam` | `snappyHexMesh` | Laminar | 🔴 Advanced |
-| 12 | [**Boat Hull — Floating**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/12_boat_hull_floating) | Floating rigid-body boat with 6-DoF motion. Dynamic mesh morphing with heave, pitch, and roll — the capstone project. | `interDyMFoam` | `snappyHexMesh` | Laminar | 🔴 Advanced |
+| 12 | [**Boat Hull — Floating**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/12_boat_hull_floating) | Floating rigid-body boat with 6-DoF motion. Dynamic mesh morphing with heave, pitch, and roll — the capstone project. | `interFoam` | `snappyHexMesh` | Laminar | 🔴 Advanced |
 
 ### Project Progression Map
 
@@ -168,14 +168,14 @@ Twelve simulation projects arranged by increasing complexity. Each project direc
   ┌──────────┐          ┌──────────┐           ┌──────────┐          ┌──────────┐
   │ 01 Cavity│          │03 Cylinder│           │05 Heated│           │08 Dam    │
   │ icoFoam  │─────────▶│ simpleFoam│──────────▶│   Pipe   │     ┌──▶│  Break   │
-  │ blockMesh│          │ snappyHex │           │ buoyant  │     │   │ interFoam│
+  │ blockMesh│          │ Gmsh mesh │           │ buoyant  │     │   │ interFoam│
   └──────────┘          └──────────┘           └──────────┘     │   │ VOF      │
        │                     │                      │            │   └──────────┘
        ▼                     ▼                      ▼            │        │
   ┌──────────┐          ┌──────────┐           ┌──────────┐     │        ▼
   │ 02 Elbow │          │04 Airfoil │           │10 T-Junct│     │   ┌──────────┐
   │ icoFoam  │          │ simpleFoam│           │ buoyant  │     └──▶│11 Boat   │
-  │ Fluent   │          │ k-epsilon │           │ thermal  │         │ Fixed    │
+  │ Fluent   │          │ S-A model │           │ thermal  │         │ Fixed    │
   └──────────┘          └──────────┘           └──────────┘         │interFoam │
                              │                                       └──────────┘
                              ▼                                            │
@@ -183,7 +183,7 @@ Twelve simulation projects arranged by increasing complexity. Each project direc
                         │06 Ahmed  │           │07 BFS    │         ┌──────────┐
                         │ Body 3D  │           │ k-ω SST  │         │12 Boat   │
                         │ k-ω SST  │           │validation│         │ Floating │
-                        └──────────┘           └──────────┘         │interDyM  │
+                        └──────────┘           └──────────┘         │interFoam │
                                                                     │ 6-DoF    │
                         ┌──────────┐                                └──────────┘
                         │09 Wind   │
@@ -229,6 +229,26 @@ paraFoam
 ```
 
 That's it! You should see velocity contours of the lid-driven cavity flow.
+
+### Running every project with Docker
+
+You do not need a native OpenFOAM install. Each project has a `run_docker.sh` that runs the case in
+the `cfdengine/openfoam` image (OpenFOAM 6) and finishes with `python3 verify.py`, which prints
+PASS/FAIL checks against the targets in that project's README:
+
+```bash
+cd projects/01_lid_driven_cavity
+./run_docker.sh        # clean, run the case in Docker, then verify
+./open_paraview.sh     # optional: open the results in ParaView
+```
+
+Requirements on the host: `docker` and `python3`. Projects **03** and **04** also need `gmsh`
+(the image has no Gmsh, so their meshes are generated on the host). Gmsh 4.12.x, which is the
+`apt` package on Ubuntu 24.04, crashes on the project 03 geometry. Use 4.11.1, 4.13.1 or 4.15.2,
+for example `python3 -m venv ~/gmsh-venv && ~/gmsh-venv/bin/pip install gmsh==4.15.2`, and put
+`~/gmsh-venv/bin` first in `PATH`. Rough run times: seconds to a few minutes for 01, 02, 04, 05,
+07, 08, 09 and 10; 20 to 30 minutes for 03 and 11; hours for the full runs of 06 and 12. Each
+project README lists its measured time.
 
 > **📌 Next Steps:** Read through [Note 01 — Intro to CFD](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/01_short_intro_to_cfd.md) to understand what just happened, then explore [Note 02 — Case Structure](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/02_openfoam_cases.md) to understand *why* the directories are organized the way they are.
 

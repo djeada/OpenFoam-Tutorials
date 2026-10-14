@@ -1,6 +1,14 @@
 #!/bin/bash
-set -eu
+set -euo pipefail
 cd "${0%/*}" || exit 1
 
-docker run --rm -v "$PWD":/case -w /case cfdengine/openfoam bash -lc 'source /opt/openfoam6/etc/bashrc && ./allclean'
-docker run --rm -v "$PWD":/case -w /case cfdengine/openfoam bash -lc 'source /opt/openfoam6/etc/bashrc && ./allrun'
+echo "=== Cleaning case ==="
+docker run --rm -v "$PWD":/case -w /case cfdengine/openfoam \
+    bash -lc 'source /opt/openfoam6/etc/bashrc && ./Allclean'
+
+echo "=== Running case ==="
+docker run --rm -v "$PWD":/case -w /case cfdengine/openfoam \
+    bash -lc 'source /opt/openfoam6/etc/bashrc && ./Allrun'
+
+echo "=== Verifying results ==="
+python3 verify.py

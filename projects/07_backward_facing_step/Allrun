@@ -1,31 +1,26 @@
 #!/bin/bash
 #------------------------------------------------------------------------------
-# Allrun script for backward-facing step case
-# Solver: simpleFoam (steady-state, incompressible, turbulent)
-# Turbulence: k-omega SST
+# Allrun - backward-facing step (simpleFoam, steady, k-omega SST)
+#   blockMesh -> checkMesh -> simpleFoam -> near-wall velocity sample
+# Each step writes log.<application>; the script stops at the first failure.
 #------------------------------------------------------------------------------
 cd "${0%/*}" || exit 1
 
 # Source OpenFOAM run functions
-. ${WM_PROJECT_DIR:?}/bin/tools/RunFunctions
+. "${WM_PROJECT_DIR:?OpenFOAM environment not sourced}/bin/tools/RunFunctions"
 
-echo "=============================================="
-echo "  Backward-Facing Step - simpleFoam"
-echo "  Re ≈ 36,000 | k-omega SST"
-echo "=============================================="
+run() {
+    runApplication "$@" || { echo "ERROR: $1 failed, see log.$1" >&2; exit 1; }
+}
 
-# Generate mesh
-runApplication blockMesh
+run blockMesh
+run checkMesh
+run simpleFoam
+# Ux along a line in the first cell row above bottomWall (used by verify.py)
+runApplication -s nearWall postProcess -func sampleDict -latestTime \
+    || { echo "ERROR: postProcess failed, see log.postProcess.nearWall" >&2; exit 1; }
 
-# Check mesh quality
-runApplication checkMesh
-
-# Run solver
-runApplication simpleFoam
-
-echo "=============================================="
-echo "  Case complete!"
-echo "  View results with: paraFoam"
-echo "=============================================="
+echo "Case complete. Check results with: python3 verify.py"
+echo "View results with: ./open_paraview.sh"
 
 #------------------------------------------------------------------------------

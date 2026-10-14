@@ -1,8 +1,8 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v2312                                 |
-|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|  \\    /   O peration     | Version:  6                                     |
+|   \\  /    A nd           | Website:  www.openfoam.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
 FoamFile
@@ -14,14 +14,13 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// Multiple Reference Frame (MRF) — Frozen Rotor Approach
+// Multiple Reference Frame (MRF) zone
 //
-// The MRF zone simulates rotation by adding Coriolis and centripetal
-// source terms to the momentum equation within the specified cellZone.
-// No mesh motion occurs — this is a steady-state approximation.
+// Adds Coriolis and centrifugal source terms to the momentum equation
+// inside the cellZone. The mesh does not move (steady-state approximation).
 //
 // omega = 100 RPM = 100 * 2*pi/60 = 10.472 rad/s
-// Rotation axis: z-axis (0 0 1) for 2D simulation in x-y plane
+// Axis (0 0 1): normal to the x-y plane of the quasi-2D domain
 
 MRF1
 {
@@ -29,14 +28,13 @@ MRF1
 
     active          yes;
 
-    // Patches within the MRF zone that should NOT rotate
-    // (e.g., stator surfaces). Empty for this simplified case.
+    // Walls inside the zone that stay stationary; none in this case.
     nonRotatingPatches ();
 
-    origin          (1.0 0.5 0);
+    origin          (1.0 0.5 0);    // same centre as the topoSetDict cylinder
     axis            (0 0 1);
 
-    omega           10.472;  // 100 RPM in rad/s
+    omega           10.472;         // rad/s (100 RPM)
 }
 
 // ************************************************************************* //

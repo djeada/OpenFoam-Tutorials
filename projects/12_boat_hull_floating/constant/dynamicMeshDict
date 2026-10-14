@@ -16,14 +16,25 @@ motionSolver    sixDoFRigidBodyMotion;
 sixDoFRigidBodyMotionCoeffs
 {
     patches         (boat);
-    innerDistance    0.01;
-    outerDistance    0.08;
 
-    mass            0.050;
-    centreOfMass    (0 0 -0.005);
-    momentOfInertia (5e-06 1.5e-05 1.5e-05);
+    // Mesh motion: displacement is full (rigid) within innerDistance of the
+    // hull and decays to zero at outerDistance (distance-based scaling,
+    // no Laplacian mesh-motion equation is solved)
+    innerDistance   0.01;
+    outerDistance   0.08;
+
+    // Rigid-body properties (hull STL volume: 296.7 cm3)
+    mass            0.050;                      // kg
+    centreOfMass    (0 0 -0.005);               // m, 5 mm below the geometric centre
+    // Uniform-density values computed from the STL for m = 0.05 kg
+    // (about the geometric centre; 8.3e-5 = Izz)
+    momentOfInertia (3.4e-05 7.1e-05 8.3e-05);  // kg m^2
 
     report          on;
+
+    // Relaxation of the computed acceleration between PIMPLE corrections
+    // (1 = no relaxation) and scaling of the applied acceleration in the
+    // Newmark update (1 = no damping)
     accelerationRelaxation 0.7;
     accelerationDamping    0.9;
 
@@ -34,14 +45,17 @@ sixDoFRigidBodyMotionCoeffs
 
     constraints
     {
-        // Constrain motion to a vertical line (heave only for translation)
+        // Translation only along a line through the centre of mass:
+        // heave only (no surge/sway)
         fixedLine
         {
             sixDoFRigidBodyMotionConstraint line;
             direction       (0 0 1);
         }
 
-        // Constrain rotation about the z-axis (suppress yaw)
+        // Rotation only about a fixed axis: the hull may yaw but cannot
+        // pitch or roll. Without this constraint the rotation is
+        // unstable at the very first time steps (see README).
         fixedAxis
         {
             sixDoFRigidBodyMotionConstraint axis;

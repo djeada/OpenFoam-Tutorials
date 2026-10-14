@@ -16,14 +16,15 @@ FoamFile
 
 dimensions      [0 2 -2 0 0 0 0];
 
-internalField   uniform 0.1;
+// Inlet turbulence intensity 5 %: k = 1.5 (0.05 * 0.5 m/s)^2
+internalField   uniform 9.4e-4;
 
 boundaryField
 {
     inlet
     {
         type            fixedValue;
-        value           uniform 0.1;
+        value           uniform 9.4e-4;
     }
 
     outlet
@@ -34,13 +35,13 @@ boundaryField
     topWall
     {
         type            kqRWallFunction;
-        value           uniform 0.1;
+        value           uniform 9.4e-4;
     }
 
     bottomWall
     {
         type            kqRWallFunction;
-        value           uniform 0.1;
+        value           uniform 9.4e-4;
     }
 
     frontAndBack
