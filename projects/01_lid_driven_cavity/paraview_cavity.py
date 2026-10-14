@@ -1,6 +1,8 @@
 """ParaView Python script for the lid-driven cavity case.
 
-Visualizes velocity field with streamlines on the XY midplane.
+Shows velocity magnitude with streamlines on the XY midplane at the last time.
+Expects cavity.foam in the working directory (created by open_paraview.sh).
+Optional: --screenshot [file.png] saves an image (default cavity.png).
 """
 
 import sys
@@ -39,6 +41,8 @@ if timesteps:
 # --- Set up the render view ---
 renderView = GetActiveViewOrCreate("RenderView")
 renderView.ViewSize = [1280, 960]
+if hasattr(renderView, "UseColorPaletteForBackground"):  # ParaView >= 5.10
+    renderView.UseColorPaletteForBackground = 0
 renderView.Background = [1.0, 1.0, 1.0]
 
 # 2D parallel camera looking down the Z axis at the XY midplane

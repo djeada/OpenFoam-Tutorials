@@ -1,8 +1,8 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v2312                                 |
-|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|  \\    /   O peration     | Version:  6                                     |
+|   \\  /    A nd           | Website:  www.openfoam.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
 FoamFile
@@ -16,20 +16,20 @@ FoamFile
 
 // Turbulent dissipation rate
 // epsilon = Cmu^0.75 * k^1.5 / L
-// Cmu = 0.09, k = 0.375, L = 0.07 * D_h (hydraulic diameter)
-// L = 0.07 * 0.6 = 0.042 m (using MRF zone diameter as reference)
-// epsilon = 0.09^0.75 * 0.375^1.5 / 0.042 = 14.855
+// Cmu = 0.09, k = 0.375 m^2/s^2
+// L = 0.07 * D = 0.07 * 0.6 m = 0.042 m (D = MRF zone diameter)
+// epsilon = 0.09^0.75 * 0.375^1.5 / 0.042 = 0.898 m^2/s^3
 
 dimensions      [0 2 -3 0 0 0 0];
 
-internalField   uniform 14.855;
+internalField   uniform 0.898;
 
 boundaryField
 {
     inlet
     {
         type            fixedValue;
-        value           uniform 14.855;
+        value           uniform 0.898;
     }
 
     outlet

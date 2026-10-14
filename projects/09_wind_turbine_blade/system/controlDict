@@ -1,8 +1,8 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v2312                                 |
-|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|  \\    /   O peration     | Version:  6                                     |
+|   \\  /    A nd           | Website:  www.openfoam.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
 FoamFile
@@ -43,53 +43,5 @@ timeFormat      general;
 timePrecision   6;
 
 runTimeModifiable true;
-
-functions
-{
-    fieldAverage1
-    {
-        type            fieldAverage;
-        libs            (fieldFunctionObjects);
-        writeControl    writeTime;
-        fields
-        (
-            U
-            {
-                mean        on;
-                prime2Mean  on;
-                base        time;
-            }
-            p
-            {
-                mean        on;
-                prime2Mean  on;
-                base        time;
-            }
-        );
-    }
-
-    MRFZoneVelocity
-    {
-        type            MRF;
-        libs            (fieldFunctionObjects);
-        writeControl    writeTime;
-        field           U;
-    }
-
-    residuals
-    {
-        type            solverInfo;
-        libs            (utilityFunctionObjects);
-        writeControl    timeStep;
-        writeInterval   1;
-        fields
-        (
-            U
-            p
-            k
-            epsilon
-        );
-    }
-}
 
 // ************************************************************************* //

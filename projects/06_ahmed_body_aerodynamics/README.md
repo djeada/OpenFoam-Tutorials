@@ -6,10 +6,117 @@
 ![Mesh: snappyHexMesh](https://img.shields.io/badge/mesh-snappyHexMesh-orange)
 ![Parallel: MPI](https://img.shields.io/badge/parallel-MPI-purple)
 
-Steady-state RANS simulation of turbulent flow around the Ahmed reference body
-using **simpleFoam** with **k-$\omega$ SST** turbulence modelling. This tutorial walks
-through every file you need to reproduce the classic automotive-aerodynamics
-benchmark and validate against published experimental data.
+Steady-state RANS simulation of turbulent flow around the Ahmed
+reference body (25° slant, without stilts) using **simpleFoam** with **k-$\omega$ SST** turbulence
+modelling. The case covers the complete workflow of an external-aerodynamics
+simulation: STL geometry, snappyHexMesh body-fitted meshing with boundary
+layers, a parallel steady solve, and force-coefficient monitoring against the
+classic automotive-aerodynamics benchmark.
+
+The geometry is the **standard** Ahmed body (100 mm radius on the four front
+edges, 25° rear slant) but **without the four stilts** that hold the
+experimental model; the body floats 50 mm above the ground (see
+[Geometry](#geometry--the-ahmed-body-stl)). In the dictionary listings below the OpenFOAM banner and `FoamFile` header are
+omitted.
+
+![Velocity magnitude in the centre plane](images/velocity_centreplane.png)
+
+*Velocity magnitude in the centre plane y = 0, time 550 of a run that was stopped at iteration 581 of 3000 (not converged, 25° slant). Look at the attached flow over the rounded nose and roof, the accelerated flow under the body and the wake behind the slant and base.*
+
+---
+
+## Goal
+
+After working through this case you should be able to:
+
+- generate and place an STL body in a blockMesh background domain and refine it
+  with `snappyHexMesh` (feature edges, surface and region refinement, boundary
+  layers) in parallel;
+- set up a steady incompressible RANS case with wall functions and derive the
+  inlet `k` and `omega` from a turbulence intensity and length scale;
+- monitor drag and lift with `forceCoeffs`, and choose `Aref`, `lRef`, `magUInf`
+  and `CofR` consistently with the geometry and the inlet velocity;
+- judge a result with mesh checks, residuals, $y^+$ and force-coefficient
+  convergence instead of by eye.
+
+---
+
+## Target
+
+| Quantity | Target | Basis |
+|---|---|---|
+| Flow condition | $U_\infty$ = 40 m/s, $\nu = 1.5 \times 10^{-5}$ m$^2$/s, $Re_L$ = 2.78e6, $Re_H$ = 7.68e5 | case files |
+| Mesh | about 1.0 M cells, 5 prism layers on the body, max non-orthogonality < 65°, max skewness < 4, `checkMesh` reports `Mesh OK` | measured: 968,553 cells, 4.98 layers, 64.7°, 2.38 |
+| Wall treatment | average $y^+$ on the body between 30 and 300 (wall functions) | measured: 61.6 (min 13.2, max 142.7) at iteration 581 |
+| Convergence | residuals of `p`, `U`, `k`, `omega` below 1e-5, or `Cd` constant within 1 % over the last 200 iterations (typically 1500-3000 iterations) | `residualControl` in `fvSolution`; **not reached**, the run was stopped at iteration 581 |
+| Drag coefficient, 25° slant | Cd = 0.285 $\pm$ 25 % (0.214 ... 0.356) | experiment, Ahmed et al. (1984) |
+| Drag coefficient, 35° slant | Cd = 0.260 $\pm$ 25 % | commonly cited experimental value |
+
+About the Cd target: 0.285 is the measured drag coefficient of the standard
+25° Ahmed body (Ahmed, Ramm and Faltin 1984, as cited in the COMSOL Ahmed body
+benchmark and ERCOFTAC test case AC1-05; it was not re-read from the original
+paper here). The experiment was made at 60 m/s with stilts; this case runs at
+40 m/s without stilts. RANS with wall functions typically lands within about
+$\pm$ 20–30 % of the experiment, so the tolerance is set to 25 %.
+
+**Status of this case:** the full 3000-iteration run was **not completed**. It
+was stopped at iteration 581 (not converged). Cd was 0.288 at iteration 580
+(0.289 at 400, 0.292 at 500, mean 0.290 over the last 200 iterations with a
+peak-to-peak spread of 4 %), which is inside the target band and 1 % above 0.285,
+but it has not settled. The convergence-dependent checks of `verify.py` are
+therefore reported as SKIP for this run.
+
+---
+
+## Verification method
+
+After `./run_docker.sh` (which calls it as its last step) or after `./Allrun`,
+run
+
+```bash
+python3 verify.py                 # reads log.* and postProcessing/, no Docker needed
+python3 verify.py --slant-angle 35
+```
+
+It prints one `PASS`, `FAIL` or `SKIP` line per check and exits with 0 only if
+nothing failed (1 on a failed check, 2 if logs are missing). Checks that only
+make sense for a converged run are `SKIP`ped when the solver was interrupted
+before `endTime`/convergence, and the summary says so.
+
+| Check | What it proves | Expected | Tolerance and reason | Measured |
+|---|---|---|---|---|
+| `stl_slant_angle` | STL has the requested slant | 25.0° | $\pm$ 0.05° (STL written with 7 digits) | 25.00° |
+| `stl_watertight` | STL is a closed surface (each edge shared by two triangles with opposite orientation) | 0 open edges | exact | 0 open edges, 116 triangles |
+| `stl_outward_positive_volume` | normals point outward (positive volume) and the volume is that of the rounded, slanted box | 0.102 ... 0.1133 m$^3$ | upper bound: box minus slant wedge; lower: 10 % below | 0.11074 m$^3$ |
+| `Aref_equals_STL_frontal_area` | `Aref` in `forceCoeffs` is the projected frontal area of the STL | 0.112032 m$^2$ | 0.1 % (rounding) | 0.112032 m$^2$ |
+| `stl_nose_radius` | the four front edges have R = 100 mm | 0.100 m | $\pm$ 1 mm | 0.1000 m |
+| `lRef_equals_body_length` | `lRef` is the body length | 1.044 m | 0.1 % (rounding) | 1.0440 m |
+| `magUInf_equals_inlet_velocity` | coefficients use the real inlet speed | 40 m/s | exact | 40.000 m/s |
+| `CofR_at_body_centre` | moment centre at mid length/height, y = 0 | (0.522 0 0.194) | 1 % of L, H | (0.522 0.000 0.194) |
+| `snappyHexMesh_finished` | meshing completed | "Finished meshing without any errors" | - | finished |
+| `body_layers_added` | all requested layers were grown | 5 | $\pm$ 0.5 (average layers per face) | 4.98 |
+| `body_layer_thickness_pct` | layers reach the requested thickness | $\geq$ 80 % | rule of thumb for acceptable layer coverage | 90 % |
+| `cell_count` | mesh size is as designed | 1.0e6 | $\pm$ 15 % (different subdomain counts give slightly different snappy meshes) | 968,553 |
+| `checkMesh_Mesh_OK` | serial `checkMesh` passes | `Mesh OK.` | - | Mesh OK |
+| `max_non_orthogonality` | below the snappy `maxNonOrtho` limit | < 65° | = `meshQualityControls` | 64.7° |
+| `max_skewness` | below the snappy `maxInternalSkewness` limit | < 4 | = `meshQualityControls` | 2.38 |
+| `solver_no_fatal_error` | simpleFoam ran without `FOAM FATAL` | $\geq$ 1 iteration, no error | - | 581 iterations, no error |
+| `residual_drop_p`, `residual_drop_Ux` | SIMPLE is converging | final/max initial residual $\leq$ 0.1 | one decade is the minimum sign of convergence | 2.1e-4 / 2.8e-4 |
+| `yPlus_body_average` | wall functions are used in their range | 30 ... 300 | log-law validity range | 61.6 (min 13.2, max 142.7) |
+| `Cd_finite_positive` | force coefficients are written and sane | finite, > 0 | - | 0.288 |
+| `Cd_in_literature_band` (full run only) | drag agrees with the standard Ahmed body | 0.285 (25°) / 0.260 (35°) | $\pm$ 25 % (RANS wall-function scatter 20–30 %) | **SKIP**, run not completed (Cd = 0.288 at it. 580) |
+| `Cd_converged` (full run only) | force coefficient is steady | peak-to-peak < 1 % | last 200 iterations | **SKIP**, run not completed (4.0 % over iterations 381-580) |
+
+Manual (visual) checks, in addition:
+
+- in ParaView the `ahmed_body` patch is a closed surface and the refinement is
+  concentrated around the body and in the wake box (compare
+  `images/mesh_centreplane.png`);
+- in the centre plane the velocity is about 40 m/s ahead of the body, a
+  stagnation point sits at the nose, and a low-velocity wake extends behind
+  the vertical base;
+- `Cp` is close to 1 on the front face and negative on the roof, sides and base
+  (compare `images/cp_body_front.png`).
 
 ---
 
@@ -18,7 +125,7 @@ benchmark and validate against published experimental data.
 1. [Problem Description](#problem-description)
 2. [Physics and Theory](#physics-and-theory)
 3. [Case Directory Structure](#case-directory-structure)
-4. [Geometry — Obtaining the Ahmed Body STL](#geometry--obtaining-the-ahmed-body-stl)
+4. [Geometry — the Ahmed Body STL](#geometry--the-ahmed-body-stl)
 5. [Mesh Strategy](#mesh-strategy)
 6. [Boundary Conditions](#boundary-conditions)
 7. [Turbulence Setup — k-$\omega$ SST](#turbulence-setup--k-ω-sst)
@@ -30,6 +137,7 @@ benchmark and validate against published experimental data.
 13. [Post-Processing Guide](#post-processing-guide)
 14. [Exercises](#exercises)
 15. [References](#references)
+16. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -41,44 +149,57 @@ features of a road vehicle — particularly the rear-end flow separation and wak
 structure — while being simple enough to manufacture accurately and simulate
 reproducibly.
 
-```
-                    25° slant angle
-                         ╱│
-    ┌───────────────────╱ │
-    │                  ╱  │ 288mm
-    │   Ahmed Body    ╱   │
-    │                │    │
-    │   1044mm       │    │
-    └────────────────┴────┘
-    ────────────────────────── Ground plane
-         50mm ground clearance
+Side view (dimensions of the STL used in this case, all in mm, $z$ measured
+from the ground):
 
-    Front view:              Side view (3D perspective):
-    ┌──────────┐             ┌──────────────────╲
-    │          │ 389mm       │                   ╲
-    │          │             │                    │
-    └──────────┘             └────────────────────┘
-      389mm
+```
+                R 100            slant start x = 843
+                 ╭───────────────────────────╲
+      z = 338  ──╯                            ╲ slant: 25°, 222 mm long
+                │                              ╲
+                │              288              │  z = 194
+                │                               │
+      z = 50  ──╮                               │
+                 ╰──────────────────────────────┘
+      z = 0    ═══════════════════════════════════  ground (moving wall, 40 m/s)
+               x = 0                        x = 1044
+               (nose)                       (rear base)    flow ──────►
+```
+
+The front edges (top, bottom and both sides) have R = 100 mm, so the flat part
+of the front face is 88 mm high and 189 mm wide. The roof/side edges and the
+rear edges are sharp.
+
+Front view (looking against the flow):
+
+```
+        ┌──────────┐ z = 338
+        │          │
+        │          │ 288 mm
+        └──────────┘ z = 50   (50 mm ground clearance)
+          389 mm
+         y = -194.5 ... +194.5
 ```
 
 ### Standard Dimensions
 
-| Parameter | Value |
-|---|---|
-| Overall length | 1044 mm |
-| Width | 389 mm |
-| Height | 288 mm |
-| Ground clearance | 50 mm |
-| Front-body radius (pillars) | 100 mm |
-| Rear slant angle (baseline) | 25° |
-| Stilts (4 cylindrical legs) | Ø 30 mm |
+| Parameter | Standard Ahmed body | This case's STL |
+|---|---|---|
+| Overall length | 1044 mm | 1044 mm |
+| Width | 389 mm | 389 mm |
+| Height | 288 mm | 288 mm |
+| Ground clearance | 50 mm | 50 mm |
+| Front-body radius | 100 mm | 100 mm (all four front edges) |
+| Rear slant angle (baseline) | 25° | 25° (35° with `--slant 35`) |
+| Slant length | 222 mm | 222 mm |
+| Stilts | 4 cylindrical legs, Ø 30 mm | none (body floats above the ground) |
 
 ### Why the Ahmed Body Matters
 
-The Ahmed body is **the** standard benchmark for automotive computational fluid
-dynamics (CFD) validation. Virtually every turbulence model, meshing strategy,
-and solver setting used in vehicle aerodynamics has been tested against Ahmed
-body data at some point. Its value comes from:
+The Ahmed body is a standard benchmark for automotive computational fluid
+dynamics (CFD) validation. Many turbulence models, meshing strategies, and
+solver settings used in vehicle aerodynamics have been tested against Ahmed
+body data. Its value comes from:
 
 - **Geometric simplicity** — the shape is fully defined by a handful of
   dimensions, so every research group is solving the same problem.
@@ -88,7 +209,7 @@ body data at some point. Its value comes from:
 - **Extensive experimental database** — Ahmed et al. (1984) provided drag
   measurements across a range of slant angles, and Lienhart, Stoots, and
   Becker (2003) later added detailed LDA velocity profiles and Reynolds-stress
-  measurements that are the gold standard for RANS validation.
+  measurements that are widely used for RANS validation.
 - **Critical slant-angle sensitivity** — at approximately 30°, the rear-slant
   flow undergoes a dramatic topological change from an attached, vortex-
   dominated regime to a fully separated wake, providing a stringent test of
@@ -100,17 +221,20 @@ body data at some point. Its value comes from:
 
 ### Flow Regime
 
-The standard test condition uses a freestream velocity of **$U_\infty$ = 40 m/s** in
+The test condition uses a freestream velocity of **$U_\infty$ = 40 m/s** in
 air ($\nu = 1.5 \times 10^{-5}$ m$^2$/s). Based on the body height $H = 0.288$ m:
 
 $$Re_H = U_\infty \cdot H / \nu = 40 \times 0.288 / (1.5 \times 10^{-5}) \approx 768{,}000$$
 
-This is a **fully turbulent external flow** in the subcritical Reynolds-number
-range for bluff bodies.
+Based on the body length $L = 1.044$ m, $Re_L = U_\infty L/\nu \approx 2.78 \times 10^6$.
+The flow is **fully turbulent external flow**. (Ahmed et al. measured at 60 m/s,
+$Re_L \approx 4.3 \times 10^6$; the drag of this bluff body is only weakly
+Reynolds-number dependent at these values.)
 
 ### Wake Structure
 
-The Ahmed body wake is dominated by three interacting vortex systems:
+On the standard body the wake is dominated by three interacting vortex
+systems:
 
 1. **A-pillar vortices** — generated along the rounded front edges of the body,
    these are relatively weak and dissipate quickly.
@@ -126,11 +250,15 @@ The Ahmed body wake is dominated by three interacting vortex systems:
 
 Total aerodynamic drag on the Ahmed body comes from two contributions:
 
-- **Pressure drag (form drag)** — dominates at roughly 70–80 % of total drag.
-  Comes from the low-pressure wake behind the base and the suction on the rear
-  slant.
-- **Skin-friction drag** — accounts for the remaining 20–30 %. Due to the bluff
-  shape, this is much smaller than for a streamlined body.
+- **Pressure drag (form drag)** — dominates. Comes from the low-pressure wake
+  behind the base and the suction on the rear slant. Commonly quoted: roughly
+  70–80 % of the total (not computed by this case).
+- **Skin-friction drag** — accounts for the remaining 20–30 % (same caveat).
+  Due to the bluff shape, this is much smaller than for a streamlined body.
+
+The split is not computed by this case's `forceCoeffs` output (which reports
+total, front and rear contributions); use the `forces` function object if you
+need the pressure/viscous split.
 
 ### The Critical Slant Angle
 
@@ -144,16 +272,17 @@ C-pillar vortices collapse, and the wake transitions from a three-dimensional,
 vortex-dominated topology to a quasi-two-dimensional, fully separated wake.
 Drag drops abruptly.
 
-This sharp transition is extremely difficult for RANS turbulence models to
-capture accurately, which is what makes the Ahmed body such a demanding
-validation case.
+This sharp transition is difficult for RANS turbulence models to capture
+accurately, which is what makes the Ahmed body such a demanding validation
+case.
 
 ### Ground Effect
 
 The 50 mm ground clearance creates an accelerated flow passage underneath the
 body. This under-body flow interacts with the wake, and the ground boundary
 condition (stationary vs. moving wall) has a noticeable effect on the predicted
-drag and wake symmetry.
+drag and wake symmetry. This case uses a moving ground (see
+[Boundary Conditions](#boundary-conditions)).
 
 ### Turbulence Model Selection
 
@@ -162,18 +291,18 @@ drag and wake symmetry.
 - Blends k-$\omega$ near walls (superior for adverse-pressure-gradient boundary layers)
   with k-$\varepsilon$ in the freestream (avoids the freestream sensitivity of standard k-$\omega$).
 - Includes a shear-stress-transport limiter that prevents over-prediction of
-  turbulent shear stress in adverse-pressure-gradient flows — critical for
+  turbulent shear stress in adverse-pressure-gradient flows — important for
   predicting separation on the rear slant.
-- Extensively validated for external vehicle aerodynamics.
-- **k-$\varepsilon$ models** tend to over-predict the attachment on the slant (under-predict
-  drag) because they over-estimate turbulent mixing.
+- Widely used and validated for external vehicle aerodynamics.
+- **k-$\varepsilon$ models** are reported to over-predict the attachment on the slant
+  (and so mis-predict drag) because they over-estimate turbulent mixing.
 
 ---
 
 ## Case Directory Structure
 
 ```
-ahmed_body/
+06_ahmed_body_aerodynamics/
 ├── 0/
 │   ├── U                          # Velocity field
 │   ├── p                          # Pressure field (kinematic)
@@ -185,23 +314,59 @@ ahmed_body/
 │   ├── turbulenceProperties       # RANS / k-omega SST selection
 │   └── triSurface/
 │       └── ahmed_body.stl         # Surface geometry for snappyHexMesh
-└── system/
-    ├── controlDict                # Solver control + forceCoeffs
-    ├── fvSchemes                  # Discretisation schemes
-    ├── fvSolution                 # Linear solvers & SIMPLE settings
-    ├── blockMeshDict              # Background hex mesh
-    ├── snappyHexMeshDict          # Body-fitted mesh with refinement
-    ├── decomposeParDict           # Domain decomposition for MPI
-    ├── meshQualityDict            # Mesh quality controls
-    └── surfaceFeatureExtractDict  # Feature-edge extraction
+├── system/
+│   ├── controlDict                # Run control, includes forceCoeffs and yPlus
+│   ├── forceCoeffs                # Drag/lift coefficient function object
+│   ├── fvSchemes                  # Discretisation schemes
+│   ├── fvSolution                 # Linear solvers & SIMPLE settings
+│   ├── blockMeshDict              # Background hex mesh
+│   ├── snappyHexMeshDict          # Body-fitted mesh with refinement
+│   ├── surfaceFeatureExtractDict  # Feature-edge extraction
+│   └── decomposeParDict           # Domain decomposition for MPI
+├── generate_ahmed_body.py         # Writes constant/triSurface/ahmed_body.stl
+├── Allrun / Allclean              # Run / clean the case (inside OpenFOAM)
+├── run_docker.sh                  # Clean, generate STL, Allrun in Docker, verify
+├── verify.py                      # Checks the logs and force coefficients
+├── render_figures.py              # pvbatch script that made images/*.png
+├── open_paraview.sh               # Opens the case in ParaView
+└── images/                        # Figures used in this README
 ```
 
 ---
 
-## Geometry — Obtaining the Ahmed Body STL
+## Geometry — the Ahmed Body STL
 
-You need an STL surface of the Ahmed body placed at the correct location in
-your computational domain.
+The case needs an STL surface of the Ahmed body located in the computational
+domain with the long axis along **x**, width along **y**, and height along **z**.
+
+### Option 0 — Generator script (used by this case)
+
+`generate_ahmed_body.py` (Python 3, standard library only) writes a
+116-triangle ASCII STL of the standard body (without stilts) and
+`run_docker.sh` calls it before every run:
+
+```bash
+python3 generate_ahmed_body.py                    # 25° slant (default)
+python3 generate_ahmed_body.py --slant-angle 35   # 35° slant
+python3 generate_ahmed_body.py --nose-radius 0    # sharp front edges
+```
+
+How it is built: every cross-section is a rectangle whose size depends only on
+$x$. Over the first 100 mm the section shrinks on all four sides by
+$R - \sqrt{R^2 - (R - x)^2}$ (a quarter circle in the side and plan views,
+12 segments of 7.5° each), then stays 389 $\times$ 288 mm until the slant
+starts at $x = 1.044 - 0.222 \cos 25° = 0.843$ m, where the roof descends at 25°.
+This keeps the longitudinal and rear edges sharp, as on the real body. Where the
+top and side fillets meet, the corner is the intersection of two cylinders
+instead of a sphere octant; the deviation is below the mesh size. `verify.py`
+checks the STL: closed surface (every edge shared by two triangles with
+opposite orientation), positive volume (outward normals), a frontal area equal
+to `Aref`, and the 100 mm front inset. Measured: 116 triangles, volume
+0.110744 m$^3$, frontal area 0.112032 m$^2$.
+
+The nose is at x = 0, the body is centred on y = 0 and its underside is at
+z = 0.05 m. The stilts are omitted. The committed
+`constant/triSurface/ahmed_body.stl` is the 25° output.
 
 ### Option 1 — Download
 
@@ -227,12 +392,14 @@ along **z**.
 ### Option 3 — Parametric Script (OpenSCAD)
 
 ```openscad
-// Simplified Ahmed body (no stilts, no front radius)
+// Ahmed body without stilts and without front radius (sharp front edges),
+// dimensions in mm; add the 100 mm front radius in CAD or use the Python script
 module ahmed_body() {
     difference() {
         cube([1044, 389, 288], center=false);
-        // Rear slant cut at 25 degrees
-        translate([1044, 0, 288])
+        // Rear slant cut at 25 degrees: the slant is 222 mm long, so it
+        // starts 222*cos(25) = 201 mm in front of the rear face
+        translate([1044 - 222*cos(25), 0, 288])
             rotate([0, 25, 0])
                 cube([400, 389, 400], center=false);
     }
@@ -241,14 +408,18 @@ translate([0, 0, 50])  // Ground clearance
     ahmed_body();
 ```
 
+Scale to metres (0.001) before export, and centre the body on y = 0
+(`translate([0, -194.5, 50])`) if you use it with this case's domain.
+
 ### Positioning the STL
 
 Place the body so that:
 
-- The nose is at approximately x = 1.0 m from the inlet (adequate approach
-  length).
-- The body is centred in y (symmetry plane at y = 0 if using half-model).
-- The bottom of the stilts sits on the ground plane (z = 0).
+- The nose is at x = 0 and the domain starts 5 m (about 4.8 L) upstream, so the
+  approach flow is undisturbed.
+- The body is centred in y (symmetry plane at y = 0 if using a half-model).
+- The underside of the body is at z = 0.05 m above the ground plane (z = 0).
+  For a model with stilts, the bottom of the stilts sits on the ground plane.
 
 ---
 
@@ -266,39 +437,40 @@ CFD. The Ahmed body requires careful attention to:
 
 Use the body length L = 1.044 m as the reference:
 
-| Boundary | Distance from body |
-|---|---|
-| Inlet | 5 L upstream of nose |
-| Outlet | 10 L downstream of base |
-| Lateral walls | 5 L from body centreline |
-| Top | 5 L above ground |
-| Ground | z = 0 (coincides with floor) |
+| Boundary | Distance from body | Patch name / type |
+|---|---|---|
+| Inlet | 5.0 m (about 5 L) upstream of nose | `inlet` / patch |
+| Outlet | 11.0 m (about 10 L) downstream of base | `outlet` / patch |
+| Lateral walls | 5.0 m (about 5 L) from body centreline | `side_left`, `side_right` / symmetryPlane |
+| Top | 5.0 m (about 5 L) above ground | `top` / symmetryPlane |
+| Ground | z = 0 (coincides with floor) | `ground` / wall |
+| Body | STL surface | `ahmed_body` / wall (created by snappyHexMesh) |
 
-This gives a domain of approximately:
+This gives a domain of:
 
 - x: -5.0 m to +12.0 m (17 m total)
 - y: -5.0 m to +5.0 m (10 m total)
 - z: 0.0 m to 5.0 m (5 m total)
 
+The blockage of the body ($0.112$ m$^2$ against $10 \times 5$ m$^2$) is 0.2 %.
+
+```
+ Side view (y = 0), not to scale
+
+   top (symmetryPlane)  z = 5 m
+  ┌──────────────────────────────────────────────────┐
+  │                                                  │
+  │ inlet               ┌────┐                outlet │
+  │ U = 40 m/s  ──►     │body│   wake  ──►     p = 0 │
+  │ k, omega fixed      └────┘                       │
+  └──────────────────────────────────────────────────┘
+   ground (wall, moving at 40 m/s)  z = 0
+  x = -5 m             x = 0..1.044             x = 12 m
+```
+
 ### blockMeshDict — Background Mesh
 
 ```cpp
-/*--------------------------------*- C++ -*----------------------------------*\
-| =========                 |                                                 |
-| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v2312                                |
-|   \\  /    A nd           | Website:  www.openfoam.com                      |
-|    \\/     M anipulation  |                                                 |
-\*---------------------------------------------------------------------------*/
-FoamFile
-{
-    version     2.0;
-    format      ascii;
-    class       dictionary;
-    object      blockMeshDict;
-}
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
 scale   1;
 
 vertices
@@ -382,67 +554,43 @@ boundary
 mergePatchPairs
 (
 );
-
-// ************************************************************************* //
 ```
 
-This gives a base mesh of roughly 106,000 cells (85 $\times$ 50 $\times$ 25). The cell size
-is approximately 0.2 m, which snappyHexMesh will refine down to the required
-resolution.
+This gives a base mesh of 106,250 cells after snappyHexMesh's first step
+(85 $\times$ 50 $\times$ 25 = 106,250). The cell size is 0.2 m, which
+snappyHexMesh refines down to the required resolution.
 
 ### surfaceFeatureExtractDict
 
 ```cpp
-/*--------------------------------*- C++ -*----------------------------------*\
-| =========                 |                                                 |
-| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v2312                                |
-|   \\  /    A nd           | Website:  www.openfoam.com                      |
-|    \\/     M anipulation  |                                                 |
-\*---------------------------------------------------------------------------*/
-FoamFile
-{
-    version     2.0;
-    format      ascii;
-    class       dictionary;
-    object      surfaceFeatureExtractDict;
-}
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
 ahmed_body.stl
 {
     extractionMethod    extractFromSurface;
 
     extractFromSurfaceCoeffs
     {
-        includedAngle   150;
+        includedAngle   170;
     }
 
     writeObj            yes;
 }
-
-// ************************************************************************* //
 ```
+
+`includedAngle 170` extracts edges whose included angle between the adjacent
+faces is below 170°. With the previous value 150 the edge where the roof meets
+the 25° slant (included angle 155°) was missed, although it is where the flow
+separates; 170 captures it (and all slants steeper than 10°). The 7.5° facets of
+the nose fillets (included angle 172.5°) stay below the threshold, so the
+fillets are not treated as feature edges. The log reports 57 external feature
+edges: the sharp body edges plus the mitre curves where the top and side
+fillets meet. Result: `constant/extendedFeatureEdgeMesh/ahmed_body.eMesh`, used
+by `features` (level 6, 3 mm) in snappyHexMeshDict. The 100 mm fillets are
+refined by `refinementSurfaces` level 5 (6.25 mm, 16 cells along each quarter
+circle).
 
 ### snappyHexMeshDict
 
 ```cpp
-/*--------------------------------*- C++ -*----------------------------------*\
-| =========                 |                                                 |
-| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v2312                                |
-|   \\  /    A nd           | Website:  www.openfoam.com                      |
-|    \\/     M anipulation  |                                                 |
-\*---------------------------------------------------------------------------*/
-FoamFile
-{
-    version     2.0;
-    format      ascii;
-    class       dictionary;
-    object      snappyHexMeshDict;
-}
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
 castellatedMesh true;
 snap            true;
 addLayers       true;
@@ -455,7 +603,6 @@ geometry
         name ahmed_body;
     }
 
-    // Refinement box around the body
     refinementBox_body
     {
         type searchableBox;
@@ -463,7 +610,6 @@ geometry
         max (  2.0   0.4   0.6 );
     }
 
-    // Refinement box for the wake region
     refinementBox_wake
     {
         type searchableBox;
@@ -471,7 +617,6 @@ geometry
         max (  4.0   0.6   0.6 );
     }
 
-    // Fine refinement close to the body
     refinementBox_near
     {
         type searchableBox;
@@ -532,7 +677,7 @@ castellatedMeshControls
         }
     }
 
-    locationInMesh (3.0 0.0 2.5);  // Point outside the body, inside the domain
+    locationInMesh (3.0 0.0 2.5);
 
     allowFreeStandingZoneFaces true;
 }
@@ -605,48 +750,77 @@ meshQualityControls
 writeFormat ascii;
 
 mergeTolerance 1e-6;
-
-// ************************************************************************* //
 ```
+
+Key entries:
+
+| Entry | Meaning |
+|---|---|
+| `refinementSurfaces ... level (5 6)` | surface cells between level 5 (6.25 mm) and level 6 (3.1 mm); the maximum applies at feature edges and curvature |
+| `features ... level 6` | feature edges refined to level 6 |
+| `refinementBox_near` level 4 (12.5 mm) | fine region around the body |
+| `refinementBox_body`, `refinementBox_wake` level 3 (25 mm) | body vicinity and wake |
+| `nCellsBetweenLevels 3` | smooth transition between refinement levels |
+| `locationInMesh (3 0 2.5)` | point in the fluid, outside the body |
+| `patchInfo { type wall; }` | the STL becomes a `wall` patch named `ahmed_body` |
+| `layers`: `ahmed_body` 5, `ground` 3 | prism layers on the body and on the floor |
+| `relativeSizes true`, `expansionRatio 1.2`, `finalLayerThickness 0.5` | thickness of the outermost layer is 50 % of the local cell size |
+| `maxNonOrtho 65`, `maxInternalSkewness 4` | mesh quality limits that the `verify.py` mesh checks reuse |
+| `minTetQuality -1e30` | tet-quality criterion disabled (see the `checkMesh -allGeometry` note below) |
 
 ### Mesh Quality Targets
 
-| Metric | Target |
-|---|---|
-| y+ on body | ~30 (wall functions) or ~1 (resolved) |
-| Surface refinement | Level 5–6 (~3–6 mm cells) |
-| Wake refinement | Level 3 (~25 mm cells) |
-| Boundary layers on body | 5 layers, expansion ratio 1.2 |
-| Total cell count | ~2–5 million |
+| Metric | Target | Measured in this case |
+|---|---|---|
+| y+ on body | ~30–300 (wall functions) or ~1 (resolved) | average 61.6, min 13.2, max 142.7 at iteration 581 (ground: average 182, max 1835) |
+| Surface refinement | Level 5–6 (~3–6 mm cells) | as set |
+| Wake refinement | Level 3 (~25 mm cells) | as set |
+| Boundary layers on body | 5 layers, expansion ratio 1.2 | 4.98 layers, 90 % of requested thickness |
+| Total cell count | ~1 million | 968,553 |
 
-For wall-function meshes (y+ $\approx$ 30), the first cell height should be
-approximately 0.8 mm at $Re = 768{,}000$. The 5-layer prism stack with expansion
-ratio 1.2 captures the inner portion of the boundary layer while relying on
-`omegaWallFunction` and `kqRWallFunction` for the near-wall treatment.
+`checkMesh -allGeometry -allTopology` is stricter than the checks that
+snappyHexMesh applies (`minTetQuality` is disabled in `meshQualityControls`).
+In an earlier run of the sharp-nose variant with 6 subdomains (996,610 cells) it reported 49
+faces with low-quality decomposition tets and 27,893 concave cells (by the
+face-plane criterion) in addition to 62.0° maximum non-orthogonality and 2.39
+maximum skewness. The standard `checkMesh` run by `Allrun` reports `Mesh OK`.
+
+The log of snappyHexMesh gives the overall layer thickness on the body: 0.00825 m
+for five layers, i.e. a first layer of about 1.1 mm (estimated from the geometric series). For wall functions the first cell
+centre should sit in the log layer ($y^+$ = 30–300); the five-layer stack relies on
+`omegaWallFunction` and `kqRWallFunction`/`nutkWallFunction` for the
+near-wall treatment. Resolving the viscous sublayer ($y^+ \approx 1$) would need a
+first layer of roughly 0.01–0.02 mm and a different set of wall boundary
+conditions.
+
+![Surface mesh near the rear slant](images/mesh_body_surface.png)
+
+*Surface mesh of the `ahmed_body` patch around the top of the slant (looking from the rear-left). Look at the cell size (3–6 mm), the finer cells along the slant edges and the layer of small cells next to the edges.*
+
+![Mesh in the centre plane](images/mesh_centreplane.png)
+
+*Mesh in the plane y = 0 (the cut is triangulated by ParaView). The body is the red block. Note the nested refinement boxes (levels 3 and 4) and the thin prism layers on the body. The coarse 0.2 m background cells are outside this view.*
 
 ---
 
 ## Boundary Conditions
 
+```
+ patch        U                  p              k / omega / nut
+ inlet        fixedValue 40 0 0  zeroGradient   fixedValue (0.24 / 90) / calculated
+ outlet       zeroGradient       fixedValue 0   zeroGradient / calculated
+ ground       fixedValue 40 0 0  zeroGradient   wall functions (moving wall)
+ ahmed_body   noSlip             zeroGradient   wall functions
+ top, side_*  symmetryPlane (all fields)
+```
+
+The ground is a **moving wall** (`fixedValue (40 0 0)`): it simulates the road
+moving with the free stream speed and avoids a ground boundary layer building
+up under the body. Use `noSlip` instead for a stationary-ground simulation.
+
 ### Velocity — `0/U`
 
 ```cpp
-/*--------------------------------*- C++ -*----------------------------------*\
-| =========                 |                                                 |
-| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v2312                                |
-|   \\  /    A nd           | Website:  www.openfoam.com                      |
-|    \\/     M anipulation  |                                                 |
-\*---------------------------------------------------------------------------*/
-FoamFile
-{
-    version     2.0;
-    format      ascii;
-    class       volVectorField;
-    object      U;
-}
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
 dimensions      [0 1 -1 0 0 0 0];
 
 internalField   uniform (40 0 0);
@@ -666,9 +840,6 @@ boundaryField
 
     ground
     {
-        // Moving wall to simulate road — matches freestream velocity
-        // to eliminate ground boundary-layer buildup.
-        // Use "noSlip" for a stationary-ground simulation instead.
         type            fixedValue;
         value           uniform (40 0 0);
     }
@@ -693,29 +864,11 @@ boundaryField
         type            noSlip;
     }
 }
-
-// ************************************************************************* //
 ```
 
 ### Pressure — `0/p`
 
 ```cpp
-/*--------------------------------*- C++ -*----------------------------------*\
-| =========                 |                                                 |
-| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v2312                                |
-|   \\  /    A nd           | Website:  www.openfoam.com                      |
-|    \\/     M anipulation  |                                                 |
-\*---------------------------------------------------------------------------*/
-FoamFile
-{
-    version     2.0;
-    format      ascii;
-    class       volScalarField;
-    object      p;
-}
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
 dimensions      [0 2 -2 0 0 0 0];
 
 internalField   uniform 0;
@@ -758,8 +911,6 @@ boundaryField
         type            zeroGradient;
     }
 }
-
-// ************************************************************************* //
 ```
 
 ### Turbulent Kinetic Energy — `0/k`
@@ -770,22 +921,6 @@ length scale l = 0.01 m:
 $$k = 1.5 \cdot (U_\infty \cdot I)^2 = 1.5 \cdot (40 \cdot 0.01)^2 = 0.24 \text{ m}^2/\text{s}^2$$
 
 ```cpp
-/*--------------------------------*- C++ -*----------------------------------*\
-| =========                 |                                                 |
-| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v2312                                |
-|   \\  /    A nd           | Website:  www.openfoam.com                      |
-|    \\/     M anipulation  |                                                 |
-\*---------------------------------------------------------------------------*/
-FoamFile
-{
-    version     2.0;
-    format      ascii;
-    class       volScalarField;
-    object      k;
-}
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
 dimensions      [0 2 -2 0 0 0 0];
 
 internalField   uniform 0.24;
@@ -830,8 +965,6 @@ boundaryField
         value           uniform 0.24;
     }
 }
-
-// ************************************************************************* //
 ```
 
 ### Specific Dissipation Rate — `0/omega`
@@ -841,22 +974,6 @@ $$\omega = k^{0.5} / (C_\mu^{0.25} \cdot l) = 0.24^{0.5} / (0.09^{0.25} \cdot 0.
 Rounding to **90 s$^{-1}$** for the inlet value.
 
 ```cpp
-/*--------------------------------*- C++ -*----------------------------------*\
-| =========                 |                                                 |
-| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v2312                                |
-|   \\  /    A nd           | Website:  www.openfoam.com                      |
-|    \\/     M anipulation  |                                                 |
-\*---------------------------------------------------------------------------*/
-FoamFile
-{
-    version     2.0;
-    format      ascii;
-    class       volScalarField;
-    object      omega;
-}
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
 dimensions      [0 0 -1 0 0 0 0];
 
 internalField   uniform 90;
@@ -901,29 +1018,11 @@ boundaryField
         value           uniform 90;
     }
 }
-
-// ************************************************************************* //
 ```
 
 ### Turbulent Viscosity — `0/nut`
 
 ```cpp
-/*--------------------------------*- C++ -*----------------------------------*\
-| =========                 |                                                 |
-| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v2312                                |
-|   \\  /    A nd           | Website:  www.openfoam.com                      |
-|    \\/     M anipulation  |                                                 |
-\*---------------------------------------------------------------------------*/
-FoamFile
-{
-    version     2.0;
-    format      ascii;
-    class       volScalarField;
-    object      nut;
-}
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
 dimensions      [0 2 -1 0 0 0 0];
 
 internalField   uniform 0;
@@ -969,8 +1068,6 @@ boundaryField
         value           uniform 0;
     }
 }
-
-// ************************************************************************* //
 ```
 
 ### Boundary Condition Summary
@@ -984,6 +1081,10 @@ boundaryField
 | side_left | symmetryPlane | symmetryPlane | symmetryPlane | symmetryPlane | symmetryPlane |
 | side_right | symmetryPlane | symmetryPlane | symmetryPlane | symmetryPlane | symmetryPlane |
 | ahmed_body | noSlip | zeroGradient | kqRWallFunction | omegaWallFunction | nutkWallFunction |
+
+The patch names in `0/` must match the patches created by blockMesh and
+snappyHexMesh; in particular `ahmed_body` only exists after meshing, which is why
+`Allrun` decomposes the fields after the mesh is built.
 
 ---
 
@@ -1006,22 +1107,6 @@ Ahmed body for several reasons:
 ### `constant/turbulenceProperties`
 
 ```cpp
-/*--------------------------------*- C++ -*----------------------------------*\
-| =========                 |                                                 |
-| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v2312                                |
-|   \\  /    A nd           | Website:  www.openfoam.com                      |
-|    \\/     M anipulation  |                                                 |
-\*---------------------------------------------------------------------------*/
-FoamFile
-{
-    version     2.0;
-    format      ascii;
-    class       dictionary;
-    object      turbulenceProperties;
-}
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
 simulationType  RAS;
 
 RAS
@@ -1030,50 +1115,33 @@ RAS
     turbulence      on;
     printCoeffs     on;
 }
-
-// ************************************************************************* //
 ```
 
 ### `constant/transportProperties`
 
 ```cpp
-/*--------------------------------*- C++ -*----------------------------------*\
-| =========                 |                                                 |
-| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v2312                                |
-|   \\  /    A nd           | Website:  www.openfoam.com                      |
-|    \\/     M anipulation  |                                                 |
-\*---------------------------------------------------------------------------*/
-FoamFile
-{
-    version     2.0;
-    format      ascii;
-    class       dictionary;
-    object      transportProperties;
-}
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
 transportModel  Newtonian;
 
 nu              [0 2 -1 0 0 0 0] 1.5e-05;
-
-// ************************************************************************* //
 ```
 
 ### Inlet Turbulence Calculation
 
 For freestream turbulence intensity I = 1 % and turbulent length scale
-l = 0.01 m (approximately 3 % of body height):
+l = 0.01 m (about 3.5 % of body height):
 
 | Quantity | Formula | Value |
 |---|---|---|
 | k | 1.5 $\times$ ($U_\infty$ $\times$ I)$^2$ | 0.24 m$^2$/s$^2$ |
-| $\omega$ | k^0.5 / (C_$\mu$^0.25 $\times$ l) | $\approx$ 90 s$^{-1}$ |
-| $\nu$_t | k / $\omega$ | $\approx$ 2.7 $\times$ 10$^{-3}$ m$^2$/s |
-| $\nu$_t / $\nu$ | — | $\approx$ 178 |
+| $\omega$ | $k^{0.5}$ / ($C_\mu^{0.25}$ $\times$ l) | $\approx$ 90 s$^{-1}$ |
+| $\nu_t$ | k / $\omega$ | $\approx$ 2.7 $\times$ 10$^{-3}$ m$^2$/s |
+| $\nu_t / \nu$ | — | $\approx$ 178 |
 
-These values give a turbulent viscosity ratio of about 178, which is reasonable
-for a low-turbulence wind-tunnel freestream.
+I and l are assumed values, not measurements. They give a turbulent viscosity
+ratio of about 178, which is higher than the 1–10 usually quoted for a clean
+wind-tunnel freestream; lower `omega` (larger l) would reduce it. Since the
+inlet is five body lengths upstream, part of this freestream turbulence decays
+before it reaches the body.
 
 ---
 
@@ -1082,22 +1150,6 @@ for a low-turbulence wind-tunnel freestream.
 ### `system/controlDict`
 
 ```cpp
-/*--------------------------------*- C++ -*----------------------------------*\
-| =========                 |                                                 |
-| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v2312                                |
-|   \\  /    A nd           | Website:  www.openfoam.com                      |
-|    \\/     M anipulation  |                                                 |
-\*---------------------------------------------------------------------------*/
-FoamFile
-{
-    version     2.0;
-    format      ascii;
-    class       dictionary;
-    object      controlDict;
-}
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
 application     simpleFoam;
 
 startFrom       startTime;
@@ -1112,11 +1164,11 @@ deltaT          1;
 
 writeControl    timeStep;
 
-writeInterval   500;
+writeInterval   50;
 
 purgeWrite      3;
 
-writeFormat     ascii;
+writeFormat     binary;
 
 writePrecision  8;
 
@@ -1131,30 +1183,17 @@ runTimeModifiable true;
 functions
 {
     #include "forceCoeffs"
+    #includeFunc yPlus
 }
-
-// ************************************************************************* //
 ```
+
+Results are written every 50 iterations (binary), and `purgeWrite 3` keeps only
+the last three result times. `forceCoeffs` and `yPlus` are evaluated every
+iteration through `functions`.
 
 ### `system/fvSchemes`
 
 ```cpp
-/*--------------------------------*- C++ -*----------------------------------*\
-| =========                 |                                                 |
-| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v2312                                |
-|   \\  /    A nd           | Website:  www.openfoam.com                      |
-|    \\/     M anipulation  |                                                 |
-\*---------------------------------------------------------------------------*/
-FoamFile
-{
-    version     2.0;
-    format      ascii;
-    class       dictionary;
-    object      fvSchemes;
-}
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
 ddtSchemes
 {
     default         steadyState;
@@ -1197,29 +1236,11 @@ wallDist
 {
     method          meshWave;
 }
-
-// ************************************************************************* //
 ```
 
 ### `system/fvSolution`
 
 ```cpp
-/*--------------------------------*- C++ -*----------------------------------*\
-| =========                 |                                                 |
-| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v2312                                |
-|   \\  /    A nd           | Website:  www.openfoam.com                      |
-|    \\/     M anipulation  |                                                 |
-\*---------------------------------------------------------------------------*/
-FoamFile
-{
-    version     2.0;
-    format      ascii;
-    class       dictionary;
-    object      fvSolution;
-}
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
 solvers
 {
     p
@@ -1249,7 +1270,7 @@ SIMPLE
 {
     nNonOrthogonalCorrectors 1;
 
-    consistent      yes;    // SIMPLEC for faster convergence
+    consistent      yes;
 
     residualControl
     {
@@ -1272,8 +1293,6 @@ relaxationFactors
         p               0.3;
     }
 }
-
-// ************************************************************************* //
 ```
 
 ### Solver Notes
@@ -1285,42 +1304,26 @@ relaxationFactors
 - **GAMG** (Geometric Agglomerated Algebraic Multigrid) for pressure is much
   faster than Krylov solvers for this type of elliptic equation.
 - **Relaxation factors**: 0.7 for momentum/turbulence and 0.3 for pressure are
-  good starting values. Reduce if convergence is unstable.
+  good starting values. Reduce if convergence is unstable. (With `consistent yes`
+  a pressure factor of 1.0 is common; 0.3 is conservative.)
 - **Residual targets**: $1 \times 10^{-5}$ for all fields should give well-converged
-  force coefficients (< 1 % variation in last 200 iterations).
+  force coefficients (< 1 % variation in last 200 iterations). The solver stops
+  automatically when all residual targets are met.
 
 ---
 
 ## Parallel Decomposition
 
-The Ahmed body mesh (2–5 million cells) is too large for efficient serial
-execution on most workstations. MPI-parallel execution across 4–8 cores is
-strongly recommended.
+The Ahmed body mesh (about 1 million cells) is large enough that MPI-parallel
+execution on 4–8 cores is strongly recommended. The case is set up for 4
+subdomains.
 
 ### `system/decomposeParDict`
 
 ```cpp
-/*--------------------------------*- C++ -*----------------------------------*\
-| =========                 |                                                 |
-| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v2312                                |
-|   \\  /    A nd           | Website:  www.openfoam.com                      |
-|    \\/     M anipulation  |                                                 |
-\*---------------------------------------------------------------------------*/
-FoamFile
-{
-    version     2.0;
-    format      ascii;
-    class       dictionary;
-    object      decomposeParDict;
-}
-// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
-
-numberOfSubdomains  6;
+numberOfSubdomains  4;
 
 method          scotch;
-
-// ************************************************************************* //
 ```
 
 **Scotch** is the recommended decomposition method because it automatically
@@ -1332,40 +1335,60 @@ especially important for complex snappyHexMesh geometries.
 
 ```bash
 #!/bin/bash
+#------------------------------------------------------------------------------
+# Allrun: Ahmed body, simpleFoam + kOmegaSST, snappyHexMesh, MPI parallel.
+# The mesh is generated in parallel, reconstructed, checked in serial and then
+# decomposed again together with the 0/ fields (the first decomposition only
+# serves snappyHexMesh and does not know the ahmed_body patch).
+#------------------------------------------------------------------------------
 cd "${0%/*}" || exit
 . ${WM_PROJECT_DIR:?}/bin/tools/RunFunctions
 
-nProcs=$(foamDictionary -entry numberOfSubdomains -value system/decomposeParDict)
-
-# 1. Generate background mesh
+echo "Step 1: background mesh (blockMesh)"
 runApplication blockMesh
 
-# 2. Extract surface features
+echo "Step 2: feature edges (surfaceFeatureExtract)"
 runApplication surfaceFeatureExtract
 
-# 3. Run snappyHexMesh in parallel
+echo "Step 3: decompose background mesh"
 runApplication decomposePar
+
+echo "Step 4: snappyHexMesh (parallel)"
 runParallel snappyHexMesh -overwrite
 
-# 4. Check mesh quality
-runParallel checkMesh -latestTime -allTopology -allGeometry
+echo "Step 5: reconstruct mesh and check it (serial)"
+runApplication reconstructParMesh -constant
+rm -rf processor*
+runApplication checkMesh
 
-# 5. Run the solver
+echo "Step 6: decompose mesh and fields, run $(getApplication) (parallel)"
+mv log.decomposePar log.decomposePar.mesh
+runApplication decomposePar
 runParallel $(getApplication)
 
-# 6. Reconstruct
-runApplication reconstructParMesh -constant
+echo "Step 7: reconstruct last time"
 runApplication reconstructPar -latestTime
 
-echo ""
-echo "Done. Force coefficients written to postProcessing/forceCoeffs/"
-echo ""
+echo "Done. Force coefficients: postProcessing/forceCoeffs/0/"
+echo "Check results with: python3 verify.py"
 ```
+
+Why the mesh is decomposed twice: the first `decomposePar` splits the empty
+background mesh so that snappyHexMesh can run in parallel. The decomposed `0/`
+fields written at this point do not have the `ahmed_body` patch, and the solver
+would stop with `Cannot find patchField entry for ahmed_body`. `Allrun`
+therefore reconstructs the final mesh, checks it in serial, deletes the
+`processor*` directories and decomposes mesh and fields again.
 
 ### `Allclean` Script
 
 ```bash
 #!/bin/bash
+#------------------------------------------------------------------------------
+# Allclean: remove generated mesh, results and logs.
+# Tracked inputs (0/, system/, constant/triSurface/*.stl, images/, verify.py)
+# are kept.
+#------------------------------------------------------------------------------
 cd "${0%/*}" || exit
 . ${WM_PROJECT_DIR:?}/bin/tools/CleanFunctions
 
@@ -1374,6 +1397,8 @@ rm -rf processor*
 rm -rf constant/extendedFeatureEdgeMesh
 rm -f constant/triSurface/*.eMesh
 rm -rf postProcessing
+rm -f log.*
+rm -f *.foam
 
 echo "Case cleaned."
 ```
@@ -1382,56 +1407,51 @@ echo "Case cleaned."
 
 ## Force Coefficient Monitoring
 
-Create a file `system/forceCoeffs` that is `#include`d from `controlDict`:
+`system/forceCoeffs` is `#include`d from `controlDict`:
 
 ### `system/forceCoeffs`
 
 ```cpp
-/*--------------------------------*- C++ -*----------------------------------*\
-| =========                 |                                                 |
-| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v2312                                |
-|   \\  /    A nd           | Website:  www.openfoam.com                      |
-|    \\/     M anipulation  |                                                 |
-\*---------------------------------------------------------------------------*/
-
 forceCoeffs
 {
     type            forceCoeffs;
-    libs            (forces);
+    libs            ("libforces.so");
     writeControl    timeStep;
     writeInterval   1;
 
     patches         (ahmed_body);
 
-    rho             rhoInf;     // incompressible
-    rhoInf          1.225;      // air density [kg/m³]
+    rho             rhoInf;
+    rhoInf          1.225;
 
-    // Freestream velocity magnitude
     magUInf         40;
 
     // Reference length (body length)
     lRef            1.044;
 
-    // Reference area (frontal area = width x height)
-    // A_ref = 0.389 m × 0.288 m = 0.112032 m²
+    // Reference area (frontal area = width x height = 0.389 x 0.288)
     Aref            0.112032;
 
-    // Drag direction (streamwise)
     dragDir         (1 0 0);
-
-    // Lift direction (vertical)
     liftDir         (0 0 1);
-
-    // Pitch axis
     pitchAxis       (0 1 0);
 
-    // Centre of rotation
     CofR            (0.522 0 0.194);
 }
-
-// ************************************************************************* //
 ```
+
+| Entry | Value | Source |
+|---|---|---|
+| `libs` | `("libforces.so")` | OpenFOAM 6 needs the library file name; `(forces)` is rejected |
+| `patches` | `ahmed_body` | patch created by snappyHexMesh |
+| `rhoInf`, `magUInf` | 1.225 kg/m$^3$, 40 m/s | `p` is kinematic, so `rho rhoInf` converts to force; `magUInf` = inlet velocity |
+| `Aref` | 0.112032 m$^2$ | frontal area W $\times$ H = 0.389 $\times$ 0.288 |
+| `lRef` | 1.044 m | body length |
+| `CofR` | (0.522 0 0.194) | mid-length, y = 0, mid-height |
+
+`verify.py` checks all of these against the STL and `0/U`. The coefficients are
+written to `postProcessing/forceCoeffs/0/forceCoeffs.dat` (columns `Time Cm Cd
+Cl Cl(f) Cl(r)`).
 
 ### Expected Force Coefficients
 
@@ -1439,12 +1459,13 @@ forceCoeffs
 |---|---|---|
 | Ahmed et al. (1984) experiment | 25° | 0.285 |
 | Ahmed et al. (1984) experiment | 35° | 0.260 |
-| k-$\omega$ SST RANS (typical) | 25° | 0.28 – 0.30 |
-| k-$\omega$ SST RANS (typical) | 35° | 0.25 – 0.27 |
+| k-$\omega$ SST RANS (typical, standard body) | 25° | 0.28 – 0.30 |
+| k-$\omega$ SST RANS (typical, standard body) | 35° | 0.25 – 0.27 |
 
 The k-$\omega$ SST model typically predicts Cd within 5 % of the experimental value
-for the 25° slant case. Accuracy for the 35° case (fully separated) depends
-heavily on mesh resolution in the wake.
+for the 25° slant case on the standard body. Accuracy for the 35° case (fully
+separated) depends heavily on mesh resolution in the wake. These are literature
+values; they were not reproduced by the runs documented here.
 
 ---
 
@@ -1452,19 +1473,31 @@ heavily on mesh resolution in the wake.
 
 ### Prerequisites
 
-- OpenFOAM v2312 or later (ESI or Foundation version)
-- An Ahmed body STL file in `constant/triSurface/`
-- At least 8 GB of RAM (16 GB recommended for > 3 M cells)
-- 4–8 CPU cores
+- Docker with the `cfdengine/openfoam` image (OpenFOAM 6, Foundation), and
+  Python 3 on the host (for the STL generator and `verify.py`); or a native
+  OpenFOAM 6 installation with MPI. The dictionaries use OpenFOAM 6 syntax;
+  other versions may need small changes (for example `libs`, see above).
+- Several GB of RAM and 4 CPU cores for the ~1 M-cell mesh.
 
-### Step-by-Step
+### One command (Docker)
+
+```bash
+./run_docker.sh              # 25° slant
+./run_docker.sh --slant 35   # 35° slant
+```
+
+It cleans the case, generates the STL, runs `Allrun` in the container and
+finishes with `python3 verify.py`.
+
+### Step-by-Step (native OpenFOAM)
 
 ```bash
 # 1. Source OpenFOAM environment
-source /opt/openfoam/etc/bashrc    # adjust path as needed
+source /opt/openfoam6/etc/bashrc    # adjust path as needed
 
-# 2. Navigate to the case directory
-cd ahmed_body
+# 2. Navigate to the case directory and create the STL
+cd 06_ahmed_body_aerodynamics
+python3 generate_ahmed_body.py
 
 # 3. Create background mesh
 blockMesh
@@ -1476,61 +1509,107 @@ surfaceFeatureExtract
 decomposePar
 
 # 6. Run snappyHexMesh in parallel
-mpirun -np 6 snappyHexMesh -overwrite -parallel
+mpirun -np 4 snappyHexMesh -overwrite -parallel
 
-# 7. Check mesh quality
-mpirun -np 6 checkMesh -latestTime -allTopology -allGeometry -parallel
+# 7. Reconstruct the mesh, check it, and decompose mesh + fields again
+reconstructParMesh -constant
+rm -rf processor*
+checkMesh
+decomposePar
 
 # 8. Run the solver
-mpirun -np 6 simpleFoam -parallel | tee log.simpleFoam
+mpirun -np 4 simpleFoam -parallel | tee log.simpleFoam
 
 # 9. Reconstruct for post-processing
-reconstructParMesh -constant
 reconstructPar -latestTime
 
 # 10. Visualise
 paraFoam
 ```
 
-Or simply:
-
-```bash
-chmod +x Allrun Allclean
-./Allclean && ./Allrun
-```
+Or simply `./Allclean && ./Allrun` inside an OpenFOAM environment (make the
+scripts executable first with `chmod +x Allrun Allclean`).
 
 ### Monitoring Convergence
 
 During the run, you can monitor residuals and force coefficients:
 
 ```bash
-# In a separate terminal — watch residuals
-foamMonitor -l postProcessing/forceCoeffs/0/coefficient.dat
+# In a separate terminal: Cd while the solver runs
+tail -f postProcessing/forceCoeffs/0/forceCoeffs.dat
 
-# Or plot with gnuplot
+# Or plot with gnuplot (Cd is column 3)
 gnuplot -persist -e "
     set xlabel 'Iteration';
     set ylabel 'Cd';
-    plot 'postProcessing/forceCoeffs/0/coefficient.dat' using 1:2 with lines title 'Cd'
+    plot 'postProcessing/forceCoeffs/0/forceCoeffs.dat' using 1:3 with lines title 'Cd'
 "
 ```
 
 Convergence criteria:
 
-- All residuals below $1 \times 10^{-5}$
-- Force coefficients stable to within 0.1 % over the last 200 iterations
+- All residuals below $1 \times 10^{-5}$ (the solver then stops by itself)
+- Force coefficients stable to within 1 % over the last 200 iterations
 - Typically requires 1500–3000 iterations
+
+### Run time of the check run
+
+Measured with `./run_docker.sh` on a 20-core host that was shared with other
+jobs (load average about 30), using 4 MPI ranks:
+
+| Step | Result |
+|---|---|
+| `blockMesh`, `surfaceFeatureExtract`, `decomposePar` | seconds |
+| `snappyHexMesh` (parallel) | 116 s, 968,553 cells |
+| `simpleFoam` | 581 iterations in about 1500 s (about 2.6 s per iteration) |
+
+The solver job was stopped after 581 of 3000 iterations; it did not reach
+`endTime` or the residual targets. At the same speed 3000 iterations would take
+roughly 2.2 hours (extrapolation, not measured).
 
 ---
 
 ## Expected Results
 
+### Results of the check run
+
+The case was run as described above (25° slant, 4 ranks) and stopped after 581
+of 3000 iterations. **The run is not converged and the full run was not
+completed**, so these are partially converged fields. The figures were produced
+by `render_figures.py` from the decomposed result at time 550.
+
+| Quantity | Value at iteration 580 |
+|---|---|
+| Cd | 0.288 (0.289 at 400, 0.292 at 500); mean of iterations 381-580: 0.290, peak-to-peak 4 % |
+| Cl | 0.272 |
+| Cm | -0.133 |
+| $y^+$ on `ahmed_body` | average 61.6, min 13.2, max 142.7 |
+| Initial residuals | p 2.1e-4, Ux 2.8e-4, Uy 9.3e-3, Uz 6.8e-3, k 3.5e-4, omega 1.1e-5 |
+
+![Drag coefficient history](images/cd_history.png)
+
+*Cd against iteration (iterations 1-24 are left out because of the start-up transient). Cd is within 1–3 % of the experimental 0.285 but still drifting by a few percent; the converged value is not known.*
+
+![Cp on the front face](images/cp_body_front.png)
+
+*Pressure coefficient $C_p = p/(0.5 U_\infty^2)$ seen from the front-left. Look at the stagnation region ($C_p \approx 1$) on the flat front face and the suction on the rounded edges and the roof.*
+
+![Cp on the rear of the body](images/cp_body_rear.png)
+
+*Same quantity seen from the rear-right. Look at the base (negative $C_p$) and the suction band at the top edge of the slant.*
+
 ### Drag Coefficient
 
-For a well-resolved mesh (~3 M cells) with k-$\omega$ SST:
+For a well-resolved mesh with k-$\omega$ SST the literature values for the
+standard body are:
 
-- **25° slant**: $C_d \approx 0.285 \pm 0.015$ (experimental: 0.285)
-- **35° slant**: $C_d \approx 0.255 \pm 0.020$ (experimental: 0.260)
+- **25° slant**: $C_d \approx 0.285 \pm 0.03$ (experimental: 0.285)
+- **35° slant**: $C_d \approx 0.255 \pm 0.03$ (experimental: 0.260)
+
+This case (standard body without stilts, 40 m/s) gave Cd = 0.288 at iteration
+580 of an unfinished run; the experimental breakdown cited by COMSOL for 25°
+is front 0.020, slant 0.140, base 0.070 and skin friction 0.055 (total 0.285),
+i.e. skin friction is about 19 % of the drag.
 
 ### Wake Structure
 
@@ -1543,7 +1622,8 @@ The simulation should capture:
    base, with a saddle point separating the upper (slant-influenced) and lower
    (under-body) recirculation regions.
 3. **Horseshoe vortex** — at the junction of the body and the ground plane
-   (visible primarily in fine-mesh simulations).
+   (visible primarily in fine-mesh simulations; this case has no stilts, so
+   there is no horseshoe vortex around legs).
 
 ### Pressure Distribution
 
@@ -1570,10 +1650,14 @@ The surface streamlines on the slant should show:
 Open the case in ParaView:
 
 ```bash
-paraFoam -builtin
+./open_paraview.sh        # creates ahmed_body.foam and starts paraview
 # or
-touch case.foam && paraview case.foam
+paraFoam
 ```
+
+If the run was interrupted before `reconstructPar`, open the case with *Case
+Type* set to *Decomposed Case* in the OpenFOAM reader. The figures in this
+README were made with `pvbatch render_figures.py`.
 
 #### Pressure Contours
 
@@ -1616,21 +1700,29 @@ touch case.foam && paraview case.foam
 ### Extracting Force Coefficients from Log
 
 ```bash
-# Extract Cd vs iteration from the forceCoeffs output
+# Cd, Cl ... as printed by the function object (every iteration)
 grep "Cd" log.simpleFoam | tail -20
 
-# Or plot directly from the postProcessing directory
-cat postProcessing/forceCoeffs/0/coefficient.dat | tail -20
+# Or read the time series directly
+tail -20 postProcessing/forceCoeffs/0/forceCoeffs.dat
+
+# y+ on the body
+grep "patch ahmed_body y+" log.simpleFoam | tail -1
 ```
 
 ### Centreline Cp Extraction
 
-Use the `sample` utility or ParaView's **Plot Over Line** filter:
+Use the `sample` utility or ParaView's **Slice** and **Plot Over Line** filters:
 
-1. In ParaView: **Filters → Data Analysis → Plot Over Line**
-2. Set line from ($-$0.5, 0, 0.194) to (2.0, 0, 0.194) — centreline at
-   mid-height of the body.
-3. Plot Cp along this line and compare with Lienhart et al. (2003) data.
+1. Extract the `ahmed_body` patch, then apply a **Slice** at y = 0. The result is
+   the closed outline of the body in the centre plane.
+2. Plot Cp over $x$ along this outline (**Plot Data** or **Plot On Sorted
+   Lines**) to see the stagnation peak, the roof suction and the slant/base
+   pressure.
+3. For wake profiles, apply **Plot Over Line** on the internal mesh along
+   vertical lines in the y = 0 plane at stations behind the body (for example
+   $x$ = 1.1 to 1.5 m, $z$ = 0 to 0.5 m) and compare $U_x$ with the LDA
+   profiles of Lienhart et al. (2003).
 
 ---
 
@@ -1641,7 +1733,8 @@ Use the `sample` utility or ParaView's **Plot Over Line** filter:
 Compare the aerodynamics of the Ahmed body at different rear slant angles:
 
 1. Run the baseline 25° case as described above.
-2. Modify the STL geometry to use a **35°** slant angle.
+2. Generate a **35°** slant angle STL (`./run_docker.sh --slant 35`, or
+   `python3 generate_ahmed_body.py --slant-angle 35`).
 3. Run the same simulation with identical mesh settings and boundary conditions.
 4. Compare:
    - Drag coefficient (Cd)
@@ -1656,10 +1749,12 @@ Compare the aerodynamics of the Ahmed body at different rear slant angles:
 Assess the influence of mesh resolution on the predicted drag:
 
 1. Create three meshes with increasing refinement:
-   - Coarse: ~1 M cells (reduce refinement levels by 1)
-   - Medium: ~3 M cells (baseline settings above)
-   - Fine: ~6 M cells (increase refinement levels by 1)
-2. Run all three and compare Cd.
+   - Coarse: reduce all refinement levels by 1
+   - Medium: baseline settings above (about 1.0 M cells)
+   - Fine: increase all refinement levels by 1
+2. Run all three and compare Cd. (A one-level change reduces or increases the
+   cell count of the refined regions by up to a factor 8; only the baseline
+   count was measured here.)
 3. Plot Cd vs. cell count and assess whether the solution is mesh-independent.
 
 ### Exercise 3 — Turbulence Model Comparison
@@ -1671,9 +1766,9 @@ Repeat the 25° simulation with different turbulence models:
 3. **k-$\omega$ SST** — baseline
 4. **Spalart-Allmaras** — `SpalartAllmaras` (single-equation model)
 
-Compare the predicted Cd, slant separation pattern, and wake structure. You
-should find that k-$\varepsilon$ models tend to under-predict drag (delayed separation)
-while k-$\omega$ SST gives the best agreement with experiments.
+Compare the predicted Cd, slant separation pattern, and wake structure. The
+literature reports that k-$\varepsilon$ models tend to mis-predict the slant
+separation, while k-$\omega$ SST gives better agreement with experiments.
 
 > **Note**: When switching turbulence models, you must update the `0/` boundary
 > condition files to match the new model's required fields (e.g., `epsilon`
@@ -1684,7 +1779,8 @@ while k-$\omega$ SST gives the best agreement with experiments.
 Study how ground clearance affects the aerodynamics:
 
 1. Run the baseline case (50 mm clearance, moving ground).
-2. Modify to **25 mm** ground clearance.
+2. Modify to **25 mm** ground clearance (`GC` in `generate_ahmed_body.py`;
+   adjust `CofR` z and the refinement boxes if needed).
 3. Modify to **100 mm** ground clearance.
 4. Compare the drag coefficient and under-body flow acceleration for each.
 5. Also try a **stationary ground** (change ground BC in `0/U` to `noSlip`)
@@ -1697,7 +1793,18 @@ For faster turnaround, exploit the geometric symmetry:
 1. Slice the domain and STL at y = 0.
 2. Add a `symmetryPlane` boundary condition on the cut face.
 3. Halve the number of processors.
-4. Verify that the full-model and half-model Cd values agree.
+4. Verify that the full-model and half-model Cd values agree (note that `Aref`
+   must be halved for a half-model).
+
+### Exercise 6 — Sharp Nose
+
+Generate the body with sharp front edges
+(`python3 generate_ahmed_body.py --nose-radius 0`, and `--nose-radius 0`
+passed to `verify.py`) and rerun. In an earlier run of this case with sharp
+edges the drag coefficient was 0.85 after 529 iterations (still decreasing),
+about three times the rounded-nose value, because the full stagnation pressure
+acts on the front face and the flow separates at the nose edges. Compare the
+pressure on the roof and the wake.
 
 ---
 
@@ -1715,7 +1822,7 @@ For faster turnaround, exploit the geometric symmetry:
    Numerical Fluid Mechanics, Vol. 77, Springer, pp. 323–330.
    DOI: [10.1007/978-3-540-45466-3_39](https://doi.org/10.1007/978-3-540-45466-3_39).
    — *Detailed LDA measurements of mean velocity and Reynolds stresses in the
-   wake. The standard dataset for RANS and LES validation.*
+   wake. A widely used dataset for RANS and LES validation.*
 
 3. **Menter, F.R.** (1994). "Two-Equation Eddy-Viscosity Turbulence Models for
    Engineering Applications." *AIAA Journal*, 32(8), pp. 1598–1605.
@@ -1739,6 +1846,15 @@ For faster turnaround, exploit the geometric symmetry:
 
 ## Troubleshooting
 
+### Run Errors
+
+| Problem | Solution |
+|---|---|
+| `Cannot find patchField entry for ahmed_body` | Fields were decomposed before snappyHexMesh; reconstruct the mesh, remove `processor*` and run `decomposePar` again (as `Allrun` does) |
+| `wrong token type - expected string, found ... the word 'forces'` | OpenFOAM 6 needs `libs ("libforces.so");` in `system/forceCoeffs` |
+| `verify.py` reports missing logs | Run `./run_docker.sh` or `./Allrun` first |
+| `Allrun` skips steps ("already run") and the solver fails | `runApplication` skips applications whose `log.*` exists; run `./Allclean` first |
+
 ### Mesh Issues
 
 | Problem | Solution |
@@ -1747,13 +1863,14 @@ For faster turnaround, exploit the geometric symmetry:
 | Poor layer addition | Increase `nRelaxIter`, reduce `featureAngle` |
 | High non-orthogonality | Add `nNonOrthogonalCorrectors 2` in fvSolution |
 | Cells inside the body | Check `locationInMesh` is outside the STL |
+| `checkMesh -allGeometry` fails 2 checks | Low-quality face tets and concave cells, see [Mesh Strategy](#mesh-strategy); the standard `checkMesh` reports `Mesh OK` |
 
 ### Solver Divergence
 
 | Problem | Solution |
 |---|---|
 | Pressure diverges early | Reduce relaxation factors (p → 0.2, U → 0.5) |
-| k/omega blow up | Use `bounded Gauss upwind` for turbulence, add `bound` utility |
+| k/omega blow up | Keep `bounded Gauss upwind` for turbulence, reduce relaxation factors |
 | Oscillating Cd | Increase iterations, check mesh quality near separation |
 | Very slow convergence | Use SIMPLEC (`consistent yes`), check mesh quality |
 
@@ -1761,8 +1878,9 @@ For faster turnaround, exploit the geometric symmetry:
 
 | Problem | Likely Cause |
 |---|---|
-| Cd too low (< 0.25) | Insufficient wake refinement, delayed separation |
-| Cd too high (> 0.35) | Mesh too coarse on body surface, poor layer quality |
+| Cd too low (< 0.2) | Wrong `Aref`/`rhoInf`/`magUInf`, insufficient wake refinement, delayed separation |
+| Cd above 0.35 on a body with rounded nose | Mesh too coarse on body surface, poor layer quality |
+| Cd around 0.8–0.9 | Sharp front edges (`--nose-radius 0`); the standard body has R = 100 mm |
 | Cd keeps changing | Not converged — run more iterations or check mesh |
 
 ---

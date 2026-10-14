@@ -1,4 +1,9 @@
 #!/usr/bin/env python3
+"""ParaView view of the fixed boat hull: centre slice, hull and streamlines.
+
+Interactive:  paraview --script=paraview_streamlines.py   (or ./open_paraview_streamlines.sh)
+Batch image:  pvbatch paraview_streamlines.py --screenshot out.png
+"""
 import argparse
 from pathlib import Path
 
@@ -34,7 +39,7 @@ def parse_args():
     default_case = script_dir / "boat_hull_fixed.foam"
 
     parser = argparse.ArgumentParser(
-        description="Build a ParaView view for project 10 with a center slice, hull, and streamlines."
+        description="Build a ParaView view for project 11 with a centre slice (y = 0), the hull and streamlines."
     )
     parser.add_argument(
         "--case",
@@ -52,7 +57,8 @@ def parse_args():
         default=None,
         help="Optional output image path for batch rendering.",
     )
-    return parser.parse_args()
+    # ParaView passes its own options through sys.argv; ignore unknown ones
+    return parser.parse_known_args()[0]
 
 
 def choose_time(requested_time, reader):

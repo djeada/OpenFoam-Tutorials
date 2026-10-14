@@ -9,3 +9,6 @@ docker run --rm -v "$PWD":/case -w /case cfdengine/openfoam \
 echo "=== Running case ==="
 docker run --rm -v "$PWD":/case -w /case cfdengine/openfoam \
     bash -lc 'source /opt/openfoam6/etc/bashrc && ./Allrun'
+
+echo "=== Verifying results ==="
+python3 verify.py

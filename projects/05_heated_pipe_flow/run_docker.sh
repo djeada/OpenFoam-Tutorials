@@ -1,27 +1,19 @@
 #!/bin/bash
 # =========================================================================
-#  Heated Pipe Flow — Docker runner
+#  Heated Pipe Flow - Docker runner
 #
-#  Runs the full case inside the cfdengine/openfoam Docker image.
+#  Cleans the case, then runs Allrun inside the cfdengine/openfoam image
+#  (OpenFOAM 6) with this directory mounted at /case.
 #
-#  Usage:
-#    ./run_docker.sh
+#  Usage:  ./run_docker.sh
 # =========================================================================
 set -euo pipefail
 cd "${0%/*}" || exit 1
 
 IMAGE="cfdengine/openfoam"
 
-echo "========================================"
-echo "  Heated Pipe Flow — Docker Runner"
-echo "========================================"
-
-echo "Cleaning previous run..."
 docker run --rm -v "$PWD":/case -w /case "$IMAGE" \
-    bash -lc 'source /opt/openfoam6/etc/bashrc && ./Allclean'
+    bash -lc 'source /opt/openfoam6/etc/bashrc && ./Allclean && ./Allrun'
 
-echo "Running OpenFOAM case in Docker..."
-docker run --rm -v "$PWD":/case -w /case "$IMAGE" \
-    bash -lc 'source /opt/openfoam6/etc/bashrc && ./Allrun'
-
-echo "Docker run complete."
+# Check the results (reads log.* and the time directories; no Docker needed)
+python3 verify.py

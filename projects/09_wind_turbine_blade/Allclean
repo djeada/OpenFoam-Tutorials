@@ -1,14 +1,9 @@
 #!/bin/bash
 #------------------------------------------------------------------------------
-# Allclean script for simplified wind turbine MRF simulation
-# Removes all generated files, returning the case to its initial state.
+# Remove generated files (mesh, time directories, logs, ParaView stub).
 #------------------------------------------------------------------------------
-cd "${0%/*}" || exit
-. ${WM_PROJECT_DIR:?}/bin/tools/CleanFunctions
+cd "${0%/*}" || exit 1
+. "${WM_PROJECT_DIR:?}/bin/tools/CleanFunctions"
 
 cleanCase
-rm -rf constant/polyMesh
-rm -rf processor*
-rm -f log.*
-
-echo "Case cleaned."
+rm -f wind_turbine.foam

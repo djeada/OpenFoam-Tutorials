@@ -1,51 +1,37 @@
 #!/bin/bash
 #------------------------------------------------------------------------------
-# Allrun script for Ahmed body aerodynamics (parallel with snappyHexMesh)
-# Solver: simpleFoam | Turbulence: k-omega SST
+# Allrun: Ahmed body, simpleFoam + kOmegaSST, snappyHexMesh, MPI parallel.
+# The mesh is generated in parallel, reconstructed, checked in serial and then
+# decomposed again together with the 0/ fields (the first decomposition only
+# serves snappyHexMesh and does not know the ahmed_body patch).
 #------------------------------------------------------------------------------
 cd "${0%/*}" || exit
 . ${WM_PROJECT_DIR:?}/bin/tools/RunFunctions
 
-echo "================================================"
-echo "  Ahmed Body Aerodynamics — simpleFoam (parallel)"
-echo "================================================"
-
-# 1. Generate background mesh
-echo ""
-echo "Step 1: Generating background mesh with blockMesh..."
+echo "Step 1: background mesh (blockMesh)"
 runApplication blockMesh
 
-# 2. Extract surface features
-echo ""
-echo "Step 2: Extracting surface features..."
+echo "Step 2: feature edges (surfaceFeatureExtract)"
 runApplication surfaceFeatureExtract
 
-# 3. Run snappyHexMesh in parallel
-echo ""
-echo "Step 3: Decomposing domain..."
+echo "Step 3: decompose background mesh"
 runApplication decomposePar
 
-echo "Step 3: Running snappyHexMesh in parallel..."
+echo "Step 4: snappyHexMesh (parallel)"
 runParallel snappyHexMesh -overwrite
 
-# 4. Check mesh quality
-echo ""
-echo "Step 4: Checking mesh quality..."
-runParallel checkMesh -latestTime -allTopology -allGeometry
+echo "Step 5: reconstruct mesh and check it (serial)"
+runApplication reconstructParMesh -constant
+rm -rf processor*
+runApplication checkMesh
 
-# 5. Run the solver
-echo ""
-echo "Step 5: Running simpleFoam..."
+echo "Step 6: decompose mesh and fields, run $(getApplication) (parallel)"
+mv log.decomposePar log.decomposePar.mesh
+runApplication decomposePar
 runParallel $(getApplication)
 
-# 6. Reconstruct
-echo ""
-echo "Step 6: Reconstructing parallel results..."
-runApplication reconstructParMesh -constant
+echo "Step 7: reconstruct last time"
 runApplication reconstructPar -latestTime
 
-echo ""
-echo "================================================"
-echo "  Simulation complete!"
-echo "  Force coefficients: postProcessing/forceCoeffs/"
-echo "================================================"
+echo "Done. Force coefficients: postProcessing/forceCoeffs/0/"
+echo "Check results with: python3 verify.py"

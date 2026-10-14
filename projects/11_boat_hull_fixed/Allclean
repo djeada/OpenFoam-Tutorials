@@ -1,9 +1,13 @@
 #!/bin/bash
-# Allclean — Remove generated files for fixed boat hull case
+# Allclean — remove generated files for the fixed boat hull case
 cd "${0%/*}" || exit
 . ${WM_PROJECT_DIR:?}/bin/tools/CleanFunctions
 
 cleanCase
-rm -rf constant/triSurface/boat_hull.stl
+
+# Copied/scaled STL and its feature-edge files (constant/triSurface is not tracked)
+rm -rf constant/triSurface
 rm -rf constant/extendedFeatureEdgeMesh
-rm -f constant/triSurface/boat_hull.eMesh
+
+# Created by open_paraview*.sh
+rm -f boat_hull_fixed.foam

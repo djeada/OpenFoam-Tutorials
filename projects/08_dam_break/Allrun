@@ -1,38 +1,24 @@
 #!/bin/bash
 #------------------------------------------------------------------------------
-# Allrun script for dam break simulation (interFoam)
+# Allrun - dam break (interFoam)
 #
-# Steps:
-#   1. blockMesh  - Generate the structured mesh
-#   2. setFields  - Initialize the water column (alpha.water)
-#   3. interFoam  - Run the VOF multiphase solver
+#   1. Copy 0.orig to 0 (setFields modifies the copy, not the template)
+#   2. blockMesh - generate the structured 2D mesh
+#   3. checkMesh - mesh quality report
+#   4. setFields - set alpha.water = 1 in the water column
+#   5. interFoam - run the VOF solver
 #------------------------------------------------------------------------------
 cd "${0%/*}" || exit 1
 
-# Source OpenFOAM run functions
 . ${WM_PROJECT_DIR:?}/bin/tools/RunFunctions
 
-echo "========================================"
-echo "  Dam Break Simulation (interFoam)"
-echo "========================================"
+rm -rf 0
+cp -r 0.orig 0
 
-# Step 1: Generate mesh
-echo ""
-echo "Step 1: Generating mesh with blockMesh..."
-runApplication blockMesh
+runApplication blockMesh || exit 1
+runApplication checkMesh || exit 1
+runApplication setFields || exit 1
+runApplication interFoam || exit 1
 
-# Step 2: Initialize water column
-echo ""
-echo "Step 2: Setting initial water column with setFields..."
-runApplication setFields
-
-# Step 3: Run solver
-echo ""
-echo "Step 3: Running interFoam solver..."
-runApplication interFoam
-
-echo ""
-echo "========================================"
-echo "  Simulation complete!"
-echo "  Use paraFoam to visualize results."
-echo "========================================"
+echo "Done. Logs: log.blockMesh, log.checkMesh, log.setFields, log.interFoam"
+echo "Check results with: python3 verify.py;  view with: ./open_paraview.sh"

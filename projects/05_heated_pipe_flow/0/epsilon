@@ -16,14 +16,15 @@ FoamFile
 
 dimensions      [0 2 -3 0 0 0 0];
 
-internalField   uniform 0.01;
+// epsilon = Cmu^0.75 k^1.5 / l with l = 0.07 D_h = 0.014 m (D_h = 2H)
+internalField   uniform 3.4e-4;
 
 boundaryField
 {
     inlet
     {
         type            fixedValue;
-        value           uniform 0.01;
+        value           uniform 3.4e-4;
     }
 
     outlet
@@ -34,13 +35,13 @@ boundaryField
     topWall
     {
         type            epsilonWallFunction;
-        value           uniform 0.01;
+        value           uniform 3.4e-4;
     }
 
     bottomWall
     {
         type            epsilonWallFunction;
-        value           uniform 0.01;
+        value           uniform 3.4e-4;
     }
 
     frontAndBack

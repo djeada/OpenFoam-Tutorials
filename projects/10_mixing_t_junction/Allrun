@@ -1,41 +1,21 @@
 #!/bin/bash
 #------------------------------------------------------------------------------
-# Allrun script for T-junction mixing simulation
-# Solver: buoyantSimpleFoam (steady-state buoyant flow with energy)
+# Mixing T-junction: blockMesh -> checkMesh -> buoyantSimpleFoam
+# Requires a sourced OpenFOAM environment. Stops at the first failing step.
 #------------------------------------------------------------------------------
 cd "${0%/*}" || exit 1
 
-# Source OpenFOAM run functions
-. ${WM_PROJECT_DIR:?}/bin/tools/RunFunctions
+run() {
+    local app=$1
+    echo "Running ${app} (log.${app})"
+    if ! "${app}" > "log.${app}" 2>&1; then
+        echo "ERROR: ${app} failed, see log.${app}" >&2
+        exit 1
+    fi
+}
 
-echo "=========================================="
-echo " T-Junction Mixing Simulation"
-echo " Solver: buoyantSimpleFoam"
-echo "=========================================="
+run blockMesh
+run checkMesh
+run buoyantSimpleFoam
 
-# Generate the mesh
-echo ""
-echo "--- Generating T-junction mesh with blockMesh ---"
-runApplication blockMesh
-
-# Check mesh quality
-echo ""
-echo "--- Checking mesh quality ---"
-runApplication checkMesh
-
-# Run the solver
-echo ""
-echo "--- Running buoyantSimpleFoam ---"
-runApplication buoyantSimpleFoam
-
-echo ""
-echo "=========================================="
-echo " Simulation complete!"
-echo " Results written to time directories."
-echo ""
-echo " Post-process with:"
-echo "   paraFoam"
-echo "   foamToVTK"
-echo "=========================================="
-
-#------------------------------------------------------------------------------
+echo "Done. Results are in the time directories; see log.buoyantSimpleFoam."

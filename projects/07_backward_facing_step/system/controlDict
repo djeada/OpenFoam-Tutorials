@@ -1,8 +1,8 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v2312                                 |
-|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|  \\    /   O peration     | Version:  6                                     |
+|   \\  /    A nd           | Website:  www.openfoam.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
 FoamFile
@@ -22,7 +22,7 @@ startTime       0;
 
 stopAt          endTime;
 
-endTime         2000;
+endTime         3000;
 
 deltaT          1;
 
@@ -49,7 +49,7 @@ functions
     fieldAverage1
     {
         type            fieldAverage;
-        libs            (fieldFunctionObjects);
+        libs            ("libfieldFunctionObjects.so");
         writeControl    writeTime;
         fields
         (
@@ -71,7 +71,7 @@ functions
     wallShearStress1
     {
         type            wallShearStress;
-        libs            (fieldFunctionObjects);
+        libs            ("libfieldFunctionObjects.so");
         writeControl    writeTime;
         patches         (bottomWall step);
     }
@@ -79,7 +79,7 @@ functions
     yPlus1
     {
         type            yPlus;
-        libs            (fieldFunctionObjects);
+        libs            ("libfieldFunctionObjects.so");
         writeControl    writeTime;
     }
 }

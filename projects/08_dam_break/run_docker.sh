@@ -1,27 +1,20 @@
 #!/bin/bash
-# =========================================================================
-#  Dam Break — Docker runner
+# Run the dam break case inside the cfdengine/openfoam Docker image
+# (OpenFOAM 6). The case directory is mounted at /case.
 #
-#  Runs the full case inside the cfdengine/openfoam Docker image.
-#
-#  Usage:
-#    ./run_docker.sh
-# =========================================================================
+# Usage: ./run_docker.sh
 set -euo pipefail
 cd "${0%/*}" || exit 1
 
 IMAGE="cfdengine/openfoam"
 
-echo "========================================"
-echo "  Dam Break — Docker Runner"
-echo "========================================"
-
 echo "Cleaning previous run..."
 docker run --rm -v "$PWD":/case -w /case "$IMAGE" \
     bash -lc 'source /opt/openfoam6/etc/bashrc && ./Allclean'
 
-echo "Running OpenFOAM case in Docker..."
+echo "Running case in Docker..."
 docker run --rm -v "$PWD":/case -w /case "$IMAGE" \
     bash -lc 'source /opt/openfoam6/etc/bashrc && ./Allrun'
 
-echo "Docker run complete."
+echo "Verifying results..."
+python3 verify.py

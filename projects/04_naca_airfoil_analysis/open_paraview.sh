@@ -5,7 +5,6 @@
 #  Usage:
 #    ./open_paraview.sh                        Steady case, interactive (default)
 #    ./open_paraview.sh steady                 Steady case, interactive
-#    ./open_paraview.sh steady --screenshot s  Steady case, save screenshot
 #    ./open_paraview.sh transient              Transient case, interactive
 #    ./open_paraview.sh transient render       Batch render frames + MP4
 #    ./open_paraview.sh transient render-only  Frames only
@@ -34,7 +33,8 @@ usage() {
 Usage: $(basename "$0") [CASE] [MODE] [extra args...]
 
 Cases:
-  steady      Steady-state RANS visualisation (default)
+  steady      Steady-state RANS visualisation (default). The ParaView GUI cannot
+              take script options; change the defaults in paraview_airfoil.py.
   transient   Transient vorticity animation
 
 Transient modes (second argument):
@@ -43,7 +43,7 @@ Transient modes (second argument):
   render-only   Export PNGs only
   video-only    Assemble MP4 from existing frames
 
-Extra arguments are forwarded to the Python script.
+For transient render modes, extra arguments are forwarded to paraview_streamlines.py.
 Tunable knobs (resolution, fps, vort range, etc.) are at the top of this script.
 EOF
 }
@@ -61,7 +61,7 @@ run_steady() {
     touch airfoil.foam
     check_cmd paraview
     echo "Opening steady-state case in ParaView..."
-    paraview --script paraview_airfoil.py
+    paraview --script=paraview_airfoil.py
 }
 
 # --- Transient helpers ----------------------------------------------------
@@ -116,7 +116,7 @@ run_transient() {
         interactive)
             check_cmd paraview
             echo "Opening transient case in ParaView..."
-            paraview --script transient_animation/paraview_streamlines.py
+            paraview --script=transient_animation/paraview_streamlines.py
             ;;
         render)
             render_frames "$@"

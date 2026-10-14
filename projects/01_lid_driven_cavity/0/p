@@ -34,18 +34,6 @@ boundaryField
     {
         type            empty;
     }
-
-    inlet
-    {
-        type            totalPressure;
-        p0              uniform 1e5;
-    }
-
-    outlet
-    {
-        type            fixedValue;
-        value           uniform 0;
-    }
 }
 
 // ************************************************************************* //

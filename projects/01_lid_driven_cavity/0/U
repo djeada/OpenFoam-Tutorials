@@ -35,17 +35,6 @@ boundaryField
     {
         type            empty;
     }
-
-    inlet
-    {
-        type            fixedValue;
-        value           uniform (1 0 0.5);  // Adding a vertical component to the inlet velocity
-    }
-
-    outlet
-    {
-        type            zeroGradient;
-    }
 }
 
 // ************************************************************************* //

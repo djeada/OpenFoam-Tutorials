@@ -1,8 +1,8 @@
 /*--------------------------------*- C++ -*----------------------------------*\
 | =========                 |                                                 |
 | \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
-|  \\    /   O peration     | Version:  v2312                                 |
-|   \\  /    A nd           | Website:  www.openfoam.com                      |
+|  \\    /   O peration     | Version:  6                                     |
+|   \\  /    A nd           | Website:  www.openfoam.org                      |
 |    \\/     M anipulation  |                                                 |
 \*---------------------------------------------------------------------------*/
 FoamFile
@@ -14,8 +14,8 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// Domain: 3m x 2m x 0.1m (quasi-2D)
-// MRF rotor zone will be centered at (1.0, 0.5, 0) with radius 0.3m
+// Domain: 3 m x 2 m x 0.1 m, one cell in z (quasi-2D)
+// The MRF zone (topoSetDict) is centred at (1.0, 0.5) with radius 0.3 m
 
 scale   1;
 

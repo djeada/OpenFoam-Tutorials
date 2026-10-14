@@ -1,28 +1,26 @@
 #!/bin/bash
 #------------------------------------------------------------------------------
-# Allrun script for heated pipe flow (conjugate heat transfer)
-# Solver: buoyantSimpleFoam
+# Heated pipe flow: blockMesh -> checkMesh -> buoyantSimpleFoam
 #------------------------------------------------------------------------------
-cd "${0%/*}" || exit
+cd "${0%/*}" || exit 1
 
-# Source OpenFOAM run functions
-. ${WM_PROJECT_DIR:?}/bin/tools/RunFunctions
+. "${WM_PROJECT_DIR:?}/bin/tools/RunFunctions"
 
-echo "============================================"
-echo "  Heated Pipe Flow - buoyantSimpleFoam"
-echo "============================================"
-
-# Generate the mesh
-echo ""
-echo ">>> Generating mesh with blockMesh..."
 runApplication blockMesh
-
-# Run the solver
-echo ""
-echo ">>> Running buoyantSimpleFoam..."
+runApplication checkMesh
 runApplication buoyantSimpleFoam
 
-echo ""
-echo ">>> Simulation complete!"
-echo "    Use paraFoam or ParaView to visualize results."
-echo "============================================"
+# runApplication does not stop on failure, so check that the solver finished.
+if ! grep -q "^End" log.buoyantSimpleFoam
+then
+    echo "buoyantSimpleFoam did not finish normally, see log.buoyantSimpleFoam" >&2
+    exit 1
+fi
+
+if grep -q "SIMPLE solution converged" log.buoyantSimpleFoam
+then
+    grep "SIMPLE solution converged" log.buoyantSimpleFoam
+else
+    echo "Warning: residual criteria not met within endTime"
+fi
+echo "Done. View the results with ./open_paraview.sh"

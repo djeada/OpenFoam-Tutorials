@@ -65,7 +65,8 @@ def parse_args():
         default=70.0,
         help="Upper limit for U magnitude coloring.",
     )
-    return parser.parse_args()
+    # ParaView's own command-line options may be present in sys.argv; ignore them.
+    return parser.parse_known_args()[0]
 
 
 def latest_time_value(case_dir: Path) -> float:

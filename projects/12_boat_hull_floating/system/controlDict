@@ -7,7 +7,7 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-application     interDyMFoam;
+application     interFoam;
 
 startFrom       startTime;
 
@@ -52,13 +52,6 @@ libs
 
 functions
 {
-    sixDoFRigidBodyState
-    {
-        type            sixDoFRigidBodyState;
-        libs            ("libsixDoFRigidBodyMotion.so");
-        angleFormat      degrees;
-    }
-
     forces
     {
         type            forces;
@@ -66,8 +59,7 @@ functions
         writeControl    timeStep;
         writeInterval   1;
         patches         (boat);
-        rho             rhoInf;
-        rhoInf          998.2;
+        rho             rho;
         CofR            (0 0 0);
         log             yes;
     }

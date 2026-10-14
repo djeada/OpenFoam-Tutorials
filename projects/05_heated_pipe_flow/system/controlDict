@@ -45,29 +45,13 @@ timePrecision   6;
 
 runTimeModifiable true;
 
+// Wall heat flux and y+ at the write times; residual history for foamMonitor
 functions
 {
-    fieldAverage1
-    {
-        type            fieldAverage;
-        libs            ("libfieldFunctionObjects.so");
-        writeControl    writeTime;
-        fields
-        (
-            U
-            {
-                mean        on;
-                prime2Mean  on;
-                base        time;
-            }
-            T
-            {
-                mean        on;
-                prime2Mean  on;
-                base        time;
-            }
-        );
-    }
+    #includeFunc wallHeatFlux
+    #includeFunc yPlus
+    #includeFunc residuals
 }
+
 
 // ************************************************************************* //

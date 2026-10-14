@@ -10,9 +10,6 @@
 # Generated mesh/feature artifacts
 /constant/airfoil_benchmark.geo
 /constant/airfoil_benchmark.msh
-/constant/airfoil_benchmark_split.msh
-/constant/triSurface/airfoil.stl
-/constant/triSurface/airfoil.eMesh
 
 # Generated ParaView artifacts
 /airfoil_view*.png

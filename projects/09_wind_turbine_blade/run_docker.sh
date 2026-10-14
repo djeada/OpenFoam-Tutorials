@@ -1,27 +1,20 @@
 #!/bin/bash
 # =========================================================================
-#  Wind Turbine Blade (MRF) — Docker runner
+#  Wind Turbine Blade (MRF) - Docker runner
 #
-#  Runs the full case inside the cfdengine/openfoam Docker image.
+#  Cleans and runs the case inside the cfdengine/openfoam image
+#  (OpenFOAM 6). The case directory is mounted at /case.
 #
-#  Usage:
-#    ./run_docker.sh
+#  Usage:  ./run_docker.sh
 # =========================================================================
 set -euo pipefail
-cd "${0%/*}" || exit 1
+cd "$(dirname "${BASH_SOURCE[0]}")"
 
 IMAGE="cfdengine/openfoam"
+SRC="source /opt/openfoam6/etc/bashrc"
 
-echo "========================================"
-echo "  Wind Turbine MRF — Docker Runner"
-echo "========================================"
+docker run --rm -v "$PWD":/case -w /case "$IMAGE" bash -lc "$SRC && ./Allclean"
+docker run --rm -v "$PWD":/case -w /case "$IMAGE" bash -lc "$SRC && ./Allrun"
 
-echo "Cleaning previous run..."
-docker run --rm -v "$PWD":/case -w /case "$IMAGE" \
-    bash -lc 'source /opt/openfoam6/etc/bashrc && ./Allclean'
-
-echo "Running OpenFOAM case in Docker..."
-docker run --rm -v "$PWD":/case -w /case "$IMAGE" \
-    bash -lc 'source /opt/openfoam6/etc/bashrc && ./Allrun'
-
-echo "Docker run complete."
+# Check the results (reads logs and fields only; needs python3 on the host)
+python3 verify.py

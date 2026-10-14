@@ -31,4 +31,5 @@ ensure_openfoam
 cleanCase
 rm -f log.*
 rm -f *.OpenFOAM *.foam
-rm -f 0/Phi 0/phi
+rm -f constant/airfoil_animation.geo constant/airfoil_animation.msh
+rm -rf frames

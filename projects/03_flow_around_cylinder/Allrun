@@ -2,7 +2,8 @@
 # =========================================================================
 #  2D Flow Around Cylinder — Allrun
 #
-#  Re = 200 laminar vortex shedding with pimpleFoam
+#  Re = 200 laminar vortex shedding with pimpleFoam (OpenFOAM 6)
+#  Gmsh mesh -> gmshToFoam -> changeDictionary -> renumberMesh -> pimpleFoam
 # =========================================================================
 set -eu
 
@@ -39,32 +40,25 @@ ensure_openfoam
 MESH_GEO=constant/cylinder.geo
 MESH_MSH=constant/cylinder.msh
 
-# ── Copy initial conditions ───────────────────────────────────────────────
-mkdir -p 0
-cp 0.orig/U 0/U
-cp 0.orig/p 0/p
-rm -f 0/Phi 0/phi
-
 echo "========================================"
 echo "  2D Cylinder — Re 200 Vortex Shedding"
 echo "========================================"
 
-# ── Step 1: Generate geometry ─────────────────────────────────────────────
-echo "Step 1: Generating cylinder geometry..."
-python3 generate_cylinder_geo.py --output "$MESH_GEO"
+# ── Steps 1-2: Generate geometry and mesh with Gmsh ──────────────────────
+# The OpenFOAM Docker image has no Gmsh; ./run_docker.sh meshes on the host
+# and this script then reuses the resulting $MESH_MSH.
+if command -v gmsh >/dev/null 2>&1; then
+    echo "Step 1: Generating cylinder geometry..."
+    python3 generate_cylinder_geo.py --output "$MESH_GEO"
 
-# ── Step 2: Mesh with Gmsh ───────────────────────────────────────────────
-if [ ! -f "$MESH_MSH" ]; then
-    if command -v gmsh >/dev/null 2>&1; then
-        echo "Step 2: Meshing with Gmsh..."
-        gmsh -3 -format msh2 "$MESH_GEO" -o "$MESH_MSH"
-    else
-        echo "Missing $MESH_MSH and gmsh is not available."
-        echo "Generate the mesh on the host first, or use ./run_docker.sh."
-        exit 1
-    fi
+    echo "Step 2: Meshing with Gmsh..."
+    gmsh -3 -format msh2 "$MESH_GEO" -o "$MESH_MSH"
+elif [ -f "$MESH_MSH" ]; then
+    echo "Steps 1-2: gmsh not found, reusing existing $MESH_MSH"
 else
-    echo "Step 2: Reusing existing $MESH_MSH..."
+    echo "Missing $MESH_MSH and gmsh is not available."
+    echo "Install gmsh, or generate the mesh on the host with ./run_docker.sh."
+    exit 1
 fi
 
 # ── Step 3: Import mesh ──────────────────────────────────────────────────
@@ -89,5 +83,6 @@ runApplication pimpleFoam
 
 echo "========================================"
 echo "  Simulation complete"
-echo "  Check postProcessing/forceCoeffs/ for Cd/Cl"
+echo "  Cd/Cl: postProcessing/forceCoeffs/0/coefficient.dat"
+echo "  View:  ./open_paraview.sh"
 echo "========================================"

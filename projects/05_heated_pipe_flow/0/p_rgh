@@ -16,31 +16,35 @@ FoamFile
 
 dimensions      [1 -1 -2 0 0 0 0];
 
-internalField   uniform 0;
+// Absolute pressure level; p_rgh = p - rho*g*h. An outlet value of 0 gives
+// zero absolute pressure and a non-physical density, and the run diverges.
+internalField   uniform 101325;
 
 boundaryField
 {
     inlet
     {
-        type            zeroGradient;
+        // fixed velocity inlet: let the pressure gradient match the imposed flux
+        type            fixedFluxPressure;
+        value           uniform 101325;
     }
 
     outlet
     {
         type            fixedValue;
-        value           uniform 0;
+        value           uniform 101325;
     }
 
     topWall
     {
         type            fixedFluxPressure;
-        value           uniform 0;
+        value           uniform 101325;
     }
 
     bottomWall
     {
         type            fixedFluxPressure;
-        value           uniform 0;
+        value           uniform 101325;
     }
 
     frontAndBack
