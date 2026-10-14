@@ -27,21 +27,21 @@ on t = 100 s to 200 s (the window that `fieldAverage` also uses).
 
 | Quantity | Target | Basis |
 |----------|--------|-------|
-| Strouhal number `St = f D / U∞` | 0.197 ± 0.02 | 2D laminar results at Re = 200: 0.197 (Linnick & Fasel 2005), 0.195 (Taira & Colonius 2007), 0.192 (Liu et al. 1998); Williamson's experimental value 0.197; his correlation `St = -3.3265/Re + 0.1816 + 1.6e-4·Re` gives 0.197 |
-| Mean drag coefficient `Cd` | 1.34 ± 0.13 | Published 2D computations at Re = 200: 1.34 ± 0.044 (Linnick & Fasel 2005), 1.34 ± 0.047 (Taira & Colonius 2007), 1.31 ± 0.049 (Liu et al. 1998) |
-| Lift amplitude `(Clmax - Clmin)/2` | 0.69 ± 0.10 | ±0.69 (Linnick & Fasel 2005; Liu et al. 1998), ±0.68 (Taira & Colonius 2007) |
-| Mean lift coefficient `Cl` | 0 ± 0.05 | Symmetry of the geometry |
-| Mesh | `checkMesh` reports `Mesh OK`, 22605 cells ± 10 % | Cell count of the Gmsh 4.11.1 mesh; Gmsh 4.15.2 gives 22607 |
-| Solver | finishes at `endTime = 200` without errors, max Courant ≤ 0.525 | `controlDict` (`maxCo 0.5`) |
+| Strouhal number `St = f D / U∞` | 0.197 $\pm 0.02$ | 2D laminar results at Re = 200: 0.197 (Linnick & Fasel 2005), 0.195 (Taira & Colonius 2007), 0.192 (Liu et al. 1998); Williamson's experimental value 0.197; his correlation `St = -3.3265/Re + 0.1816 + 1.6e-4·Re` gives 0.197 |
+| Mean drag coefficient `Cd` | 1.34 $\pm 0.13$ | Published 2D computations at Re = 200: 1.34 $\pm 0.044$ (Linnick & Fasel 2005), 1.34 $\pm 0.047$ (Taira & Colonius 2007), 1.31 $\pm 0.049$ (Liu et al. 1998) |
+| Lift amplitude `(Clmax - Clmin)/2` | 0.69 $\pm 0.10$ | $\pm 0.69$ (Linnick & Fasel 2005; Liu et al. 1998), $\pm 0.68$ (Taira & Colonius 2007) |
+| Mean lift coefficient `Cl` | 0 $\pm 0.05$ | Symmetry of the geometry |
+| Mesh | `checkMesh` reports `Mesh OK`, 22605 cells $\pm 10$ % | Cell count of the Gmsh 4.11.1 mesh; Gmsh 4.15.2 gives 22607 |
+| Solver | finishes at `endTime = 200` without errors, max Courant $\leq 0.525$ | `controlDict` (`maxCo 0.5`) |
 
-The tolerances are about ±10 %. Published 2D codes scatter by 3–5 %, and this domain differs from
+The tolerances are about $\pm 10$ %. Published 2D codes scatter by 3–5 %, and this domain differs from
 the unbounded domain of the references: blockage D/H = 1/16 (which raises Cd and St by a few
-percent), 8 D upstream, 25 D downstream, symmetry planes at y = ±8 D. The literature values in the table above
+percent), 8 D upstream, 25 D downstream, symmetry planes at y = $\pm 8$ D. The literature values in the table above
 (Linnick & Fasel, Liu et al., Taira & Colonius, Williamson) were checked against a comparison table in
 a secondary source (an immersed-boundary paper listing lift, drag and St at Re = 200), not against
 the original articles; treat them as approximate.
 
-> **Note:** Real flow past a cylinder becomes three-dimensional at Re ≈ 190 (mode A instability),
+> **Note:** Real flow past a cylinder becomes three-dimensional at Re $\approx 190$ (mode A instability),
 > so a 2D simulation at Re = 200 is an idealisation. It is, however, the standard 2D benchmark
 > and the 2D reference data above refer to it.
 
@@ -62,21 +62,21 @@ exit status is 0 only if all checks pass (1 on a failed check, 2 if results are 
 | Check | What it proves | Expected | Measured in the reference run |
 |-------|----------------|----------|-------------------------------|
 | `checkMesh_ok` | Mesh passes all `checkMesh` tests | `Mesh OK` | `Mesh OK` |
-| `cell_count` | Gmsh produced the intended resolution | 22605 ± 10 % | 22607 |
+| `cell_count` | Gmsh produced the intended resolution | 22605 $\pm 10$ % | 22607 |
 | `max_non_orthogonality` | Mesh quality within solver limits (checkMesh error threshold 70°) | < 70 | 31.3 (average 4.5) |
 | `max_skewness` | Mesh quality (checkMesh error threshold 4) | < 4 | 0.92 |
 | `patch_types` | `changeDictionary` set wall / symmetryPlane / empty types | all six patches match | all match |
 | `no_fatal_error` | No `FOAM FATAL ERROR` in `log.pimpleFoam` | none | none |
 | `solver_finished` | Run was not interrupted | `End` in log | `End` |
-| `end_time_reached` | Last `Time =` equals `endTime` | 200 ± 0.001 | 200 |
-| `max_courant` | Adjustable time step respects `maxCo` (5 % slack: dt reacts one step late) | ≤ 0.525 | 0.503 |
+| `end_time_reached` | Last `Time =` equals `endTime` | 200 $\pm 0.001$ | 200 |
+| `max_courant` | Adjustable time step respects `maxCo` (5 % slack: dt reacts one step late) | $\leq 0.525$ | 0.503 |
 | `continuity_error` | Mass conservation (largest `|cumulative|` continuity error) | < 1e-5 | 3.6e-08 |
 | `last_time_fields` | Last time directory holds `U p UMean pMean UPrime2Mean pPrime2Mean` | present | all present (directory `200`) |
-| `mean_Cd` | Drag against 2D reference (t ≥ 100) | 1.34 ± 0.13 | 1.369 |
-| `mean_Cl` | Lift is symmetric on average | 0 ± 0.05 | 0.004 |
+| `mean_Cd` | Drag against 2D reference (t $\geq 100$) | 1.34 $\pm 0.13$ | 1.369 |
+| `mean_Cl` | Lift is symmetric on average | 0 $\pm 0.05$ | 0.004 |
 | `shedding_developed` | Lift oscillates, i.e. the wake became unsteady | amplitude > 0.1 | amplitude 0.640 |
-| `Cl_amplitude` | Strength of the vortex street | 0.69 ± 0.10 | 0.640 |
-| `Strouhal` | Shedding frequency from upward zero crossings of `Cl - mean(Cl)` for t ≥ 100 | 0.197 ± 0.02 | 0.200 (19 periods) |
+| `Cl_amplitude` | Strength of the vortex street | 0.69 $\pm 0.10$ | 0.640 |
+| `Strouhal` | Shedding frequency from upward zero crossings of `Cl - mean(Cl)` for t $\geq 100$ | 0.197 $\pm 0.02$ | 0.200 (19 periods) |
 
 Reference values and tolerances are documented next to each check in `verify.py`. There is no
 reference for the cell count or mesh-quality numbers; they only guard against a broken mesh
@@ -89,9 +89,9 @@ interval (every 10 time steps, roughly 0.06–0.15 s with the adjustable time st
 1. Open `cylinder.foam` in ParaView (`./open_paraview.sh`) and confirm that vortices of
    alternating sign detach from the cylinder and travel downstream (see the figures below).
 2. Plot `Cl` against time and confirm that the oscillation grows from numerical noise
-   (in the reference run the amplitude is below 0.2 until t = 20 s, about 0.4 at t ≈ 30 s and saturated at 0.64 from t ≈ 45 s), and then stays periodic.
+   (in the reference run the amplitude is below 0.2 until t = 20 s, about 0.4 at t $\approx 30$ s and saturated at 0.64 from t $\approx 45$ s), and then stays periodic.
 3. Look at `log.checkMesh` for the patch list and make sure the `cylinder` patch has 64 faces
-   and `frontAndBack` has 45214 (2 × 22607).
+   and `frontAndBack` has 45214 ($2 \times 22607$).
 
 ---
 
@@ -180,7 +180,7 @@ CFD codes and learning simulation techniques.
 
 ### Computational domain and boundary conditions
 
-The cylinder (D = 1 m, centre at the origin) sits in a 33 m × 16 m rectangle; the case is one
+The cylinder (D = 1 m, centre at the origin) sits in a 33 m $\times$ 16 m rectangle; the case is one
 cell (0.1 m) thick in z and uses `empty` front and back faces, so it is solved as 2D.
 
 ```
@@ -206,7 +206,7 @@ cell (0.1 m) thick in z and uses `empty` front and back faces, so it is solved a
 | `cylinder` (r = 0.5) | `wall` | `noSlip` | `zeroGradient` |
 | `frontAndBack` (z = 0, z = 0.1) | `empty` | `empty` | `empty` |
 
-Domain extents: 8 D upstream, 25 D downstream, ±8 D cross-stream (blockage D/H = 1/16).
+Domain extents: 8 D upstream, 25 D downstream, $\pm 8$ D cross-stream (blockage D/H = 1/16).
 
 ---
 
@@ -228,7 +228,7 @@ kinematic viscosity of the fluid. In this case `U∞ = 1 m/s`, `D = 1 m` and
 |----------|------------|-------------|
 | Re < 5 | Creeping flow | Viscous forces dominate. Flow remains attached and symmetric fore-and-aft (nearly). No separation. |
 | 5 – 40 | Attached vortex pair | A symmetric pair of steady recirculation vortices forms behind the cylinder. Flow is still steady and laminar. |
-| 40 – 200 | Laminar vortex shedding | The wake becomes unstable (onset at Re ≈ 47). Vortices shed alternately from each side — the von Kármán vortex street. Flow is periodic and laminar; around Re ≈ 190 the wake becomes three-dimensional. **This case, Re = 200, is at the upper end.** |
+| 40 – 200 | Laminar vortex shedding | The wake becomes unstable (onset at Re $\approx 47$). Vortices shed alternately from each side — the von Kármán vortex street. Flow is periodic and laminar; around Re $\approx 190$ the wake becomes three-dimensional. **This case, Re = 200, is at the upper end.** |
 | 200 – 300,000 | Subcritical turbulent | The wake is turbulent but the boundary layer on the cylinder remains laminar. Separation occurs before the top of the cylinder (~80°). Cd $\approx$ 1.0–1.2. |
 | > 300,000 | Supercritical | The boundary layer transitions to turbulent before separation, which delays separation to ~120°. Dramatic drop in drag (the "drag crisis"). Cd drops to ~0.3. |
 
@@ -302,7 +302,7 @@ on the command line, see `python3 generate_cylinder_geo.py --help`):
 | `--first-layer` | 0.01 | First boundary-layer cell height |
 | `--bl-ratio`, `--bl-thickness` | 1.15, 0.15 | Boundary-layer growth ratio and total thickness |
 | `--near-size`, `--near-dist` | 0.05, 2.0 | Element size at the cylinder and distance over which it grows to the far-field size |
-| `--wake-size`, `--wake-xmax`, `--wake-ymin/ymax` | 0.08, 20, ±3 | Element size and extent of the wake box |
+| `--wake-size`, `--wake-xmax`, `--wake-ymin/ymax` | 0.08, 20, $\pm 3$ | Element size and extent of the wake box |
 | `--mesh-size-farfield` | 0.5 | Far-field element size |
 
 Boundary patches are named by Gmsh physical groups: `inlet`, `outlet`, `top`, `bottom`,
@@ -439,7 +439,7 @@ boundaryField
 
 #### Pressure — `0/p`
 
-`p` is the kinematic pressure (p/ρ, m²/s²), as always in OpenFOAM's incompressible solvers.
+`p` is the kinematic pressure (p/$\rho$, $\mathrm{m}^{2}/\mathrm{s}^{2}$), as always in OpenFOAM's incompressible solvers.
 
 ```
 dimensions      [0 2 -2 0 0 0 0];
@@ -468,7 +468,7 @@ boundaryField
 #### `constant/transportProperties`
 
 The kinematic viscosity sets the Reynolds number. For $Re = 200$ with $U_\infty = 1$ m/s and
-$D = 1$ m we need $\nu = U_\infty D / Re = 5 \times 10^{-3}$ m²/s:
+$D = 1$ m we need $\nu = U_\infty D / Re = 5 \times 10^{-3}$ $\mathrm{m}^{2}/\mathrm{s}$:
 
 ```
 transportModel  Newtonian;
@@ -718,7 +718,7 @@ paraview cylinder.foam &
 
 ![Velocity magnitude](images/velocity_magnitude.png)
 
-*Velocity magnitude: the low-speed wake, with the flow accelerating to about 1.5 U∞ (maximum 1.48 at t = 200 s) beside the cylinder.*
+*Velocity magnitude: the low-speed wake, with the flow accelerating to about 1.5 $U_\infty$ (maximum 1.48 at t = 200 s) beside the cylinder.*
 
 ![Pressure](images/pressure.png)
 
@@ -732,11 +732,11 @@ paraview cylinder.foam &
 
 | Quantity | Expected value (Re = 200) | Notes |
 |----------|---------------------------|-------|
-| Strouhal number | 0.197 (target 0.197 ± 0.02) | Shedding frequency from the `Cl` signal |
-| Mean drag coefficient (Cd) | 1.34 ± 0.13 | 2D computations, t ≥ 100 s |
-| Lift coefficient (Cl) | mean ≈ 0, amplitude 0.69 ± 0.10 | Oscillates at the shedding frequency; Cd at twice that |
+| Strouhal number | 0.197 (target 0.197 $\pm 0.02$) | Shedding frequency from the `Cl` signal |
+| Mean drag coefficient (Cd) | 1.34 $\pm 0.13$ | 2D computations, t $\geq 100$ s |
+| Lift coefficient (Cl) | mean $\approx 0$, amplitude 0.69 $\pm 0.10$ | Oscillates at the shedding frequency; Cd at twice that |
 | Separation angle | ~110°–120° from the front stagnation point at Re = 200 (from published 2D results; not measured here) | Laminar boundary layer separation |
-| Time to saturated shedding | Reference run: `Cl` amplitude < 0.2 up to t = 20 s, about 0.4 at t ≈ 30 s, 0.64 from t ≈ 45 s | Depends on the numerical noise that triggers the instability |
+| Time to saturated shedding | Reference run: `Cl` amplitude < 0.2 up to t = 20 s, about 0.4 at t $\approx 30$ s, 0.64 from t $\approx 45$ s | Depends on the numerical noise that triggers the instability |
 
 Measured values from the reference run are in the [verification table](#verification-method).
 
@@ -845,7 +845,7 @@ For a transient run there are no steady-state residual targets. A run is accepta
 ## Appendix: Alternative RANS Setup with snappyHexMesh
 
 The sections below are the original description of this tutorial, which used a **steady RANS
-(`simpleFoam`, k-ε) setup with a `snappyHexMesh` mesh** around an STL cylinder, at Re = 1000. That
+(`simpleFoam`, k-$\varepsilon$) setup with a `snappyHexMesh` mesh** around an STL cylinder, at Re = 1000. That
 is **not** what the files in this directory run; the case above (laminar `pimpleFoam`, Gmsh mesh,
 Re = 200) is. The appendix is kept as a reference for the 3D/RANS approach and for the exercises
 that use it (turbulence model comparison, mesh refinement with `snappyHexMesh`).
@@ -855,7 +855,7 @@ that use it (turbulence model comparison, mesh refinement with `snappyHexMesh`).
 >   `blockMesh` background below therefore does not give a 2D (`empty`) mesh; for a 2D RANS case
 >   use the Gmsh mesh of this project (set `simulationType RAS` and add `k`, `epsilon`, `nut`).
 > - The `epsilon` value in the original text was wrong: with `k = 1.5e-4 m²/s²` and `l = 0.07 D`,
->   $\varepsilon = 0.09^{0.75} (1.5\times10^{-4})^{1.5} / 0.07 \approx 4.3\times10^{-6}$ m²/s³
+>   $\varepsilon = 0.09^{0.75} (1.5\times10^{-4})^{1.5} / 0.07 \approx 4.3\times10^{-6}$ $\mathrm{m}^{2}/\mathrm{s}^{3}$
 >   (not 4.85e-7). The corrected value is used below.
 > - `forceCoeffs` writes `forceCoeffs.dat` (not `coefficient.dat`) with columns
 >   `Time Cm Cd Cl Cl(f) Cl(r)`.
@@ -1402,7 +1402,7 @@ boundaryField
 #### `constant/transportProperties`
 
 Set the kinematic viscosity to achieve your target Reynolds number. For $Re = 1000$ with
-$U_\infty = 1$ m/s and $D = 1$ m, we need $\nu = U_\infty \cdot D / Re = 10^{-3}$ m$^2$/s:
+$U_\infty = 1$ m/s and $D = 1$ m, we need $\nu = U_\infty \cdot D / Re = 10^{-3}$ $\mathrm{m}^{2}/\mathrm{s}$:
 
 ```
 FoamFile

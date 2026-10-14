@@ -6,7 +6,7 @@
 | **Solver** | `buoyantSimpleFoam` (steady-state, buoyant, turbulent, compressible with energy equation) |
 | **Algorithm** | SIMPLE |
 | **Turbulence model** | k-epsilon (RAS) with wall functions |
-| **Reynolds number** | Re $\approx$ 6400 at the inlet ($D_h = 2H = 0.2$ m, $\nu = 1.57 \times 10^{-5}$ m$^2$/s) |
+| **Reynolds number** | Re $\approx$ 6400 at the inlet ($D_h = 2H = 0.2$ m, $\nu = 1.57 \times 10^{-5}$ $\mathrm{m}^{2}/\mathrm{s}$) |
 | **Prandtl number** | Pr = 0.71 (air) |
 | **OpenFOAM version** | 6 (run and verified with the `cfdengine/openfoam` image) |
 
@@ -235,11 +235,11 @@ Set in `constant/thermophysicalProperties` (`hConst`, `perfectGas`, constant `mu
 |---|---|---|
 | Molar mass | 28.9 g/mol | $R = 287.7$ J/(kg K) |
 | $C_p$ | 1005 J/(kg K) | |
-| $\mu$ | $1.84 \times 10^{-5}$ Pa s | $\rho(300\,\mathrm{K}) = 1.17$ kg/m$^3$, $\nu \approx 1.57 \times 10^{-5}$ m$^2$/s |
+| $\mu$ | $1.84 \times 10^{-5}$ Pa s | $\rho(300\,\mathrm{K}) = 1.17$ $\mathrm{kg}/\mathrm{m}^{3}$, $\nu \approx 1.57 \times 10^{-5}$ $\mathrm{m}^{2}/\mathrm{s}$ |
 | Pr | 0.71 | $k = \mu C_p / Pr \approx 0.026$ W/(m K) |
 
 $\mu$ is constant, so the kinematic viscosity changes with temperature only through the
-density ($\nu \approx 1.8 \times 10^{-5}$ m$^2$/s at 350 K).
+density ($\nu \approx 1.8 \times 10^{-5}$ $\mathrm{m}^{2}/\mathrm{s}$ at 350 K).
 
 ### 2.3 Key Dimensionless Numbers
 
@@ -254,7 +254,7 @@ For this case:
 - $D_h$: for a rectangular duct $D_h = 2 H W/(H+W)$, which for the real cross-section
   0.1 m x 0.01 m would be about 0.018 m. The case is a 2D plane channel (infinite
   width), for which $D_h \to 2H = 0.2$ m. This value is used throughout.
-- $\nu = \mu/\rho = 1.84 \times 10^{-5} / 1.174 = 1.57 \times 10^{-5}$ m$^2$/s (air at 300 K)
+- $\nu = \mu/\rho = 1.84 \times 10^{-5} / 1.174 = 1.57 \times 10^{-5}$ $\mathrm{m}^{2}/\mathrm{s}$ (air at 300 K)
 
 $$Re = (0.5 \times 0.2) / (1.57 \times 10^{-5}) \approx 6400$$
 
@@ -278,7 +278,7 @@ pure conduction:
 $$Nu = (h_{conv} \times D_h) / k_{thermal}$$
 
 where:
-- `h_conv` = convective heat transfer coefficient [W/(m$^2$·K)]
+- `h_conv` = convective heat transfer coefficient [$\mathrm{W}/(\mathrm{m}^{2}\cdot\mathrm{K})$]
 - `k_thermal` = fluid thermal conductivity [W/(m·K)]
 
 **Correlations for fully-developed turbulent pipe flow:**
@@ -402,7 +402,7 @@ slight top/bottom temperature asymmetry (Section 8.2).
 | `0/epsilon` | Turbulent dissipation | Inlet $3.4 \times 10^{-4}$, wall functions at walls |
 | `0/nut` | Turbulent viscosity | Wall functions at walls |
 | `0/alphat` | Turbulent thermal diffusivity | alphatWallFunction at walls (Prt = 0.85) |
-| `constant/g` | Gravity vector | (0, -9.81, 0) m/s$^2$ |
+| `constant/g` | Gravity vector | (0, -9.81, 0) $\mathrm{m}/\mathrm{s}^{2}$ |
 | `constant/thermophysicalProperties` | Gas properties | Air: molWeight 28.9, Cp = 1005, mu = 1.84e-5, Pr = 0.71 |
 | `constant/turbulenceProperties` | Turbulence model | k-epsilon (RAS) |
 | `system/blockMeshDict` | Mesh definition | 100$\times$20$\times$1 cells, 2m$\times$0.1m$\times$0.01m |
@@ -536,9 +536,9 @@ reality (aspect ratio 4).*
 
 #### Turbulence Variables (k, epsilon, nut, alphat)
 - **Inlet:** 5 % turbulence intensity on 0.5 m/s gives
-  $k = 1.5 (I U)^2 = 1.5 (0.05 \times 0.5)^2 \approx 9.4 \times 10^{-4}$ m$^2$/s$^2$.
+  $k = 1.5 (I U)^2 = 1.5 (0.05 \times 0.5)^2 \approx 9.4 \times 10^{-4}$ $\mathrm{m}^{2}/\mathrm{s}^{2}$.
   With turbulence length scale $l = 0.07 D_h = 0.014$ m,
-  $\epsilon = C_\mu^{0.75} k^{1.5} / l \approx 3.4 \times 10^{-4}$ m$^2$/s$^3$. The
+  $\epsilon = C_\mu^{0.75} k^{1.5} / l \approx 3.4 \times 10^{-4}$ $\mathrm{m}^{2}/\mathrm{s}^{3}$. The
   resulting turbulent viscosity ratio $\nu_t/\nu$ stays below about 15 in the domain.
   (The original values k = 0.1, epsilon = 0.01 correspond to 52 % intensity and
   $\nu_t/\nu \approx 3000$, which suppresses the flow structure and prevents
@@ -719,7 +719,7 @@ Values below come from a serial run in the `cfdengine/openfoam` image (OpenFOAM 
 - The solution converges in **134 iterations** (about one second on one core).
 - Initial residuals are high (order 1) in the first iterations, especially for pressure
   and energy, and drop to $O(10^{-4})$ at convergence.
-- Density stays between 1.006 and 1.174 kg/m$^3$ (350 K and 300 K at 101325 Pa).
+- Density stays between 1.006 and 1.174 $\mathrm{kg}/\mathrm{m}^{3}$ (350 K and 300 K at 101325 Pa).
 - No `bounding` messages and no floating point exceptions appear in the log.
 
 ### 8.2 Temperature Field
@@ -799,8 +799,8 @@ face values of `T` and `phi`.
 
 **Wall heat flux:**
 The wall heat flux (positive = into the fluid) is highest near the inlet, about
-490 W/m$^2$ in the first cell, where the temperature gradient is steepest. It falls to
-about 190 W/m$^2$ at mid-length and 160-180 W/m$^2$ at the outlet as the fluid warms up
+490 $\mathrm{W}/\mathrm{m}^{2}$ in the first cell, where the temperature gradient is steepest. It falls to
+about 190 $\mathrm{W}/\mathrm{m}^{2}$ at mid-length and 160-180 $\mathrm{W}/\mathrm{m}^{2}$ at the outlet as the fluid warms up
 and the driving temperature difference between wall and fluid core diminishes.
 
 ![Wall heat flux](images/wall_heat_flux.png)
@@ -809,8 +809,8 @@ and the driving temperature difference between wall and fluid core diminishes.
 The last cell at the outlet shows an outlet boundary effect.*
 
 **Mean Nusselt number:**
-From the run, the mean wall flux is about 220 W/m$^2$ and the log-mean temperature
-difference about 42 K, so $h \approx 5.2$ W/(m$^2$ K) and
+From the run, the mean wall flux is about 220 $\mathrm{W}/\mathrm{m}^{2}$ and the log-mean temperature
+difference about 42 K, so $h \approx 5.2$ W/($\mathrm{m}^{2}$ K) and
 $Nu = h D_h / k \approx 40$. This is about 1.8 times the fully developed
 Dittus-Boelter value (22). That is plausible for a thermally developing flow with
 $L/D_h = 10$, but the mesh is coarse and the wall functions are used outside their
@@ -819,10 +819,10 @@ result.
 
 ### 8.5 Turbulence Fields
 
-- `k` grows from the inlet value of $9.4 \times 10^{-4}$ m$^2$/s$^2$ to about
-  $7 \times 10^{-3}$ m$^2$/s$^2$ where velocity gradients are large (near the walls)
+- `k` grows from the inlet value of $9.4 \times 10^{-4}$ $\mathrm{m}^{2}/\mathrm{s}^{2}$ to about
+  $7 \times 10^{-3}$ $\mathrm{m}^{2}/\mathrm{s}^{2}$ where velocity gradients are large (near the walls)
 - `epsilon` peaks very close to the walls
-- `nut` (turbulent viscosity) is at most about $2.3 \times 10^{-4}$ m$^2$/s (viscosity
+- `nut` (turbulent viscosity) is at most about $2.3 \times 10^{-4}$ $\mathrm{m}^{2}/\mathrm{s}$ (viscosity
   ratio about 15) and reaches its maximum slightly away from the wall
 - Turbulence enhances mixing, which increases heat transfer compared to laminar flow
 
@@ -1020,8 +1020,7 @@ Exercises 1-5, 7 and 10 only change dictionary entries.
       gradient        uniform 8000;  // dT/dn in K/m at the wall
   }
   ```
-- A gradient of 8000 K/m corresponds to a flux of about $k \times 8000 \approx
-  210$ W/m$^2$, close to the mean flux of the baseline (applied to both walls, a test run with the
+- A gradient of 8000 K/m corresponds to a flux of about $k \times 8000 \approx 210$ $\mathrm{W}/\mathrm{m}^{2}$, close to the mean flux of the baseline (applied to both walls, a test run with the
   earlier `zeroGradient` inlet `p_rgh` converged in 130 iterations).
 - **Question:** How does the wall temperature distribution differ? Which BC gives
   higher average heat transfer?

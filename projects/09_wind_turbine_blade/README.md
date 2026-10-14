@@ -258,7 +258,7 @@ the rotating frame (see `MRFZone.C`). The physical content is the same two force
 
 The Coriolis force acts perpendicular to both the rotation axis and the relative velocity.
 It is responsible for deflecting the flow and creating the swirling motion that is
-characteristic of rotating machinery. For this case (ω along +z, U along +x) the force
+characteristic of rotating machinery. For this case ($\omega$ along +z, U along +x) the force
 per unit mass points in the **-y** direction, which is why pressure builds up on the
 lower side of the zone.
 
@@ -276,7 +276,7 @@ lower side of the zone.
 #### Centrifugal Acceleration: `-ω × (ω × r)`
 
 The centrifugal term always points radially **outward** from the rotation axis with
-magnitude ω² r. In a closed rotating frame it is balanced by a radial pressure gradient.
+magnitude $\omega^{2}$ r. In a closed rotating frame it is balanced by a radial pressure gradient.
 
 ```
                     ω (rotation axis, out of page)
@@ -316,9 +316,9 @@ The rotor speed is usually quoted as the tip-speed ratio
   This case:  λ = 10.472 rad/s × 0.3 m / 10 m/s = 0.31
 ```
 
-Horizontal-axis wind turbines are typically designed for λ of about 5 to 9. To reach a
-turbine-like λ = 7 with U∞ = 10 m/s and R = 0.3 m this zone would have to rotate at
-ω = λ U∞ / R = 233 rad/s (about 2,200 RPM).
+Horizontal-axis wind turbines are typically designed for $\lambda$ of about 5 to 9. To reach a
+turbine-like $\lambda$ = 7 with $U_\infty$ = 10 m/s and R = 0.3 m this zone would have to rotate at
+$\omega = \lambda U_\infty / R = 233\,\mathrm{rad/s}$ (about 2,200 RPM).
 
 ### When to Use MRF
 
@@ -485,8 +485,8 @@ blade STL geometry. The purpose here is to demonstrate the MRF concept.
 
 | Parameter       | Value                          | Purpose                      |
 |-----------------|--------------------------------|------------------------------|
-| Domain size     | 3.0 × 2.0 × 0.1 m              | Rectangular, quasi-2D        |
-| Cell count      | 150 × 100 × 1                  | 15,000 cells total           |
+| Domain size     | $3.0 \times 2.0 \times 0.1$ m              | Rectangular, quasi-2D        |
+| Cell count      | $150 \times 100 \times 1$                  | 15,000 cells total           |
 | Cell size (dx)  | 0.02 m                         | Uniform spacing              |
 | Cell size (dy)  | 0.02 m                         | Uniform spacing              |
 | Grading         | (1 1 1) — uniform              | No stretching                |
@@ -520,7 +520,7 @@ This case stops at the rotating zone. A case with actual blades differs as follo
   rotation centre `CofR` set to `origin`); power is torque times omega, and the power
   coefficient follows from the free-stream power available over the swept area.
 - **Operating point:** `omega` is chosen from the target tip-speed ratio
-  (omega = λ U∞ / R); several values give the performance curve.
+  (omega = $\lambda$ $U_\infty$ / R); several values give the performance curve.
 
 ---
 
@@ -696,7 +696,7 @@ MRF2
   └─────────────────────────────────────────────────────────────────┘
 ```
 
-`p` is the kinematic pressure (static pressure divided by density), in m²/s².
+`p` is the kinematic pressure (static pressure divided by density), in $\mathrm{m}^{2}/\mathrm{s}^{2}$.
 
 ---
 

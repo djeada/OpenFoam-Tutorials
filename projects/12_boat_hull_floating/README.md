@@ -43,12 +43,12 @@ consistency with them.
 
 | Quantity | Target | Source |
 |----------|--------|--------|
-| Hull volume (closed STL) | 296.7 cm³ | computed from `boat_hull.stl` |
-| Initial state | hull centre at the waterline, 210.8 cm³ submerged: buoyancy 2.065 N against weight 0.4905 N, **net force 1.57 N upwards** (the hull is *not* in equilibrium at t = 0) | STL clipped at z = 0 |
-| Initial acceleration | Archimedes alone would give a = 1.57 N / 0.05 kg = 31 m/s²; the surrounding water has to be accelerated too (added mass), measured a ≈ 4 m/s² and a vertical fluid force on the hull of ≈ 0.65 N instead of 2.06 N during the first 10 ms | `log.interFoam`, `postProcessing/forces` |
-| Equilibrium (Archimedes) | displaced volume m/ρ = 50.1 cm³, waterline 21.0 mm below the hull centre: **draft 6.3 mm, hull rises 21.0 mm**, z of centre of mass = −0.005 + 0.021 = **+0.016 m** | STL + `mass` in `dynamicMeshDict` |
+| Hull volume (closed STL) | 296.7 $\mathrm{cm}^{3}$ | computed from `boat_hull.stl` |
+| Initial state | hull centre at the waterline, 210.8 $\mathrm{cm}^{3}$ submerged: buoyancy 2.065 N against weight 0.4905 N, **net force 1.57 N upwards** (the hull is *not* in equilibrium at t = 0) | STL clipped at z = 0 |
+| Initial acceleration | Archimedes alone would give a = 1.57 N / 0.05 kg = 31 $\mathrm{m}/\mathrm{s}^{2}$; the surrounding water has to be accelerated too (added mass), measured a $\approx 4$ $\mathrm{m}/\mathrm{s}^{2}$ and a vertical fluid force on the hull of $\approx 0.65$ N instead of 2.06 N during the first 10 ms | `log.interFoam`, `postProcessing/forces` |
+| Equilibrium (Archimedes) | displaced volume m/$\rho$ = 50.1 $\mathrm{cm}^{3}$, waterline 21.0 mm below the hull centre: **draft 6.3 mm, hull rises 21.0 mm**, z of centre of mass = −0.005 + 0.021 = **+0.016 m** | STL + `mass` in `dynamicMeshDict` |
 | Motion type | heave only (plus yaw, which stays at zero for a symmetric hull in calm water); no surge, sway, pitch or roll | `constraints` |
-| Early motion (measured, t ≤ 0.22 s) | z rises from −0.0050 m, crosses z = +0.016 m at t = 0.12 s with v ≈ 0.19 m/s, peaks at **+0.0244 m at t = 0.197 s** (8.5 mm above equilibrium), then falls back | `log.interFoam` |
+| Early motion (measured, t $\leq 0.22$ s) | z rises from −0.0050 m, crosses z = +0.016 m at t = 0.12 s with v $\approx 0.19$ m/s, peaks at **+0.0244 m at t = 0.197 s** (8.5 mm above equilibrium), then falls back | `log.interFoam` |
 | Settling | damped heave oscillation around z = +0.016 m | physical expectation, **not verified** (see below) |
 
 **The full 3 s run was NOT completed.** It needs several hours on one core
@@ -83,23 +83,23 @@ message. SKIP is used for checks that need the full run (to `endTime`).
 | snappyHexMesh finished | meshing completed | "Finished meshing without any errors" | exact | ok |
 | checkMesh Mesh OK | mesh passes all checkMesh tests | "Mesh OK." | exact | ok |
 | hull patch closed | `boat` is a closed surface (needed for buoyancy) | "closed singly connected" | exact | closed |
-| max non-orthogonality | quality within snappyHexMesh `maxNonOrtho` | ≤ 65° | limit set in `snappyHexMeshDict` | 48.5° |
-| max skewness | within `maxInternalSkewness` | ≤ 4 | limit set in `snappyHexMeshDict` | 2.99 |
+| max non-orthogonality | quality within snappyHexMesh `maxNonOrtho` | $\leq 65$° | limit set in `snappyHexMeshDict` | 48.5° |
+| max skewness | within `maxInternalSkewness` | $\leq 4$ | limit set in `snappyHexMeshDict` | 2.99 |
 | no fatal error / NaN | solver log is clean | none | exact | none (after the controlDict fix, see below) |
 | DoF constraints | only z translation and z rotation allowed | tensors `(0 0 0 0 0 0 0 0 1)` | exact | as expected |
-| initial water volume fraction | setFields + mesh give water below z = 0 minus submerged hull | 0.57127 (from block dimensions and STL) | ± 2e-4 (52 cm³: snapped hull volume known to ~10 % of 211 cm³) | 0.57123 |
-| water volume conserved | no net water loss through boundaries / MULES | first value | ± 1.5e-3 relative (225 cm³ = 0.3 mm level change = 5 % of the draft) | −6.3e-4 relative |
-| alpha.water bounded | interface not smeared/oscillating | within [0, 1] | ± 0.01 (1 % of range) | +2.3e-4 / −6.6e-6 |
-| max Courant | stable explicit convection | ≤ 0.5 | stability bound; case limit 0.4 is exceeded transiently because deltaT follows the previous step | 0.434 |
-| max interface Courant | stable MULES transport | ≤ 0.5 | same; case limit 0.25 | 0.368 |
+| initial water volume fraction | setFields + mesh give water below z = 0 minus submerged hull | 0.57127 (from block dimensions and STL) | $\pm 2e-4$ (52 $\mathrm{cm}^{3}$: snapped hull volume known to ~10 % of 211 $\mathrm{cm}^{3}$) | 0.57123 |
+| water volume conserved | no net water loss through boundaries / MULES | first value | $\pm 1.5e-3$ relative (225 $\mathrm{cm}^{3}$ = 0.3 mm level change = 5 % of the draft) | −6.3e-4 relative |
+| alpha.water bounded | interface not smeared/oscillating | within [0, 1] | $\pm 0.01$ (1 % of range) | +2.3e-4 / −6.6e-6 |
+| max Courant | stable explicit convection | $\leq 0.5$ | stability bound; case limit 0.4 is exceeded transiently because deltaT follows the previous step | 0.434 |
+| max interface Courant | stable MULES transport | $\leq 0.5$ | same; case limit 0.25 | 0.368 |
 | surge/sway | line constraint holds | 0 | 1e-9 m (round-off) | 0 |
 | pitch/roll | axis constraint holds | 0 | 1e-6 (round-off) | 0 |
 | max yaw | symmetric hull does not yaw | 0° | 2° (numerical asymmetry only) | 0.51° |
-| max heave speed | no blow-up; energy bound sqrt(2 (ρgV − mg) Δz / m) | ≤ 1.32 m/s | 15 % margin on the bound | 0.239 m/s |
-| momentum balance | force output and motion agree: m·v = accelerationDamping · ∫(F − mg) dt | −0.00486 kg m/s | ± 5 % of ∫\|F − mg\| dt = 0.0016 (sampling and relaxation lag) | −0.00474 kg m/s |
+| max heave speed | no blow-up; energy bound sqrt(2 ($\rho$gV − mg) $\Delta$z / m) | $\leq 1.32$ m/s | 15 % margin on the bound | 0.239 m/s |
+| momentum balance | force output and motion agree: m·v = accelerationDamping · ∫(F − mg) dt | −0.00486 kg m/s | $\pm 5$ % of ∫\|F − mg\| dt = 0.0016 (sampling and relaxation lag) | −0.00474 kg m/s |
 | centre of mass rises | direction of motion (consistency only) | z_end − z_start > 1e-4 m | none, sign check | +0.0269 m |
-| time directories | results written | ≥ 1 | exact | 4 (0.05 … 0.2) |
-| settled z of centre of mass | converges to Archimedes equilibrium z = +0.0160 m | +0.0160 m | ± 3 mm (half the draft; waterline cells are 6 mm) | SKIP (needs run to 3 s), **unverified** |
+| time directories | results written | $\geq 1$ | exact | 4 (0.05 … 0.2) |
+| settled z of centre of mass | converges to Archimedes equilibrium z = +0.0160 m | +0.0160 m | $\pm 3$ mm (half the draft; waterline cells are 6 mm) | SKIP (needs run to 3 s), **unverified** |
 | heave oscillation decays | damping | — | — | SKIP (needs run to 3 s), **unverified** |
 
 The first partial run was made before `sixDoFRigidBodyState` was removed
@@ -194,7 +194,7 @@ The simulation loop each timestep:
 The hull starts with its geometric centre at the water surface. Its weight
 (0.49 N) is much smaller than the buoyancy of the initially submerged half
 (2.07 N), so it is pushed **upwards** by about 21 mm until the displaced
-volume equals m/ρ (Archimedes' principle). The expected result is a damped
+volume equals m/$\rho$ (Archimedes' principle). The expected result is a damped
 heave oscillation around this equilibrium draft (about 6 mm).
 
 ---
@@ -532,14 +532,14 @@ waterline box; the slice filter shows the cells triangulated.*
 |-----------------------|-------------------------------|---------------|
 | Mass                  | 0.050                         | kg            |
 | Centre of mass        | (0, 0, $-$0.005)                | m             |
-| Ixx (roll)            | 3.4 $\times$ 10$^{-5}$                   | kg·m$^2$         |
-| Iyy (pitch)           | 7.1 $\times$ 10$^{-5}$                   | kg·m$^2$         |
-| Izz (yaw)             | 8.3 $\times$ 10$^{-5}$                   | kg·m$^2$         |
+| Ixx (roll)            | $3.4 \times 10^{-5}$                   | $\mathrm{kg}\cdot \mathrm{m}^{2}$         |
+| Iyy (pitch)           | $7.1 \times 10^{-5}$                   | $\mathrm{kg}\cdot \mathrm{m}^{2}$         |
+| Izz (yaw)             | $8.3 \times 10^{-5}$                   | $\mathrm{kg}\cdot \mathrm{m}^{2}$         |
 
 The centre of mass is 5 mm below the geometric centre. This is a modelling
 choice (the volume centroid of the STL is 7.7 mm below the centre; a
 low centre of mass improves roll stability). The mean density of the hull is
-50 g / 296.7 cm³ = 168 kg/m³, i.e. the hull is light and floats high.
+50 g / 296.7 $\mathrm{cm}^{3}$ = 168 $\mathrm{kg}/\mathrm{m}^{3}$, i.e. the hull is light and floats high.
 
 ### Why These Inertia Values?
 
@@ -600,7 +600,7 @@ pitch and roll are constrained (see section 8.8).
 ```
 
 Patches: `inlet` (x = −0.5), `outlet` (x = 1.0), `atmosphere` (z = 0.15),
-`bottom` (z = −0.20, wall), `sides` (y = ±0.25), `boat` (created by
+`bottom` (z = −0.20, wall), `sides` (y = $\pm 0.25$), `boat` (created by
 snappyHexMesh from `boat_hull.stl`). The hull is centred at the origin, so
 its initial waterline is at the hull's geometric centre.
 
@@ -776,7 +776,7 @@ mesh motion and the 6-DoF rigid body solver.
 | `patches`              | `(boat)`               | Which patches form the rigid body |
 | `mass`                 | `0.050`                | Body mass in kg |
 | `centreOfMass`         | `(0 0 -0.005)`         | CoM position in m |
-| `momentOfInertia`      | `(3.4e-05 7.1e-05 8.3e-05)` | Ixx, Iyy, Izz in kg·m$^2$ |
+| `momentOfInertia`      | `(3.4e-05 7.1e-05 8.3e-05)` | Ixx, Iyy, Izz in $\mathrm{kg}\cdot \mathrm{m}^{2}$ |
 | `report`               | `on`                   | Print position/rotation each outer corrector |
 
 #### sixDoFRigidBodyMotionCoeffs — Mesh Motion
@@ -856,8 +856,8 @@ Why this choice:
 - Yaw is free but is not excited for a symmetric hull in calm water.
 - Pitch and roll are locked because the coupling was unstable when they were
   free: in a test with only the `line` constraint (and the original,
-  too small inertia) the angular velocity reached 2.6 × 10⁵ rad/s within
-  5 × 10⁻⁴ s. Whether the corrected inertia values of this version allow
+  too small inertia) the angular velocity reached $2.6 \times 10^{5}$ rad/s within
+  $5 \times 10^{-4}$ s. Whether the corrected inertia values of this version allow
   free pitch/roll was not tested (see Exercise 4).
 
 ### 8.9 `system/blockMeshDict`
@@ -939,7 +939,7 @@ which can be insufficiently accurate.
 **Why 3 outer correctors?** The hull (0.05 kg) is lighter than the water it
 displaces (0.21 kg initially), the typical situation for the added-mass
 instability of partitioned fluid-body coupling. With `nOuterCorrectors 2`
-the case diverged at t ≈ 0.025 s (hull force of order kN on a 0.05 kg body,
+the case diverged at t $\approx 0.025$ s (hull force of order kN on a 0.05 kg body,
 velocity growing from 0.3 to 8 m/s within about 15 steps); with 3 it ran smoothly
 (OpenFOAM's own `floatingObject` tutorial also uses 3).
 
@@ -1058,10 +1058,10 @@ machine shared with other jobs):
 |----------------------------|----------------|
 | blockMesh, surfaceFeatureExtract | < 1 s    |
 | snappyHexMesh              | 6 s (46,772 cells) |
-| interFoam                  | 0.63 s per time step (3 outer × 3 pressure correctors) |
+| interFoam                  | 0.63 s per time step (3 outer $\times$ 3 pressure correctors) |
 | deltaT during the run      | 6.0e-5 … 8.8e-4 s (mean 1.9e-4 s) |
 | 0.2225 s simulated         | 743 s (1181 time steps) |
-| 3 s simulated (extrapolated, **not run**) | ≈ 2.5–3 h on an idle core; a repeat run on a loaded machine needed ≈ 1.2 s per step (0.244 s in 1800 s), i.e. about 5 h |
+| 3 s simulated (extrapolated, **not run**) | $\approx 2.5$–3 h on an idle core; a repeat run on a loaded machine needed $\approx 1.2$ s per step (0.244 s in 1800 s), i.e. about 5 h |
 
 For parallel runs (use at most as many ranks as you have cores):
 
@@ -1192,10 +1192,10 @@ as a function of waterline height:
 
 | Waterline above hull centre | Displaced volume |
 |-----------------------------|------------------|
-| 0 mm (initial)              | 210.8 cm³        |
-| −10 mm                      | 139.4 cm³        |
-| −20 mm                      | 59.4 cm³         |
-| **−21.0 mm (equilibrium)**  | **50.1 cm³**     |
+| 0 mm (initial)              | 210.8 $\mathrm{cm}^{3}$        |
+| −10 mm                      | 139.4 $\mathrm{cm}^{3}$        |
+| −20 mm                      | 59.4 $\mathrm{cm}^{3}$         |
+| **−21.0 mm (equilibrium)**  | **50.1 $\mathrm{cm}^{3}$**     |
 
 So the boat should settle with a **draft of 6.3 mm** (bottom of the hull
 below the waterline) with the hull having risen **21.0 mm**, i.e. the centre
@@ -1226,7 +1226,7 @@ Only the early phase was verified by a run (see Target); measured values:
 | 0      | −0.0050                 | 0         |
 | 0.05   | +0.0003                 | 0.194     |
 | 0.10   | +0.0117                 | 0.228     |
-| 0.12   | +0.0160 (= z_eq)        | ≈ 0.19    |
+| 0.12   | +0.0160 (= z_eq)        | $\approx 0.19$    |
 | 0.15   | +0.0211                 | 0.138     |
 | 0.197  | +0.0244 (maximum)       | 0         |
 | 0.2225 | +0.0236                 | −0.060    |
@@ -1235,7 +1235,7 @@ The hull overshoots the equilibrium by 8.5 mm and starts to fall back. The
 part after that (further oscillations, damping, settling time) is the
 physical expectation and has not been run to completion.
 
-Note that the vertical fluid force on the hull is *not* ρ g V_submerged while
+Note that the vertical fluid force on the hull is *not* $\rho$ g V_submerged while
 the hull accelerates: the force output of the solver was about 0.65 N at
 t = 0 (Archimedes: 2.06 N) and still 0.35 N when the hull bottom was already
 above the undisturbed waterline, because accelerating the hull also
@@ -1264,9 +1264,9 @@ the instantaneous force with Archimedes.
 1. **The boat rises** from its initial position (it does not sink: the
    initial buoyancy is about 4 times its weight)
 2. **Overshoots** the equilibrium height (measured: peak 8.5 mm above
-   z = +0.016 m at t ≈ 0.2 s)
+   z = +0.016 m at t $\approx 0.2$ s)
 3. **Damped oscillation** — each bob is smaller than the last
-4. **Settles** at a draft of about 6 mm (z_CoM ≈ +0.016 m)
+4. **Settles** at a draft of about 6 mm (z_CoM $\approx$ +0.016 m)
 5. **Pitch and roll stay exactly zero** (locked by the `axis` constraint)
 6. **Yaw stays near zero** (symmetric hull, no lateral forces)
 
@@ -1314,7 +1314,7 @@ It is worst for light bodies (body mass comparable to or smaller than the
 displaced fluid mass), as here. Relaxation and damping limit how much the
 acceleration can change between iterations, but they were **not sufficient
 on their own** in this case: with `nOuterCorrectors 2` the run diverged at
-t ≈ 0.025 s, and changing `accelerationRelaxation` from 0.7 to 0.3 had no
+t $\approx 0.025$ s, and changing `accelerationRelaxation` from 0.7 to 0.3 had no
 visible effect once `nOuterCorrectors` was 3. More outer correctors (a
 stronger coupling) was the effective measure.
 

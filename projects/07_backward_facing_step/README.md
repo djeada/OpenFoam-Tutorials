@@ -1,6 +1,6 @@
 # Backward-Facing Step Flow
 
-> **Level:** Intermediate · **Solver:** `simpleFoam` · **Flow:** Steady-state, incompressible, turbulent (RANS, k-ω SST) · **Tested with:** OpenFOAM 6 (`cfdengine/openfoam` image)
+> **Level:** Intermediate · **Solver:** `simpleFoam` · **Flow:** Steady-state, incompressible, turbulent (RANS, k-$\omega$ SST) · **Tested with:** OpenFOAM 6 (`cfdengine/openfoam` image)
 
 ---
 
@@ -11,7 +11,7 @@ solver and learn to:
 
 - build a multi-block 2D mesh with `blockMesh` (three blocks, graded towards walls
   and towards the step edge);
-- set up a k-ω SST case: inlet values of `k` and `omega`, wall functions for
+- set up a k-$\omega$ SST case: inlet values of `k` and `omega`, wall functions for
   `k`, `omega` and `nut`;
 - run `simpleFoam` to a residual-controlled steady state and judge convergence;
 - locate the **reattachment point** from the sign change of the wall shear stress
@@ -26,12 +26,12 @@ solver and learn to:
 | Residuals at convergence          | p < 1e-4, U, k, omega < 1e-5 (the `residualControl` values) |
 | Mass conservation                 | inlet and outlet flux balance to < 1e-3 (relative)     |
 | Wall resolution                   | max y+ < 5 on all walls (mesh is wall-resolved)        |
-| Reattachment length `Xr/H`        | **9.0 ± 0.5** (regression value measured with this setup, see below) |
+| Reattachment length `Xr/H`        | **9.0 $\pm 0.5$** (regression value measured with this setup, see below) |
 
 About the reattachment length: there is **no experiment with exactly this geometry
 and inlet** (expansion ratio 2, uniform inlet, `Re_H` = 8,467), so there is no
 experimental reference value to compare against. The classic benchmark values
-(Driver & Seegmiller: `Xr/H` = 6.26 at expansion ratio 1.125, `Re_H` ≈ 37,400; see
+(Driver & Seegmiller: `Xr/H` = 6.26 at expansion ratio 1.125, `Re_H` $\approx 37$,400; see
 [references](#the-reattachment-length-xrh)) belong to a different geometry and Reynolds
 number. The target above is therefore the value this case produces with OpenFOAM 6 on
 the supplied mesh (9.0 H); the experiments only provide a plausibility band
@@ -63,11 +63,11 @@ are from a full run of this case (OpenFOAM 6, single core, about 250 s):
 | `final_residual_k`        | k converged                                              | < 1e-5             | same                      | 5.5e-6 |
 | `final_residual_omega`    | omega converged                                          | < 1e-5             | same                      | 3.5e-7 |
 | `max_yplus`               | near-wall mesh is in the viscous-sublayer range          | < 5                | usual limit for low-Re near-wall treatment | 1.53 |
-| `inlet_flux`              | inlet flux equals U·H·depth (BC and geometry consistent) | 1.6129e-3 m³/s    | 1e-6 relative (round-off) | 1.6129e-3 |
+| `inlet_flux`              | inlet flux equals U·H·depth (BC and geometry consistent) | 1.6129e-3 $\mathrm{m}^{3}/\mathrm{s}$    | 1e-6 relative (round-off) | 1.6129e-3 |
 | `mass_balance`            | outlet flux balances inlet flux                          | 0                  | 1e-3 relative (converged steady state) | 7.5e-8 |
-| `reattachment_regression` | `Xr/H` from the sign change of `tau_x` on `bottomWall`   | 9.0                | ± 0.5 H (about 7 cells at x ≈ 9H). Regression check on this mesh and model, **not** experimental validation | 9.00 |
-| `reattachment_plausible`  | `Xr/H` lies in the range expected for turbulent step flow | 5 .. 10           | experiments with expansion ratio 1.1-2 give about 6-8 H, RANS scatter about ±25 %. Sanity band only | 9.00 |
-| `reattachment_nearwall_Ux`| independent: `Ux` sign change in the first cell row (`system/sampleDict`) agrees with the `tau_x` result | `Xr/H` from `tau_x` | ± 0.2 H (about 3 cells; face-centre vs cell-centre location) | 9.00 |
+| `reattachment_regression` | `Xr/H` from the sign change of `tau_x` on `bottomWall`   | 9.0                | $\pm 0.5$ H (about 7 cells at x $\approx 9$H). Regression check on this mesh and model, **not** experimental validation | 9.00 |
+| `reattachment_plausible`  | `Xr/H` lies in the range expected for turbulent step flow | 5 .. 10           | experiments with expansion ratio 1.1-2 give about 6-8 H, RANS scatter about $\pm 25$ %. Sanity band only | 9.00 |
+| `reattachment_nearwall_Ux`| independent: `Ux` sign change in the first cell row (`system/sampleDict`) agrees with the `tau_x` result | `Xr/H` from `tau_x` | $\pm 0.2$ H (about 3 cells; face-centre vs cell-centre location) | 9.00 |
 
 Manual checks (visual, secondary):
 
@@ -146,7 +146,7 @@ continues to challenge RANS models, LES approaches and DNS alike.
 |------------------------|------------|--------------------------------------------|
 | Step height            | H          | 0.0127 m (12.7 mm)                         |
 | Inlet velocity         | $U_\infty$ | 10 m/s (uniform)                           |
-| Kinematic viscosity    | $\nu$      | 1.5 $\times$ 10$^{-5}$ m$^2$/s (air)      |
+| Kinematic viscosity    | $\nu$      | $1.5 \times 10^{-5}$ $\mathrm{m}^{2}/\mathrm{s}$ (air)      |
 | Reynolds number        | Re_H       | $\approx$ 8,467 (based on H and $U_\infty$) |
 | Expansion ratio        | ER         | 2:1 (downstream height / upstream height)  |
 | Upstream length        | L_up       | 4H = 0.0508 m                              |
@@ -189,7 +189,7 @@ The Reynolds stress tensor `u'ᵢu'ⱼ` is modelled using the Boussinesq hypothe
 ```
 
 where $\nu_t$ is the turbulent eddy viscosity and k is the turbulent kinetic energy.
-In OpenFOAM the pressure is kinematic (`p/ρ`, units m²/s²), which is why `0/p` has
+In OpenFOAM the pressure is kinematic (`p/ρ`, units $\mathrm{m}^{2}/\mathrm{s}^{2}$), which is why `0/p` has
 dimensions `[0 2 -2 0 0 0 0]`.
 
 ### Flow Separation and Reattachment
@@ -283,11 +283,11 @@ to handle the weaknesses of existing two-equation models in separated flows:
 
 3. **Shear stress limiter** - The SST modification limits the eddy viscosity using
    Bradshaw's assumption that the principal turbulent shear stress is proportional
-   to the turbulent kinetic energy: `τ = ρa₁k` where a$_1$ = 0.31. This prevents
+   to the turbulent kinetic energy: `τ = ρa₁k` where $a_1$ = 0.31. This prevents
    over-prediction of eddy viscosity in adverse pressure gradient flows, which is
    a main failure mode of standard k-$\varepsilon$ in separated flows.
 
-4. **Blending function** - A smooth blending function F$_1$ transitions between the
+4. **Blending function** - A smooth blending function $F_1$ transitions between the
    k-$\omega$ and k-$\varepsilon$ formulations based on wall distance, ensuring the right model is
    active in each region:
 
@@ -325,7 +325,7 @@ a turbulence length scale (l):
 ```
 
 > The exact inlet values influence the reattachment length moderately. Literature
-> studies of varying I from 1 % to 10 % report shifts of about ±0.5 in Xr/H; this was
+> studies of varying I from 1 % to 10 % report shifts of about $\pm 0.5$ in Xr/H; this was
 > not re-measured for this case.
 
 ---
@@ -369,7 +369,7 @@ a turbulence length scale (l):
 | `0/k`                  | TKE: inlet value, wall functions on walls                  |
 | `0/omega`              | Omega: inlet value, wall functions on walls                |
 | `0/nut`                | Eddy viscosity: calculated at inlet/outlet, wall functions |
-| `constant/transportProperties` | Newtonian fluid, $\nu$ = 1.5e-5 m$^2$/s (air)      |
+| `constant/transportProperties` | Newtonian fluid, $\nu$ = 1.5e-5 $\mathrm{m}^{2}/\mathrm{s}$ (air)      |
 | `constant/turbulenceProperties` | RAS → k-omega SST selection                       |
 | `system/blockMeshDict` | Multi-block structured mesh definition                     |
 | `system/controlDict`   | up to 3000 iterations, write every 200, function objects (fieldAverage, wallShearStress, yPlus) |
@@ -468,7 +468,7 @@ laminar limit (about 11), and `kqRWallFunction` is a zero-gradient condition. To
 wall functions in their intended range, the first cell would need to be about
 50-100 times thicker ([Exercise 4](#exercise-4-wall-treatment-study)). An estimate with
 `u_τ ≈ 0.3-0.5 m/s` (the wall shear stress magnitude in this case is at most
-0.16 m²/s², so `u_τ = √τ ≤ 0.4 m/s`) gives `y+ = 30` at `y = 30 ν/u_τ ≈ 0.9-1.5 mm`
+0.16 $\mathrm{m}^{2}/\mathrm{s}^{2}$, so `u_τ = √τ ≤ 0.4 m/s`) gives `y+ = 30` at `y = 30 ν/u_τ ≈ 0.9-1.5 mm`
 from the wall, about 7-12 % of the step height.
 
 ---
@@ -512,7 +512,7 @@ and the vertical step face.)
 | Patch        | Type        | Value           | Notes                        |
 |--------------|-------------|-----------------|------------------------------|
 | inlet        | zeroGradient| -               | Pressure floats at inlet     |
-| outlet       | fixedValue  | 0 m$^2$/s$^2$   | Reference pressure           |
+| outlet       | fixedValue  | 0 $\mathrm{m}^{2}/\mathrm{s}^{2}$   | Reference pressure           |
 | topWall      | zeroGradient| -               | Zero normal gradient         |
 | bottomWall   | zeroGradient| -               | Zero normal gradient         |
 | step         | zeroGradient| -               | Zero normal gradient         |
@@ -522,7 +522,7 @@ and the vertical step face.)
 
 | Patch        | Type              | Value       | Notes                      |
 |--------------|-------------------|-------------|----------------------------|
-| inlet        | fixedValue        | 0.24 m$^2$/s$^2$  | 4 % turbulence intensity   |
+| inlet        | fixedValue        | 0.24 $\mathrm{m}^{2}/\mathrm{s}^{2}$  | 4 % turbulence intensity   |
 | outlet       | zeroGradient      | -           | Convective outflow         |
 | topWall      | kqRWallFunction   | 0.24        | Wall function for k        |
 | bottomWall   | kqRWallFunction   | 0.24        | Wall function for k        |
@@ -533,7 +533,7 @@ and the vertical step face.)
 
 | Patch        | Type                | Value       | Notes                    |
 |--------------|---------------------|-------------|--------------------------|
-| inlet        | fixedValue          | 440 s$^{-1}$     | From k and length scale (see above) |
+| inlet        | fixedValue          | 440 $\mathrm{s}^{-1}$     | From k and length scale (see above) |
 | outlet       | zeroGradient        | -           | Convective outflow       |
 | topWall      | omegaWallFunction   | 440         | Automatic wall treatment |
 | bottomWall   | omegaWallFunction   | 440         | Automatic wall treatment |
@@ -618,8 +618,8 @@ This corresponds to air at approximately 20 °C and atmospheric pressure:
 
 | Property              | Value              |
 |-----------------------|--------------------|
-| Kinematic viscosity $\nu$ | 1.5 $\times$ 10$^{-5}$ m$^2$/s  |
-| Density $\rho$ (implicit)  | ~1.2 kg/m$^3$ (not used by the solver, which works with kinematic quantities) |
+| Kinematic viscosity $\nu$ | $1.5 \times 10^{-5}$ $\mathrm{m}^{2}/\mathrm{s}$  |
+| Density $\rho$ (implicit)  | ~1.2 $\mathrm{kg}/\mathrm{m}^{3}$ (not used by the solver, which works with kinematic quantities) |
 | Temperature           | ~20 °C             |
 | Fluid                 | Air                |
 
@@ -837,7 +837,7 @@ Both the wall shear stress and `Ux` in the first cell row give the same position
 [The Reattachment Length](#the-reattachment-length-xrh): no reference exists for this
 geometry and the classic benchmark is a different configuration.
 
-OpenFOAM's `wallShearStress` is the stress exerted on the fluid (kinematic, m²/s²),
+OpenFOAM's `wallShearStress` is the stress exerted on the fluid (kinematic, $\mathrm{m}^{2}/\mathrm{s}^{2}$),
 so with the flow in +x it is **negative where the near-wall flow is attached** and
 **positive where it is reversed**. Along `bottomWall`:
 
@@ -859,12 +859,12 @@ After convergence, you should observe:
    recirculation zone; the minimum `Ux` in the domain is about -2.4 m/s (24 % of the
    inlet velocity).
 
-3. **Pressure recovery** - Kinematic pressure drops to a minimum of about -24 m²/s² inside
-   the corner-eddy and bubble region (x/H ≈ 2.3), then rises through the
+3. **Pressure recovery** - Kinematic pressure drops to a minimum of about -24 $\mathrm{m}^{2}/\mathrm{s}^{2}$ inside
+   the corner-eddy and bubble region (x/H $\approx 2.3$), then rises through the
    expansion to the outlet reference value 0; pressure along the lower wall is about
    -23 at x/H = 1, -17 at 5, -5 at 9 and +0.3 at 25.
 
-4. **Turbulent kinetic energy peak** - Maximum k (about 5.2 m²/s²) occurs in the free
+4. **Turbulent kinetic energy peak** - Maximum k (about 5.2 $\mathrm{m}^{2}/\mathrm{s}^{2}$) occurs in the free
    shear layer, at about x/H = 4.8 downstream of the step edge, y/H = -0.25.
 
 5. **Wall shear stress sign change** - On the bottom wall, the wall shear stress
@@ -872,7 +872,7 @@ After convergence, you should observe:
    negative (attached flow) at reattachment.
 
 6. **Mass conservation** - Outlet flux balances the inlet flux
-   (1.6129e-3 m³/s for the 1H-deep slab) to better than 1e-6 relative.
+   (1.6129e-3 $\mathrm{m}^{3}/\mathrm{s}$ for the 1H-deep slab) to better than 1e-6 relative.
 
 ### Figures
 
@@ -975,7 +975,7 @@ data, if available for your configuration):
 | 5       | 20   | Recovery region                                      |
 | 6       | 28   | Close to the outlet (30H)                            |
 
-(The original station list 1, 4, 6, 8, 15, 25 was chosen for Xr/H ≈ 6; the stations
+(The original station list 1, 4, 6, 8, 15, 25 was chosen for Xr/H $\approx 6$; the stations
 above are shifted for the Xr/H = 9 of this case. Use 6 for an Xr/H = 6 configuration.)
 
 ### Skin Friction Coefficient
@@ -1078,25 +1078,25 @@ must be equal (they share the face at x = 0, 0 < y < H):
 | Fine   | 160 $\times$ 80   | 600 $\times$ 80      | 108,800     | Grid convergence  |
 | V.Fine | 320 $\times$ 160  | 1200 $\times$ 160    | 435,200     | Reference         |
 
-(Original table used 150 × 30 for the coarse level, which does not match the 20 cells
-of the upstream block and fails in `blockMesh`; corrected to 150 × 20, 6,800 cells.)
+(Original table used $150 \times 30$ for the coarse level, which does not match the 20 cells
+of the upstream block and fails in `blockMesh`; corrected to $150 \times 20$, 6,800 cells.)
 
 Plot Xr/H vs total cell count. The solution should become grid-independent at the
 Fine or Very Fine level. Remember `endTime` and `residualControl` for the finer meshes.
 
 ### Exercise 4: Wall Treatment Study
 
-The supplied mesh is wall-resolved (max y+ ≈ 1.5). Two directions to explore:
+The supplied mesh is wall-resolved (max y+ $\approx 1.5$). Two directions to explore:
 
-**Wall-function regime (y+ ≈ 30-100):** reduce the wall-normal cell counts and
-the wall grading so that the first cell centre is 1-3 mm from the wall (y+ ≈ 30-100,
+**Wall-function regime (y+ $\approx 30$-100):** reduce the wall-normal cell counts and
+the wall grading so that the first cell centre is 1-3 mm from the wall (y+ $\approx 30$-100,
 see the estimate in [y+ Considerations](#y-considerations)), and check
 `grep "y+" log.simpleFoam`. Compare Xr/H with the resolved-wall result.
 
 **Resolved boundary layers (y+ < 1, as supplied):** the supplied mesh already does
 this. To go further:
 
-1. Increase wall-normal cell count or grading to achieve y+ ≈ 0.5
+1. Increase wall-normal cell count or grading to achieve y+ $\approx 0.5$
 2. Change wall functions if desired:
    - `k`: `fixedValue uniform 0` (k = 0 at wall)
    - `omega`: `omegaWallFunction` (handles both low-Re and wall-function)
