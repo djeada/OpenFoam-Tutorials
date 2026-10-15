@@ -202,26 +202,26 @@ on temperature:
 
 **Continuity (mass conservation):**
 
-```
-∇·(ρU) = 0
-```
+$$
+\nabla\cdot(\rho\mathbf U)=0
+$$
 
 **Momentum (RANS):**
 
-```
-∇·(ρUU) = -∇p + ∇·(μ_eff ∇U) + ρg   (+ transposed-gradient term)
+$$
+\nabla\cdot(\rho\mathbf U\mathbf U)=-\nabla p+\nabla\cdot(\mu_{\mathrm{eff}}\nabla\mathbf U)+\rho\mathbf g
+\quad\text{(plus the transposed-gradient term)}
+$$
 
-where μ_eff = μ + μ_t  (molecular + turbulent viscosity)
-```
+Here $\mu_{\mathrm{eff}}=\mu+\mu_t$ is the total molecular and turbulent viscosity.
 
 **Energy (enthalpy form, dominant terms):**
 
-```
-∇·(ρUh) = ∇·(α_eff ∇h)
+$$
+\nabla\cdot(\rho\mathbf U h)=\nabla\cdot(\alpha_{\mathrm{eff}}\nabla h)
+$$
 
-where α_eff = μ/Pr + μ_t/Pr_t  (effective thermal diffusivity)
-      h = Cp × T               (sensible enthalpy, hConst)
-```
+Here $\alpha_{\mathrm{eff}}=\mu/Pr+\mu_t/Pr_t$ and sensible enthalpy is $h=C_pT$.
 
 The solver also includes kinetic-energy and pressure-work terms in the
 enthalpy equation; they are not listed here. (The transient term
@@ -230,13 +230,11 @@ the steady solver.)
 
 **Buoyancy coupling:**
 
-```
-p_rgh = p - ρ g·h
+$$
+p_{rgh}=p-\rho\,\mathbf g\cdot\mathbf h
+$$
 
-where p_rgh is the pressure minus the hydrostatic component
-      g     is the gravitational acceleration vector
-      h     is the height g·(r - hRef), computed by the solver (field gh)
-```
+Here $p_{rgh}$ is pressure minus the hydrostatic contribution; $\mathbf g$ is gravitational acceleration, and OpenFOAM stores the height-dependent potential in its gh field.
 
 The momentum equation is solved with `-∇p_rgh - (g·h)∇ρ` in place of
 `-∇p + ρg`, so a uniform density produces no spurious force.
@@ -245,27 +243,23 @@ The momentum equation is solved with `-∇p_rgh - (g·h)∇ρ` in place of
 
 For the main pipe:
 
-```
-Re_main = U_main × H / ν
-        = 1.0 × 0.1 / 1e-6
-        = 100,000
+$$
+\begin{aligned}
+Re_{\mathrm{main}}&=\frac{U_{\mathrm{main}}H}{\nu}
+=\frac{1.0\cdot0.1}{10^{-6}}=100{,}000.
+\end{aligned}
+$$
 
-where U_main = 1.0 m/s       (main inlet velocity)
-      H      = 0.1 m         (channel height, used as length scale)
-      ν      = μ/ρ ≈ 1e-6 m²/s   (1e-3 Pa s / ~990 kg/m³)
-```
+Here $U_{\mathrm{main}}=1.0\ \mathrm{m/s}$, $H=0.1\ \mathrm m$ and $\nu=\mu/\rho\approx10^{-6}\ \mathrm{m}^2/\mathrm s$ (using $\mu\approx10^{-3}\ \mathrm{Pa\,s}$ and $\rho\approx990\ \mathrm{kg/m}^3$).
 
 The hydraulic diameter of a plane channel is $2H$; the channel height is
 used here as the characteristic length. For the branch pipe:
 
-```
-Re_branch = U_branch × W / ν
-          = 0.5 × 0.05 / 1e-6
-          = 25,000
+$$
+Re_{\mathrm{branch}}=\frac{U_{\mathrm{branch}}W}{\nu}=\frac{0.5\cdot0.05}{10^{-6}}=25{,}000
+$$
 
-where U_branch = 0.5 m/s     (branch inlet velocity)
-      W        = 0.05 m      (branch width)
-```
+Here $U_{\mathrm{branch}}=0.5\ \mathrm{m/s}$ and $W=0.05\ \mathrm m$.
 
 Both Reynolds numbers are well above the laminar-turbulent transition
 (Re $\approx$ 2300 for pipe flow), justifying the use of a turbulence model.
@@ -274,31 +268,34 @@ Both Reynolds numbers are well above the laminar-turbulent transition
 
 **Energy balance at the junction:**
 
-```
-T_mixed = (ṁ_main × Cp × T_main + ṁ_branch × Cp × T_branch) /
-          (ṁ_main × Cp + ṁ_branch × Cp)
+$$
+T_{\mathrm{mixed}}=\frac{\dot m_{\mathrm{main}}C_pT_{\mathrm{main}}+\dot m_{\mathrm{branch}}C_pT_{\mathrm{branch}}}{\dot m_{\mathrm{main}}C_p+\dot m_{\mathrm{branch}}C_p}
+$$
 
-For equal Cp:
-T_mixed = (ṁ_main × T_main + ṁ_branch × T_branch) / (ṁ_main + ṁ_branch)
-```
+For equal heat capacities:
+
+$$
+T_{\mathrm{mixed}}=\frac{\dot m_{\mathrm{main}}T_{\mathrm{main}}+\dot m_{\mathrm{branch}}T_{\mathrm{branch}}}{\dot m_{\mathrm{main}}+\dot m_{\mathrm{branch}}}
+$$
 
 **Mass flow rates (per unit depth for 2D):**
 
-```
-ṁ_main   = ρ × U_main   × A_main   = ρ × 1.0 × 0.1   = 0.1ρ
-ṁ_branch = ρ × U_branch × A_branch = ρ × 0.5 × 0.05  = 0.025ρ
-
-Flow ratio R = ṁ_branch / ṁ_main = 0.025 / 0.1 = 0.25
-```
+$$
+\begin{aligned}
+\dot m_{\mathrm{main}}&=\rho U_{\mathrm{main}}A_{\mathrm{main}}=0.1\rho,\\
+\dot m_{\mathrm{branch}}&=\rho U_{\mathrm{branch}}A_{\mathrm{branch}}=0.025\rho,\\
+R&=\frac{\dot m_{\mathrm{branch}}}{\dot m_{\mathrm{main}}}=\frac{0.025}{0.1}=0.25.
+\end{aligned}
+$$
 
 **Ideal mixed temperature (equal densities):**
 
-```
-T_mixed = (0.1 × 350 + 0.025 × 300) / (0.1 + 0.025)
-        = (35 + 7.5) / 0.125
-        = 42.5 / 0.125
-        = 340 K
-```
+$$
+\begin{aligned}
+T_{\mathrm{mixed}}&=\frac{0.1\cdot350+0.025\cdot300}{0.1+0.025}\\
+&=\frac{35+7.5}{0.125}=\frac{42.5}{0.125}=340\ \mathrm K.
+\end{aligned}
+$$
 
 With the actual densities of the Boussinesq model (978.9 $\mathrm{kg}/\mathrm{m}^{3}$ at 350 K,
 1001.1 $\mathrm{kg}/\mathrm{m}^{3}$ at 300 K) the mass flows are 97.9 and 25.0 kg/(s m), giving
@@ -308,21 +305,19 @@ With the actual densities of the Boussinesq model (978.9 $\mathrm{kg}/\mathrm{m}
 
 **Mixing coefficient (0 = unmixed, 1 = perfectly mixed):**
 
-```
-η_mix = 1 - σ_T / σ_T,unmixed
+$$
+\eta_{\mathrm{mix}}=1-\frac{\sigma_T}{\sigma_{T,\mathrm{unmixed}}}
+$$
 
-where σ_T         = standard deviation of T across a cross-section
-      σ_T,unmixed = std dev of the unmixed two-level profile
-                    (maximum non-uniformity, = ΔT/2 for a 50/50 split)
-```
+Here $\sigma_T$ measures the temperature spread across the section; $\sigma_{T,\mathrm{unmixed}}$ is the fully unmixed value ($\Delta T/2$ for a 50/50 split).
 
 **Temperature variance decay:**
 
-```
-σ²_T(x) ∝ exp(-x / L_mix)
+$$
+\sigma_T^2(x)\propto\exp\left(-\frac{x}{L_{\mathrm{mix}}}\right)
+$$
 
-where L_mix is the characteristic mixing length
-```
+Here $L_{\mathrm{mix}}$ is the mixing length.
 
 $L_{mix}$ depends on the flow ratio, turbulence level and geometry; it is
 not computed in this tutorial. The measured $\eta_{mix}$ along the channel
@@ -332,13 +327,11 @@ is given in the [post-processing guide](#mixing-quality-assessment).
 
 The turbulent thermal diffusivity is modelled as:
 
-```
-α_t = ρ ν_t / Pr_t
+$$
+\alpha_t=\frac{\rho\nu_t}{Pr_t}
+$$
 
-where Pr_t = 1.0   (bulk, OpenFOAM 6 EddyDiffusivity default)
-      Pr_t = 0.85  (alphatWallFunction default at walls)
-      ν_t          (turbulent kinematic viscosity from k-ε model)
-```
+Here $Pr_t=1.0$ is the OpenFOAM 6 bulk default, $Pr_t=0.85$ is the wall-function default, and $\nu_t$ is turbulent kinematic viscosity.
 
 With $Pr_t \approx 1$ turbulent heat transport is of similar strength as
 turbulent momentum transport. The k-$\varepsilon$ model provides $\nu$_t,
@@ -612,13 +605,13 @@ The internal field is initialised to 325 K.
 
 **Turbulence intensity calculation:**
 
-```
-k = 1.5 × (U × TI)²
+$$
+k=\frac32(UI)^2
+$$
 
-Main:   k = 1.5 × (1.0 × 0.05)²  ≈ 0.00375  (using TI=5%)
-        k = 1.5 × (1.0 × 0.2)²   = 0.06     (using TI=20% — as specified)
-Branch: k = 1.5 × (0.5 × 0.2)²   = 0.015    (using TI=20%)
-```
+Main inlet: $k=\frac32(1.0\cdot0.05)^2\approx0.00375$ for $I=5\%$, or $k=\frac32(1.0\cdot0.2)^2=0.06$ for the specified $I=20\%$.
+
+Branch inlet: $k=\frac32(0.5\cdot0.2)^2=0.015$ for $I=20\%$.
 
 > **Note:** A turbulence intensity of 20 % is high for developed pipe flow
 > (3–5 % is typical); it represents a strongly disturbed inflow. It gives
@@ -637,18 +630,13 @@ Branch: k = 1.5 × (0.5 × 0.2)²   = 0.015    (using TI=20%)
 
 **Dissipation rate estimation:**
 
-```
-ε = Cμ^0.75 × k^1.5 / l
+$$
+\varepsilon=\frac{C_\mu^{0.75}k^{1.5}}{l},\qquad C_\mu=0.09,\quad l=0.07D
+$$
 
-where Cμ = 0.09
-      l  = 0.07 × D   (mixing length ≈ 7% of the inlet width)
+Main inlet: $l=0.007\ \mathrm m$ and $\varepsilon=\frac{0.09^{0.75}\cdot0.06^{1.5}}{0.007}\approx0.345\ \mathrm{m}^2/\mathrm{s}^3$.
 
-Main:   l = 0.07 × 0.1 = 0.007 m
-        ε = 0.09^0.75 × 0.06^1.5 / 0.007 ≈ 0.345 m²/s³
-
-Branch: l = 0.07 × 0.05 = 0.0035 m
-        ε = 0.09^0.75 × 0.015^1.5 / 0.0035 ≈ 0.0863 m²/s³
-```
+Branch inlet: $l=0.0035\ \mathrm m$ and $\varepsilon=\frac{0.09^{0.75}\cdot0.015^{1.5}}{0.0035}\approx0.0863\ \mathrm{m}^2/\mathrm{s}^3$.
 
 > The earlier version of this tutorial used 0.0495 and 0.00877, which do
 > not follow from this formula; the values above are the formula results.
@@ -1124,14 +1112,11 @@ postProcess -latestTime -fields "(phi)" -func "patchIntegrate(name=outlet,operat
 
 Calculate the mixing coefficient at different downstream positions:
 
-```
-η_mix(x) = 1 - 2 σ_T(x) / (T_hot - T_cold)
+$$
+\eta_{\mathrm{mix}}(x)=1-\frac{2\sigma_T(x)}{T_{\mathrm{hot}}-T_{\mathrm{cold}}}
+$$
 
-where σ_T(x) is the standard deviation of temperature at position x
-
-η_mix → 0:  completely unmixed (separate hot/cold streams)
-η_mix → 1:  perfectly mixed (uniform temperature)
-```
+Here $\sigma_T(x)$ is the standard deviation of temperature. Values near $0$ mean unmixed and values near $1$ mean uniformly mixed.
 
 Values computed from the converged solution (standard deviation over the
 40 cells of the cross-section, cell-centre data):
@@ -1243,9 +1228,9 @@ Replace the k-$\varepsilon$ model with k-$\omega$ SST for better near-wall behav
    ```
 
 2. Replace `0/epsilon` with `0/omega`:
-   ```
-   omega = epsilon / (Cmu × k)
-   ```
+$$
+\omega=\frac{\varepsilon}{C_\mu k}
+$$
 
 3. Update wall functions accordingly (`omegaWallFunction`) and replace
    `div(phi,epsilon)` by `div(phi,omega)` in `fvSchemes` and `epsilon` by

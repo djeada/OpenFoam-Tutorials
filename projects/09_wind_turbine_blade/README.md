@@ -310,11 +310,18 @@ The MRF approach DOES:
 
 The rotor speed is usually quoted as the tip-speed ratio
 
-```
-  λ = ω R / U∞           ω = RPM × 2π / 60  [rad/s]
+The tip-speed ratio and angular velocity are
 
-  This case:  λ = 10.472 rad/s × 0.3 m / 10 m/s = 0.31
-```
+$$
+\lambda=\frac{\omega R}{U_\infty},\qquad
+\omega=\frac{\mathrm{RPM}\cdot2\pi}{60}\quad[\mathrm{rad/s}].
+$$
+
+For this case:
+
+$$
+\lambda=\frac{10.472\cdot0.3}{10}\approx0.31.
+$$
 
 Horizontal-axis wind turbines are typically designed for $\lambda$ of about 5 to 9. To reach a
 turbine-like $\lambda$ = 7 with $U_\infty$ = 10 m/s and R = 0.3 m this zone would have to rotate at
@@ -730,28 +737,25 @@ C2 = 1.92, sigmak = 1, sigmaEps = 1.3.
 
 ### Inlet Turbulence Estimation
 
-```
-  Given:
-    U_inlet = 10 m/s
-    TI = 5% (turbulence intensity — typical for wind conditions)
-    L = 0.042 m (turbulent length scale ≈ 0.07 × D_MRF)
+Given $U_{\mathrm{inlet}}=10\ \mathrm{m/s}$, turbulence intensity $I=0.05$ and length scale $l=0.042\ \mathrm m$ (approximately $0.07D_{\mathrm{MRF}}$):
 
-  Turbulent kinetic energy:
-    k = 1.5 × (U × TI)²
-    k = 1.5 × (10 × 0.05)²
-    k = 1.5 × 0.25
-    k = 0.375 m²/s²
+**Turbulent kinetic energy:**
 
-  Turbulent dissipation:
-    ε = C_μ^0.75 × k^1.5 / L
-    ε = 0.09^0.75 × 0.375^1.5 / 0.042
-    ε ≈ 0.898 m²/s³
+$$
+k=\tfrac32(UI)^2=\tfrac32(10\cdot0.05)^2=0.375\ \mathrm{m}^2/\mathrm{s}^2
+$$
 
-  Turbulent viscosity:
-    ν_t = C_μ × k² / ε
-    ν_t = 0.09 × 0.375² / 0.898
-    ν_t ≈ 1.41 × 10⁻² m²/s   (ν_t / ν ≈ 940)
-```
+**Turbulent dissipation:**
+
+$$
+\varepsilon=\frac{C_\mu^{0.75}k^{1.5}}l=\frac{0.09^{0.75}\cdot0.375^{1.5}}{0.042}\approx0.898\ \mathrm{m}^2/\mathrm{s}^3
+$$
+
+**Turbulent viscosity:**
+
+$$
+\nu_t=\frac{C_\mu k^2}{\varepsilon}=\frac{0.09\cdot0.375^2}{0.898}\approx1.41\times10^{-2}\ \mathrm{m}^2/\mathrm{s},\qquad\nu_t/\nu\approx940
+$$
 
 ---
 
@@ -1138,9 +1142,9 @@ Replace k-epsilon with k-omega SST:
 2. Replace `0/epsilon` with `0/omega` (dimensions `[0 0 -1 0 0 0 0]`) and set the
    `omega` boundary conditions; add `omega` entries to `fvSchemes` and `fvSolution`
 3. Adjust inlet values for omega:
-   ```
-   omega = epsilon / (Cmu * k) = 0.898 / (0.09 * 0.375) = 26.6 1/s
-   ```
+$$
+\omega=\frac{\varepsilon}{C_\mu k}=\frac{0.898}{0.09\cdot0.375}\approx26.6\ \mathrm{s}^{-1}
+$$
 
 ### Exercise 7: Transition to AMI (Advanced)
 

@@ -178,15 +178,17 @@ $$\partial \bar{U}_i / \partial x_i = 0$$
 
 **Momentum:**
 
-```
-Ūⱼ ∂Ūᵢ/∂xⱼ = -1/ρ ∂p̄/∂xᵢ + ∂/∂xⱼ [ν(∂Ūᵢ/∂xⱼ + ∂Ūⱼ/∂xᵢ) - u'ᵢu'ⱼ]
-```
+$$
+\overline{U}_j\frac{\partial\overline{U}_i}{\partial x_j}
+=-\frac{1}{\rho}\frac{\partial\overline p}{\partial x_i}
++\frac{\partial}{\partial x_j}\left[\nu\left(\frac{\partial\overline U_i}{\partial x_j}+\frac{\partial\overline U_j}{\partial x_i}\right)-\overline{u'_iu'_j}\right]
+$$
 
 The Reynolds stress tensor `u'ᵢu'ⱼ` is modelled using the Boussinesq hypothesis:
 
-```
--u'ᵢu'ⱼ = νₜ(∂Ūᵢ/∂xⱼ + ∂Ūⱼ/∂xᵢ) - 2/3 k δᵢⱼ
-```
+$$
+-\overline{u'_iu'_j}=\nu_t\left(\frac{\partial\overline U_i}{\partial x_j}+\frac{\partial\overline U_j}{\partial x_i}\right)-\frac23 k\delta_{ij}
+$$
 
 where $\nu_t$ is the turbulent eddy viscosity and k is the turbulent kinetic energy.
 In OpenFOAM the pressure is kinematic (`p/ρ`, units $\mathrm{m}^{2}/\mathrm{s}^{2}$), which is why `0/p` has
@@ -291,38 +293,46 @@ to handle the weaknesses of existing two-equation models in separated flows:
    k-$\omega$ and k-$\varepsilon$ formulations based on wall distance, ensuring the right model is
    active in each region:
 
-```
-  F₁ = tanh(arg₁⁴)
-
-  arg₁ = min[max(√k/(β*ωy), 500ν/(y²ω)), 4ρσ_ω₂k/(CD_kω y²)]
-```
+$$
+\begin{aligned}
+F_1&=\tanh(\mathrm{arg}_1^4),\\
+\mathrm{arg}_1&=\min\left[\max\left(\frac{\sqrt{k}}{\beta^*\omega y},\frac{500\nu}{y^2\omega}\right),\frac{4\rho\sigma_{\omega2}k}{CD_{k\omega}y^2}\right].
+\end{aligned}
+$$
 
 The transport equations for k and $\omega$ in the SST model are:
 
 **Turbulent kinetic energy (k):**
-```
-∂(ρk)/∂t + ∂(ρUⱼk)/∂xⱼ = P̃k - β*ρkω + ∂/∂xⱼ[(μ + σk μt) ∂k/∂xⱼ]
-```
+$$
+\frac{\partial(\rho k)}{\partial t}+\frac{\partial(\rho U_jk)}{\partial x_j}
+=\widetilde P_k-\beta^*\rho k\omega+
+\frac{\partial}{\partial x_j}\left[(\mu+\sigma_k\mu_t)\frac{\partial k}{\partial x_j}\right]
+$$
 
 **Specific dissipation rate ($\omega$):**
-```
-∂(ρω)/∂t + ∂(ρUⱼω)/∂xⱼ = αS² - βρω² + ∂/∂xⱼ[(μ + σω μt) ∂ω/∂xⱼ]
-                             + 2(1-F₁)ρσ_ω₂ (1/ω) ∂k/∂xⱼ ∂ω/∂xⱼ
-```
+$$
+\begin{aligned}
+\frac{\partial(\rho\omega)}{\partial t}+\frac{\partial(\rho U_j\omega)}{\partial x_j}
+&=\alpha S^2-\beta\rho\omega^2+\frac{\partial}{\partial x_j}\left[(\mu+\sigma_\omega\mu_t)\frac{\partial\omega}{\partial x_j}\right]\\
+&\quad+2(1-F_1)\rho\sigma_{\omega2}\frac1\omega\frac{\partial k}{\partial x_j}\frac{\partial\omega}{\partial x_j}.
+\end{aligned}
+$$
 
 ### Turbulent Inlet Conditions
 
 The inlet turbulence quantities are estimated from the turbulence intensity (I) and
 a turbulence length scale (l):
 
-```
-  k = 3/2 (U∞ · I)²  =  3/2 × (10 × 0.04)²  =  0.24 m²/s²      (I = 4 %)
+For turbulence intensity $I=4\%$:
 
-  ω = k^0.5 / (C_μ^0.25 · l)  =  0.49 / (0.5477 × 0.0020)  ≈  440 s⁻¹
+$$
+\begin{aligned}
+k&=\tfrac32(U_\infty I)^2=\tfrac32(10\cdot0.04)^2=0.24\ \mathrm{m}^2/\mathrm{s}^2,\\
+\omega&=\frac{k^{0.5}}{C_\mu^{0.25}l}=\frac{0.49}{0.5477\cdot0.0020}\approx440\ \mathrm{s}^{-1}.
+\end{aligned}
+$$
 
-  where C_μ = 0.09 and l ≈ 0.0020 m (about 8 % of the downstream channel height 2H = 0.0254 m,
-  or 0.16 H)
-```
+Here $C_\mu=0.09$ and $l\approx0.0020\ \mathrm{m}$ (about 8% of the downstream channel height $2H=0.0254\ \mathrm{m}$, or $0.16H$).
 
 > The exact inlet values influence the reattachment length moderately. Literature
 > studies of varying I from 1 % to 10 % report shifts of about $\pm 0.5$ in Xr/H; this was
@@ -983,9 +993,11 @@ above are shifted for the Xr/H = 9 of this case. Use 6 for an Xr/H = 6 configura
 The skin friction coefficient on the bottom wall (OpenFOAM's `wallShearStress` is
 kinematic, so no density appears):
 
-```
-Cf = τ_w / (0.5 U∞²)        (kinematic τ_w from wallShearStress, U∞ = 10 m/s)
-```
+$$
+C_f=\frac{\tau_w}{0.5U_\infty^2}
+$$
+
+Here $\tau_w$ is the kinematic wall shear stress from wallShearStress, and $U_\infty=10\ \mathrm{m/s}$.
 
 Plot $C_f$ vs $x/H$. The reattachment point is at $C_f = 0$ (last crossing). With
 the OpenFOAM sign convention reverse flow gives positive `tau_x`; multiply by -1 to
@@ -993,9 +1005,11 @@ get the conventional sign (negative Cf = reverse flow).
 
 ### Pressure Coefficient
 
-```
-Cp = (p - p_ref) / (0.5 U∞²)        (kinematic p, p_ref = 0 at the outlet)
-```
+$$
+C_p=\frac{p-p_{\mathrm{ref}}}{0.5U_\infty^2}
+$$
+
+Here $p$ is kinematic pressure and $p_{\mathrm{ref}}=0$ at the outlet.
 
 Plot Cp along the top and bottom walls to visualise the pressure recovery through
 the expansion.
