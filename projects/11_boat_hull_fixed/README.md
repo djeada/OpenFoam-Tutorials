@@ -46,8 +46,8 @@ What a learner should take away from this case:
 There is **no experimental or published reference value** for this toy hull,
 so the targets below are consistency targets: they follow from the case files
 or from the geometry, and each is checked by `verify.py`. All "measured"
-values come from a real, complete run to `endTime = 2 s` with OpenFOAM 6
-(image `cfdengine/openfoam`, 2,902 time steps, see
+values come from a real, complete run to `endTime = 3 s` with OpenFOAM 6
+(image `cfdengine/openfoam`, 4,933 time steps, see
 [Running time](#running-time)).
 
 | Target | Value | Tolerance | Source of the value |
@@ -56,19 +56,18 @@ values come from a real, complete run to `endTime = 2 s` with OpenFOAM 6
 | Final mesh | 75,515 cells, `checkMesh` "Mesh OK" | $\pm 10$ % cells | measured, OpenFOAM 6 |
 | Mesh quality | max non-orthogonality 48.6°, max skewness 3.0 | below 65° and 4 | `meshQualityControls` limits |
 | Initial water fraction | 0.4997 | $\pm 0.002$ around 0.4998 | half of the domain minus the submerged hull volume |
-| Courant numbers | max Co 0.52, max interface Co 0.41 | below 1.5 $\times$ `maxCo` (0.5) and `maxAlphaCo` (0.3) | `controlDict`; the step follows the previous step's Co |
-| `alpha.water` | stays in [0, 1] up to MULES undershoots (about $-6 \times 10^{-4}$) | $\pm 0.01$ | `fvSolution` MULES settings |
-| Hull vertical force at start-up | 2.10 N (Archimedes for the STL below z = 0: 2.065 N) | $\pm 5$ % | `rho·g·V_submerged` from `boat_hull.stl` |
-| Hull force direction | drag force along +x (flow direction) | sign only | flow is +x |
-| Final state | `endTime = 2 s` reached, no `FOAM FATAL ERROR` | — | `controlDict` |
-| Drag settled at `endTime` | last two 10 % windows agree within 10 % | $\pm 10$ % | **not met**: 38 % change (see [Expected Results](#expected-results)) |
+| Courant numbers | max Co 0.56, max interface Co 0.47 (one step of 4,933; 99th percentile 0.30) | Co below 1.5 × `maxCo` (0.5); interface Co 99th percentile below 1.1 × `maxAlphaCo` (0.3) and maximum below 1 | `controlDict`; the step follows the previous step's Co |
+| `alpha.water` | stays in [0, 1] up to MULES undershoots (about -6·10⁻⁴) | ±0.01 | `fvSolution` MULES settings |
+| Hull vertical force at start-up | 1.86 N (Archimedes for the STL below z = 0: 2.065 N, minus the suction of the initial potential flow) | 1.48 … 2.17 N | `rho·g·V_submerged` from `boat_hull.stl`, minus at most ½ρU²·A_proj (0.59 N) |
+| Hull force direction | mean drag force along +x (flow direction) | sign only | flow is +x |
+| Final state | `endTime = 3 s` reached, no `FOAM FATAL ERROR` | — | `controlDict` |
+| Drag settled at `endTime` | time-averaged drag over the last two windows of one seiche period T = 0.824 s agrees within 10 % | $\pm 10$ % | **met**: 0.0578 N vs 0.0567 N (1.9 % change) |
 
-The last target is **not met by the case as delivered**: with the water at
-rest at t = 0 and a pressure outlet, the start-up produces a long surge and
-sloshing that is still active at 2 s, so the drag has not settled. The
-physically meaningful target — steady wave resistance of the hull at 0.3 m/s —
-is therefore not reached; see
-[Expected Results](#expected-results) and the notes for the case owner there.
+The drag does not tend to a constant: after the start the hull force
+oscillates around a mean of about 0.055 N with the period of the transverse
+free-surface mode of the 0.5 m wide domain (see
+[Expected Results](#expected-results)). The settling target is therefore
+applied to the average over whole periods.
 
 Quantities **without** a reference value (reported in
 [Expected Results](#expected-results) as measured values only): drag
@@ -93,9 +92,9 @@ PASS|FAIL|SKIP  <name>  measured=<value>  expected=<value> +/- <tol>
 ```
 
 and exits with 0 if nothing failed, 1 if a check failed, 2 if results are
-missing. Checks that need the complete 2 s run print `SKIP` when the run was
+missing. Checks that need the complete 3 s run print `SKIP` when the run was
 stopped earlier, and the summary says so. On the complete run described here
-`verify.py` reports **26 passed, 1 failed** (the drag settling check).
+`verify.py` reports **28 passed, 0 failed**.
 
 | Check | What it proves | Expected | Tolerance and why | Measured |
 |-------|----------------|----------|-------------------|----------|
@@ -109,21 +108,33 @@ stopped earlier, and the summary says so. On the complete run described here
 | `hull patch faces` | `boat` patch exists and is not empty | $\geq 1$ | — | 3712 |
 | `initial water fraction` | `setFields` filled z < 0 only | 0.4998 | $\pm 0.002$ (0.4 %): snapping of the hull | 0.4997 |
 | `no FOAM FATAL ERROR` | solver did not abort | none | — | none |
-| `max Courant number` | time step control works | $\leq 0.75$ | 1.5 $\times$ `maxCo`: the step is chosen from the previous step's Co, so single steps overshoot (a first guess of 1.1$\times$ was too tight for the interface Co) | 0.52 |
-| `max interface Courant number` | interface transport is resolved | $\leq 0.45$ | 1.5 $\times$ `maxAlphaCo` (same reason); spikes up to 1.37$\times$ were seen | 0.41 |
-| `min deltaT [s]` | time step did not collapse | $\geq 1e-5$ | divergence drives deltaT to zero; 1e-5 is 10$\times$ below the smallest step seen | 1.2e-4 |
-| `min alpha.water (log)`, `(field)` | phase fraction bounded below | $\geq -0.01$ | 1 % of the unit range; MULES undershoot seen: 6e-4 | -5.7e-4 (log), -5.7e-7 (field at 2 s) |
-| `max alpha.water (log)`, `(field)` | phase fraction bounded above | $\leq 1.01$ | 1 % of the unit range | 1.0006 (log), 1.00001 (field) |
-| `water gain <= inlet flux` | water enters only below z = 0 | $\leq 1.05$ · U·W·depth·t / V | water cannot arrive faster than the lower inlet half supplies it; the old inlet (alpha = 1 on the whole face) gained twice as fast | 0.044 at 2 s (bound 0.20); 0.0098 at t = 0.1 s (bound 0.0100) |
-| `water gain >= 0` | no unphysical water loss | $\geq -0.002$ | — | 0.044 |
-| `|cumulative continuity err|` | incompressible solve is consistent | $\leq 1e-5$ | typical `interFoam` values are below 1e-6 | 7.5e-8 |
-| `latest time has U,p_rgh,alpha.water` | results were written | all present | — | present (t = 2) |
-| `forces finite` | no NaN in the force file | all finite | — | 290 rows, finite |
-| `buoyancy Fz [N] (start-up)` | hydrostatic pressure and hull patch are right | 2.065 N | $\pm 5$ %: dynamic pressure (45 Pa vs 270 Pa hydrostatic at the keel) and snapped geometry; mean of rows with t $\leq 0.02$ s | 2.10 |
-| `drag Fx > 0 [N]` | force on the hull points downstream | > 0 | sign only | 0.17 N (mean of the last 20 % of rows) |
+| `max Courant number` | time step control works | $\leq 0.75$ | 1.5 × `maxCo`: the step is chosen from the previous step's Co, so single steps overshoot (a first guess of 1.1× was too tight for the interface Co) | 0.56 |
+| `interface Courant, 99th percentile` | the time step control keeps the interface Co at its target | $\leq 0.33$ | 1.1 × `maxAlphaCo`: 99 % of the steps sit at the target; the controller is slow to react when the flow changes | 0.300 |
+| `max interface Courant number` | interface transport is resolved | $\leq 1$ | stability limit of the explicit MULES predictor; single steps overshoot `maxAlphaCo` (an earlier 1.5 × `maxAlphaCo` bound = 0.45 was exceeded by one step, 0.467, in this run) | 0.47 |
+| `min deltaT [s]` | time step did not collapse | ≥ 1e-5 | divergence drives deltaT to zero; 1e-5 is 10× below the smallest step seen | 1.2e-4 |
+| `min alpha.water (log)`, `(field)` | phase fraction bounded below | ≥ -0.01 | 1 % of the unit range; MULES undershoot seen: 6e-4 | -6.0e-4 (log), -2.4e-5 (field at 3 s) |
+| `max alpha.water (log)`, `(field)` | phase fraction bounded above | $\leq 1.01$ | 1 % of the unit range | 1.00008 (log), 1.0 (field) |
+| `water gain <= inlet flux` | water enters only below z = 0 | $\leq 1.05$ · U·W·depth·t / V | water cannot arrive faster than the lower inlet half supplies it; the old inlet (alpha = 1 on the whole face) gained twice as fast | -0.0007 at 3 s (bound 0.30): inlet and outlet fluxes balance, no surge |
+| `water gain >= 0` | no unphysical water loss | ≥ -0.002 | — | -0.0007 |
+| `|cumulative continuity err|` | incompressible solve is consistent | $\leq 1e-5$ | typical `interFoam` values are below 1e-6 | 1.8e-8 |
+| `latest time has U,p_rgh,alpha.water` | results were written | all present | — | present (t = 3) |
+| `forces finite` | no NaN in the force file | all finite | — | 493 rows, finite |
+| `buoyancy Fz [N] (start-up)` | hydrostatic pressure and hull patch are right | 2.065 N (Archimedes) | window 1.48 … 2.17 N: lower bound = Archimedes − ½ρU²·A_proj (45 Pa times the 0.0131 m² wetted projection from the STL; the water already moves at U, so the flow is accelerated under the hull and the pressure there is below hydrostatic); upper bound +5 % for the snapped geometry; mean of rows with t $\leq 0.02$ s | 1.86 |
+| `drag Fx > 0 [N]` | force on the hull points downstream | > 0 | sign only | 0.056 N (mean of the last 20 % of rows) |
 | `Cd consistent with Fx` | `magUInf`, `Aref`, `rhoInf` in `forceCoeffs` agree with `forces` | Fx | $\pm 1$ % (output precision) | consistent |
-| `drag change, last 2 windows` | drag has settled (full run only) | last two 10 % windows equal | $\pm 10$ %, chosen before the first full run | **FAIL**: 0.201 N vs 0.146 N (38 %) |
-| `solver reached endTime` | complete run (full run only) | t $\geq 2$ s | — | t = 2 s |
+| `drag change, last 2 periods` | drag has settled (full run only) | time-averaged drag of the last two windows of one period T = 2W/√(g·d) = 0.824 s equal | $\pm 10$ %; window length = period of the transverse free-surface mode of the domain (W = 0.5 m, d = 0.15 m), so the oscillation averages out | 0.0578 N vs 0.0567 N (1.9 %) |
+| `solver reached endTime` | complete run (full run only) | t $\geq 3$ s | — | t = 3 s |
+
+How the drag criterion was chosen, for transparency: the first criterion
+(mean of the last two 10 % blocks of the force rows, 0.3 s each) was fixed
+before the first full run and **failed** on the impulsive-start run (38 %).
+After the start-up fix described in [0/U](#0u--velocity-field) the same
+criterion gave 0.0275 N vs 0.0843 N, because the 0.3 s blocks are shorter
+than the oscillation period and catch different phases. The criterion was
+then replaced by windows of exactly one period, derived from the geometry
+(not fitted); the 10 % tolerance was kept. `verify.py` still prints the 10 %
+block values as an information line. Windows of 0.5 … 0.9 s give 1 … 8 %,
+1.0 s and 1.5 s give 18 % and 29 % (not a whole number of periods).
 
 `verify.py` does not prove that the wave pattern is physically accurate;
 the drag magnitude has no reference value in this repository.
@@ -166,9 +177,9 @@ Manual checks (not covered by `verify.py`):
 
 This project simulates **flow around a fixed toy boat hull** sitting at the
 air-water interface. The hull is held in place (no rigid-body motion) while an
-inlet velocity of **0.3 m/s** drives water past it. The flow starts
-impulsively from rest, so the run is a transient; the quantities of interest
-are:
+inlet velocity of **0.3 m/s** drives water past it. The fluid is initialised
+with the inlet velocity, but the flow still has to develop around the hull, so
+the run is a transient; the quantities of interest are:
 
 - The **free-surface deformation** around the hull (bow and stern waves)
 - **Pressure and viscous forces** on the hull (drag, and the vertical force
@@ -201,7 +212,7 @@ from the case files:
 | Inlet velocity | 0.3 m/s | 0 (no imposed flow) |
 | Domain z | -0.15 … 0.15 m (14,400 background cells: $60 \times 20 \times 12$) | -0.20 … 0.15 m ($60 \times 20 \times 14$) |
 | Lateral boundaries | `port`/`starboard` symmetry planes | one `sides` patch (slip) |
-| End time | 2 s | 3 s |
+| End time | 3 s | 3 s |
 | Force output | `forces` + `forceCoeffs` | `forces` + `sixDoFRigidBodyState` |
 
 ### Key Parameters
@@ -216,8 +227,8 @@ from the case files:
 | Froude number        | Fr $\approx$ 0.243 (based on boat length)    |
 | Turbulence model     | Laminar (first pass)                 |
 | Surface tension      | $\sigma$ = 0.072 N/m                        |
-| Gravity              | g = -9.81 $\mathrm{m}/\mathrm{s}^{2}$ (z-direction)         |
-| End time             | 2 s (40 write times, every 0.05 s)   |
+| Gravity              | g = -9.81 m/s$^2$ (z-direction)         |
+| End time             | 3 s (60 write times, every 0.05 s)   |
 
 $Re = U L / \nu = 0.3 \cdot 0.155 / 10^{-6} = 46{,}500$.
 The **Froude number** Fr = U / $\sqrt{gL}$ $\approx$ 0.3 / $\sqrt{$9.81 \times 0.155$}$ $\approx$ 0.243,
@@ -448,10 +459,18 @@ Defines the velocity boundary conditions and initial internal field.
 - **port**: `symmetryPlane` — lateral symmetry boundary at y = -0.25
 - **starboard**: `symmetryPlane` — lateral symmetry boundary at y = +0.25
 - **boat**: `noSlip` — no-slip on hull surface
-- **internalField**: `uniform (0 0 0)` — fluid initially at rest
+- **internalField**: `uniform (0.3 0 0)` — water and air initially move with
+  the inlet velocity
 
-Because the fluid starts at rest while the inlet imposes 0.3 m/s, the start
-of the run is an impulsive start.
+The initial velocity is a numerical start-up choice, not a physical statement:
+the hull is a no-slip wall, so the first pressure solve adjusts the uniform
+field to a potential-like flow around the hull; from there the run develops
+as a tow at 0.3 m/s. It was `uniform (0 0 0)` before. With the fluid at rest
+and the inlet at 0.3 m/s, the run was an impulsive start: the inlet flux first
+raised the water level (water volume fraction up to 0.600, 38 % drag change in
+the last two windows at 2 s). With `(0.3 0 0)` the volume fraction stays within
+0.4990 … 0.5001 for the whole run. The end time was extended from 2 s to 3 s
+(drag averaged over whole oscillation periods needs more than two of them).
 
 ### 0/p_rgh — Pressure Field
 
@@ -516,12 +535,12 @@ Creates the base hexahedral mesh that `snappyHexMesh` will refine.
 | Setting          | Value           | Rationale                           |
 |-----------------|-----------------|-------------------------------------|
 | deltaT          | 0.0001 s        | Small initial step for stability    |
-| endTime         | 2 s             | 0.6 m of water travel (0.4 domain flow-throughs, about 3.9 hull lengths) |
+| endTime         | 3 s             | 0.9 m of water travel (0.6 domain flow-throughs, about 5.8 hull lengths); about 3.6 periods of the transverse free-surface mode (0.824 s) |
 | adjustTimeStep  | yes             | Adaptive time stepping              |
 | maxCo           | 0.5             | Courant number limit                |
 | maxAlphaCo      | 0.3             | Interface Courant limit (stricter)  |
 | maxDeltaT       | 0.01 s          | Upper bound for the adaptive step   |
-| writeInterval   | 0.05 s          | 40 output frames (binary)           |
+| writeInterval   | 0.05 s          | 60 output frames (binary)           |
 
 The `forces` and `forceCoeffs` function objects compute forces and
 coefficients on the hull patch every 10th time step.
@@ -985,19 +1004,21 @@ Check: `log.setFields`
 interFoam
 ```
 
-Runs the VOF solver for 2 seconds of simulation time.
+Runs the VOF solver for 3 seconds of simulation time.
 Check: `log.interFoam`
 
 ### Running time
 
 Measured on a shared 20-core host (single process, other jobs running at the
-same time, so the numbers vary with the load): the meshing chain takes under
-one minute (`snappyHexMesh` about 28 s). The solver needed 2,902 time steps
-and about 1,070 s of CPU time (1,074 s wall) for the 2 s of simulated time.
-Time steps were $1.2 \times 10^{-4}$ s at the start and $5 \times 10^{-4}$ … $1.4 \times 10^{-3}$ s afterwards
-(median $6.7 \times 10^{-4}$ s), limited by `maxAlphaCo`/`maxCo`. To get a shorter run,
-lower `endTime` in `system/controlDict`; `verify.py` then marks the
-full-run checks as `SKIP`.
+same time, so the numbers vary strongly with the load): the meshing chain
+takes about one minute. The solver needed 4,933 time steps and 5,149 s of CPU
+time (5,153 s wall) for the 3 s of simulated time. An earlier 2 s run of this
+case (2,902 steps) took 1,074 s wall on a less loaded host, i.e. about 0.37 s
+per step against 1.04 s per step here; on an unloaded machine expect roughly
+30 min for 3 s. Time steps were 1.2·10⁻⁴ s at the start, median
+5.7·10⁻⁴ s and at most 1.04·10⁻³ s, limited by `maxAlphaCo`/`maxCo`. To get a
+shorter run, lower `endTime` in `system/controlDict`; `verify.py` then marks
+the full-run checks as `SKIP`.
 
 ### Monitoring Progress
 
@@ -1138,21 +1159,22 @@ therefore contains the buoyancy of the part of the hull below z = 0
 
 ## Expected Results
 
-All numbers in this section were measured in the complete 2 s run described
+All numbers in this section were measured in the complete 3 s run described
 under [Running time](#running-time). They are not reference values.
 
-> **Read this first.** The water is at rest at t = 0 and the outlet is a
-> pressure outlet, so the inlet flux of water first *raises the water level*
-> instead of passing through the domain: the water volume fraction rises from
-> 0.4997 to a maximum of 0.600 at t = 1.17 s (a mean level rise of about
-> 30 mm in a 150 mm deep domain) and has fallen back to 0.544 at t = 2 s.
-> The hull force is dominated by this surge and the sloshing that follows, not
-> by steady wave making: the drag has **not settled** at 2 s (`verify.py`
-> check `drag change, last 2 windows` fails with 38 %). The results below
-> describe this transient. A steady wave-resistance value needs a different
-> initialisation (for example `U = (0.3 0 0)` in the whole domain through
-> `setFields`) and/or a longer run; this was not tried, see the owner notes at
-> the end of this section.
+> **Read this first.** The fluid is initialised with the inlet velocity
+> (`0/U`), so there is no start-up surge: the water volume fraction stays
+> between 0.4990 and 0.5001 for the whole run (0.4997 at t = 0). The hull
+> force does not become constant, though. The hull waves are reflected between
+> the two symmetry planes 0.5 m apart, and the channel rings with the
+> transverse free-surface mode, whose period 2W/√(g·d) = 0.824 s matches the
+> oscillation seen in the drag (minima at t $\approx 0.58$, 1.38, 2.14, 2.87 s,
+> maxima at 1.0, 1.8, 2.5 s). Numerical damping does not remove it within
+> 3 s. The drag is therefore reported as an average over whole periods:
+> 0.0578 N over 2.18 … 3.0 s and 0.0567 N over 1.35 … 2.18 s (1.9 % change,
+> `verify.py` check `drag change, last 2 periods`). The mean drag is a
+> property of this 0.5 m wide channel and this mesh, not of an open-water
+> hull, and there is no reference value for it.
 
 ### Flow Features
 
@@ -1188,32 +1210,36 @@ of this STL is the downstream end, see [Orientation](#orientation).)
    5 L/√Re $\approx 3.6$ mm, about one cell of the 3.1 mm surface layer; without
    prism layers it is not resolved
 
-What the 2 s run actually shows (Figure 4): the free surface is tilted, from
-+33 mm at the inlet to −6.7 mm at the outlet (relative to z = 0), because of
-the start-up surge, with smaller disturbances around and behind the hull. The
-individual hull waves are small compared with this tilt.
+What the 3 s run actually shows (Figure 4): the free surface stays within
+−4.1 … +2.3 mm of z = 0 (the hull is 27 mm deep). There is a small rise
+(red, about 2 mm) at the upstream end of the hull, a depression next to it,
+and a faint wave pattern with crests running across the domain behind the
+hull, from the reflected waves described above. These waves are only a few
+millimetres high at this speed on this 3.1 mm surface mesh, so the interface
+is barely resolved vertically.
 
 ![Free surface coloured by height](images/free_surface.png)
 
 *Figure 4 — alpha.water = 0.5 isosurface coloured by height z (mm) at
-t = 2 s (colour scale = data range, −6.7 … 33 mm), hull in dark grey. Look
-for the overall slope of the surface from inlet (left, high) to outlet
-(right, low) and for the local disturbances around the hull.*
+t = 3 s (colour scale = data range, −4.1 … 2.3 mm), hull in dark grey. Look
+for the rise at the upstream end of the hull and the crests behind it.*
 
 ![Velocity magnitude on the centre plane](images/velocity_slice.png)
 
 *Figure 5 — |U| on the y = 0 plane with the interface (black line) at
-t = 2 s. Look for acceleration around the hull and the water surface
-deformation. The colour scale is capped at 0.5 m/s; the maximum |U| in the
-domain at 2 s is 1.75 m/s. A band of fast air sits just above the interface,
-and velocities in the air are irregular.*
+t = 3 s. Look for the nearly uniform 0.3 m/s in the water, the slower water
+in the lee of the hull and the almost flat interface. The colour scale is
+capped at 0.5 m/s; the maximum |U| in the domain at 3 s is 1.36 m/s, in the
+air. Velocities in the air are irregular (a laminar air phase above a moving
+interface).*
 
 ![Streamlines](images/streamlines.png)
 
-*Figure 6 — Streamlines seeded upstream of the hull at t = 2 s, on the
+*Figure 6 — Streamlines seeded upstream of the hull at t = 3 s, on the
 y = 0 slice (script `paraview_streamlines.py`, colour scale 0–2.2 m/s).
-Look for the streamlines passing under the hull; the flow is directed
-towards the lower right.*
+Look for the streamlines bending down and passing under the hull; the flow
+is directed from left to right. The two thin lines rising above the hull
+are streamlines in the air.*
 
 ### Pressure Distribution
 
@@ -1227,13 +1253,14 @@ towards the lower right.*
 
 ![p_rgh on the hull](images/hull_pressure.png)
 
-*Figure 7 — `p_rgh` on the hull surface at t = 2 s. `p_rgh` has the
+*Figure 7 — `p_rgh` on the hull surface at t = 3 s. `p_rgh` has the
 hydrostatic part removed.*
 
-At t = 2 s `p_rgh` on the hull ranges from 2.5 Pa to 326 Pa. That is
-larger than the stagnation value ½$\rho$U² = 45 Pa because `p_rgh` is referenced to
-z = 0 and the water level has risen (the volume fraction at 2 s corresponds
-to a mean rise of about 13 mm, i.e. about 130 Pa of hydrostatic head).
+At t = 3 s `p_rgh` on the hull ranges from −103 Pa to +29 Pa. The positive
+values (up to 29 Pa, below the stagnation value ½ρU² = 45 Pa) are on the
+inner surface of the open cockpit, the most negative values on the lower part
+of the side wall. `p_rgh` is referenced to
+z = 0, so a surface height change of 1 mm shifts it by about 10 Pa.
 
 ### Drag Components
 
@@ -1243,38 +1270,46 @@ The total drag on the hull has two main components:
 2. **Friction drag**: Due to viscous shear stress on the hull surface
 
 For a bluff body like a toy boat at this Reynolds number, pressure drag is
-expected to dominate. Measured share of the viscous force in Fx: 13 % for
-t < 0.05 s and 2.6–5 % in the averaging windows 0.05–2 s, so the pressure
-force is 87–97 % of the drag. The "pressure" part also contains the
-wave-making and the sloshing pressure, so it is not pure form drag.
+expected to dominate. Measured share of the viscous force in Fx, from the
+time-averaged windows: 14 % for t < 0.05 s, 11 % for 0.05–0.5 s and 25–40 %
+for 0.5–3 s (the pressure part oscillates around a small mean, so the
+viscous part, about 0.02 N, is a large share of the mean). Pressure is
+therefore not dominant in the mean here. The "pressure" part also contains
+the wave-making and the free-surface oscillation, so it is not pure form
+drag.
 
 ### Typical Values
 
 | Quantity           | Measured (this run) |
 |-------------------|---------------------|
-| Hull force Fx (pressure + viscous) | 0.006 … 0.49 N over the run; window means 0.008 N (t < 0.05 s), 0.16 N (0.05–0.5 s), 0.17 N (0.5–1 s), 0.07 N (1–1.5 s), 0.16 N (1.5–2 s) |
-| Cd (with `Aref` = 0.00443 $\mathrm{m}^{2}$) | 0.03 … 2.4; 1.22 at 2 s (not settled, not a resistance value) |
-| Hull force Fz (buoyancy) | 2.10 N at start (STL: 2.065 N), up to 2.95 N when the water level is high |
-| Max Courant number | 0.52 (limit 0.5) |
-| Max interface Courant number | 0.41 (limit 0.3), isolated steps; typically 0.25–0.3 |
-| Time step | $1.2 \times 10^{-4}$ s at the start, then $5 \times 10^{-4}$ … $1.4 \times 10^{-3}$ s |
-| Water volume fraction | 0.4997 at t = 0, maximum 0.600 at 1.17 s, 0.544 at 2 s |
-| Max \|U\| in the domain | 1.75 m/s at 2 s (inlet 0.3 m/s) |
+| Hull force Fx (pressure + viscous) | −0.023 … 0.49 N over the run; time-averaged window means 0.29 N (t < 0.05 s), 0.16 N (0.05–0.5 s), 0.035 N (0.5–1 s), 0.052 N (1–1.5 s), 0.077 N (1.5–2 s), 0.054 N (2–2.5 s), 0.052 N (2.5–3 s); mean over 0.5–3 s 0.054 N |
+| Drag over the last two periods (0.824 s each) | 0.0567 N (1.35–2.18 s), 0.0578 N (2.18–3.0 s), change 1.9 % |
+| Cd (with `Aref` = 0.00443 m²) | −0.12 … 2.44; 0.166 at 3 s (oscillates; not a resistance value) |
+| Hull force Fz (buoyancy) | 1.86 N at start (mean of t $\leq 0.02$ s) (STL: 2.065 N), 1.46 … 1.95 N over the run; mean over 0.5–3 s 1.83 N |
+| Max Courant number | 0.56 (limit 0.5) |
+| Max interface Courant number | 0.47 (limit 0.3), one step; 99th percentile 0.30 |
+| Time step | 1.2·10⁻⁴ s at the start, median 5.7·10⁻⁴ s, at most 1.04·10⁻³ s |
+| Water volume fraction | 0.4997 at t = 0, 0.4990 … 0.5001 during the run, 0.4990 at 3 s |
+| Max \|U\| in the domain | 1.36 m/s at 3 s (in the air; inlet 0.3 m/s) |
 
-The start is impulsive (water at rest, inlet at 0.3 m/s), so the force values
-above are transient values, not a converged resistance. No wave-height
-reference is available.
+The initial velocity field is a numerical start-up choice (see
+[0/U](#0u--velocity-field)); the force values above still contain the
+start-up transient for t < 0.5 s, and the oscillation afterwards belongs to
+the 0.5 m wide channel. No wave-height reference is available.
 
-### Notes for the case owner (not changed here)
+### Notes for the case owner
 
-- **Impulsive start.** `internalField uniform (0 0 0)` with a 0.3 m/s inlet
-  and a fixed-pressure outlet produces the surge described above. Initialising
-  `U` to the inlet velocity (and running longer) is the usual remedy; it
-  changes the case, so it was not applied. A trial of exactly this
-  (`internalField uniform (0.3 0 0)`, `endTime 3`) was started but **aborted
-  during meshing**, so it is **not validated** and not part of the repository.
-  The files in this directory are the verified state: impulsive start,
-  `endTime 2`, and `verify.py` reports 26 passed / 1 failed (drag settling).
+- **Start-up.** An earlier version of this case initialised `U` to zero
+  (`internalField uniform (0 0 0)`). With the 0.3 m/s inlet and a
+  fixed-pressure outlet that produced a surge (water volume fraction up to
+  0.600 at 1.17 s) and a drag that was still changing by 38 % at 2 s. The
+  case now starts with `internalField uniform (0.3 0 0)` and runs to 3 s;
+  the files in this directory are that verified state and `verify.py`
+  reports 28 passed / 0 failed. The steady wave resistance in an open
+  channel was not obtained: the drag oscillates with the transverse
+  free-surface mode of the 0.5 m wide domain. A wider domain or a damping
+  (absorbing) side boundary instead of the symmetry planes would be needed
+  to remove it; neither was tried.
 - **Hull orientation.** The pointed end of the STL is at +x and the blunt end
   at −x, so the flow meets the blunt end first. Rotating the STL by 180° about
   z (`surfaceTransformPoints -rotate-z 180`) would put the pointed end

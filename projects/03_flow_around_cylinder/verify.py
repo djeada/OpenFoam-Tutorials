@@ -19,9 +19,16 @@ import os
 import re
 import sys
 
-# Reference values for 2D laminar flow past a circular cylinder at Re = 200
-# (Linnick & Fasel 2005; Henderson 1995; Braza et al. 1986 agree within a few
-# percent): St ~ 0.197, mean Cd ~ 1.34, Cl amplitude ~ 0.69.
+# Reference values for 2D laminar flow past a circular cylinder at Re = 200,
+# as listed in secondary comparison tables (original articles not consulted):
+#   Linnick & Fasel 2005       St 0.197  Cd 1.34 +- 0.044  Cl +-0.69
+#   Taira & Colonius 2007      St 0.195  Cd 1.34 +- 0.047  Cl +-0.68
+#   Liu, Zheng & Sung 1998     St 0.192  Cd 1.31 +- 0.049  Cl +-0.69
+#   Williamson (experiment)    St 0.197
+# (the Liu et al. row appears in two independent tables; only the first three
+# rows and Williamson were seen in one table). Hence: St ~ 0.197, mean
+# Cd ~ 1.34, Cl amplitude ~ 0.69; all approximate, not checked against the
+# original articles.
 # Tolerances are about +-10 %: published 2D codes scatter by ~3-5 %, and this
 # domain (blockage 1/16, 8 D upstream, 25 D downstream, symmetry sides) and
 # mesh differ from the unbounded-domain references.

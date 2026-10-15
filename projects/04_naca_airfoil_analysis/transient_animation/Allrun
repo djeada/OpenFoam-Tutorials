@@ -50,8 +50,15 @@ runApplication renumberMesh -overwrite
 echo "Step 5: Checking mesh quality..."
 runApplication checkMesh
 
-echo "Step 6: Running pimpleFoam..."
-runApplication pimpleFoam
+echo "Step 6: Decomposing for 4 MPI ranks..."
+runApplication decomposePar
+
+echo "Step 7: Running pimpleFoam in parallel..."
+runParallel pimpleFoam
+
+echo "Step 8: Reconstructing the written times..."
+runApplication reconstructPar
+rm -rf processor*
 
 echo "========================================"
 echo "  Transient animation case complete"

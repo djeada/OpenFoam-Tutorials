@@ -51,16 +51,29 @@ consistency with them.
 | Early motion (measured, t $\leq 0.22$ s) | z rises from −0.0050 m, crosses z = +0.016 m at t = 0.12 s with v $\approx 0.19$ m/s, peaks at **+0.0244 m at t = 0.197 s** (8.5 mm above equilibrium), then falls back | `log.interFoam` |
 | Settling | damped heave oscillation around z = +0.016 m | physical expectation, **not verified** (see below) |
 
-**The full 3 s run was NOT completed.** It needs several hours on one core
-(see section 9). Two partial runs were made: the first was stopped with
-`stopAt writeNow` after **0.2225 s** (743 s of solver time, 1181 time steps;
-screenshots and the motion table below come from it); a second, repeated
-full-length run was started and killed at 0.244 s (about 1800 s of solver
-time on a loaded machine) because of a deadline. Both give the same motion
-up to 0.2225 s. Within that time the hull rose from z = −0.0050 m to a first
-maximum of +0.0244 m (t = 0.197 s) and was falling again at the end
-(z = +0.0236 m, v_z = −0.06 m/s). The settled state and the oscillation decay
-were therefore *not* observed; `verify.py` reports those checks as SKIP.
+**The full 3 s run was NOT completed, and two checks FAIL on the longest
+run.** The case needs several hours on one core (about 6000 s of wall-clock
+time per simulated second on this machine, see section 9). The longest run
+reached **t = 1.791 s** (10 759 s of solver time) and was then interrupted by a
+machine shutdown; time directories exist up to 1.75 s. Within that time the
+hull rose from z = −0.0050 m, first crossed the equilibrium height
+z = +0.016 m at t = 0.12 s, peaked at +0.0244 m at t = 0.197 s and was at
+z = +0.0124 m with v_z = −0.0086 m/s at the end. The settled state and the
+oscillation decay were therefore *not* observed; `verify.py` reports those
+four checks as SKIP.
+
+`verify.py` result at t = 1.791 s: **18 PASS, 2 FAIL, 4 SKIP.** The two FAILs
+are real findings and were **not** tuned away:
+
+| Check | Measured | Limit | What is known |
+|-------|----------|-------|---------------|
+| max yaw | 4.17° | $\leq 2$° | was 0.51° at 0.24 s, so the yaw grows with time although the hull is symmetric and nothing excites it. A numerical asymmetry (the snappyHexMesh mesh is not exactly symmetric) amplified by the free yaw axis is the likely cause; **not diagnosed**. |
+| water volume conserved | 0.56732 vs 0.57123 (−0.69 %) | $\pm 0.0015$ absolute on the fraction (0.26 % relative) | the water fraction in the domain drops by 0.7 % over 1.79 s; cause **not diagnosed** (candidates: water leaving through the open boundaries, or non-conservation of alpha on the moving mesh). |
+
+The mesh, the constraints, the Courant numbers, boundedness of alpha,
+momentum balance and heave direction all pass. Until the run is repeated to
+3 s and the two FAILs are understood, treat the heave motion results as
+**unverified** beyond the first second.
 
 ## Verification method
 
@@ -88,28 +101,28 @@ message. SKIP is used for checks that need the full run (to `endTime`).
 | no fatal error / NaN | solver log is clean | none | exact | none (after the controlDict fix, see below) |
 | DoF constraints | only z translation and z rotation allowed | tensors `(0 0 0 0 0 0 0 0 1)` | exact | as expected |
 | initial water volume fraction | setFields + mesh give water below z = 0 minus submerged hull | 0.57127 (from block dimensions and STL) | $\pm 2e-4$ (52 $\mathrm{cm}^{3}$: snapped hull volume known to ~10 % of 211 $\mathrm{cm}^{3}$) | 0.57123 |
-| water volume conserved | no net water loss through boundaries / MULES | first value | $\pm 1.5e-3$ relative (225 $\mathrm{cm}^{3}$ = 0.3 mm level change = 5 % of the draft) | −6.3e-4 relative |
+| water volume conserved | no net water loss through boundaries / MULES | first value | $\pm 1.5e-3$ absolute on the fraction (225 $\mathrm{cm}^{3}$ = 0.3 mm level change = 5 % of the draft) | **FAIL**: −6.9e-3 relative (0.56732 vs 0.57123) at t = 1.79 s; was −6.3e-4 at 0.24 s |
 | alpha.water bounded | interface not smeared/oscillating | within [0, 1] | $\pm 0.01$ (1 % of range) | +2.3e-4 / −6.6e-6 |
 | max Courant | stable explicit convection | $\leq 0.5$ | stability bound; case limit 0.4 is exceeded transiently because deltaT follows the previous step | 0.434 |
 | max interface Courant | stable MULES transport | $\leq 0.5$ | same; case limit 0.25 | 0.368 |
 | surge/sway | line constraint holds | 0 | 1e-9 m (round-off) | 0 |
 | pitch/roll | axis constraint holds | 0 | 1e-6 (round-off) | 0 |
-| max yaw | symmetric hull does not yaw | 0° | 2° (numerical asymmetry only) | 0.51° |
-| max heave speed | no blow-up; energy bound sqrt(2 ($\rho$gV − mg) $\Delta$z / m) | $\leq 1.32$ m/s | 15 % margin on the bound | 0.239 m/s |
-| momentum balance | force output and motion agree: m·v = accelerationDamping · ∫(F − mg) dt | −0.00486 kg m/s | $\pm 5$ % of ∫\|F − mg\| dt = 0.0016 (sampling and relaxation lag) | −0.00474 kg m/s |
-| centre of mass rises | direction of motion (consistency only) | z_end − z_start > 1e-4 m | none, sign check | +0.0269 m |
-| time directories | results written | $\geq 1$ | exact | 4 (0.05 … 0.2) |
+| max yaw | symmetric hull does not yaw | 0° | 2° (numerical asymmetry only) | **FAIL**: 4.17° at t = 1.79 s (0.51° at 0.24 s) |
+| max heave speed | no blow-up; energy bound sqrt(2 (ρgV − mg) Δz / m) | ≤ 1.32 m/s | 15 % margin on the bound | 0.239 m/s |
+| momentum balance | force output and motion agree: m·v = accelerationDamping · ∫(F − mg) dt | −0.00065 kg m/s | $\pm 0.0034$ (sampling and relaxation lag; the longer run has a larger ∫\|F − mg\| dt) | −0.00043 kg m/s |
+| centre of mass rises | direction of motion (consistency only) | z_end − z_start > 1e-4 m | none, sign check | +0.0174 m |
+| time directories | results written | $\geq 1$ | exact | 35 (0.05 … 1.75) |
 | settled z of centre of mass | converges to Archimedes equilibrium z = +0.0160 m | +0.0160 m | $\pm 3$ mm (half the draft; waterline cells are 6 mm) | SKIP (needs run to 3 s), **unverified** |
-| heave oscillation decays | damping | — | — | SKIP (needs run to 3 s), **unverified** |
+| heave oscillation decays | damping | — | — | SKIP (needs run to 3 s), **unverified** (also the amplitude, final speed and period checks) |
 
-The first partial run was made before `sixDoFRigidBodyState` was removed
+An earlier partial run was made before `sixDoFRigidBodyState` was removed
 from `controlDict` (that function object does not exist in OpenFOAM.org v6;
 OpenFOAM printed a "FOAM FATAL ERROR: Unknown function type" warning at
 start and at each `controlDict` re-read). `verify.py` flagged it (FAIL on
-"no fatal error"). In the second run, with the entry removed, the log has no
-such message and **`verify.py` gives 20 PASS, 0 FAIL, 2 SKIP** at t = 0.244 s
-(measured values in the table are from this run). The two SKIP checks
-(settled height, oscillation decay) need the full 3 s and are **unverified**.
+"no fatal error"). With the entry removed the log has no such message.
+The measured values in the table are from the longest run (t = 1.791 s);
+the settled height, oscillation decay, final speed and period need the full
+3 s and are **unverified**.
 
 ---
 
@@ -1061,7 +1074,8 @@ machine shared with other jobs):
 | interFoam                  | 0.63 s per time step (3 outer $\times$ 3 pressure correctors) |
 | deltaT during the run      | 6.0e-5 … 8.8e-4 s (mean 1.9e-4 s) |
 | 0.2225 s simulated         | 743 s (1181 time steps) |
-| 3 s simulated (extrapolated, **not run**) | $\approx 2.5$–3 h on an idle core; a repeat run on a loaded machine needed $\approx 1.2$ s per step (0.244 s in 1800 s), i.e. about 5 h |
+| 1.79 s simulated (longest run) | 10 759 s of solver time, about 6000 s per simulated second |
+| 3 s simulated (extrapolated from the longest run) | $\approx 5$ h on one core |
 
 For parallel runs (use at most as many ranks as you have cores):
 
@@ -1116,8 +1130,11 @@ converged value). Plot `heave.dat` with gnuplot, matplotlib or ParaView.
 
 *Left: z of the centre of mass against the Archimedes equilibrium
 z = +0.016 m (from the STL). Right: vertical velocity. The hull passes the
-equilibrium height at t = 0.12 s and peaks at +0.0244 m at t = 0.197 s
-(run stopped at 0.2225 s). Made by `make_images.py` from `log.interFoam`.*
+equilibrium height at t = 0.12 s and peaks at +0.0244 m at t = 0.197 s; after
+that the heave is a damped oscillation (period about 0.8 s, from the maxima at
+0.57, 0.93 and 1.31 s) whose mean lies about 3 mm below z = +0.016 m at
+1.79 s, when the run was interrupted. The plot is made by `make_images.py` from
+`log.interFoam` (`images/heave_early.png` shows the first 0.25 s).*
 
 ### 10.2 Visualising in ParaView
 
@@ -1138,11 +1155,13 @@ Key visualisations:
 ![Free surface, t = 0.10 s](images/free_surface_1.png)
 ![Free surface, t = 0.15 s](images/free_surface_2.png)
 ![Free surface, t = 0.20 s](images/free_surface_3.png)
+![Free surface, t = 1.75 s](images/free_surface_4.png)
 
 *`alpha.water` on the y = 0 plane (blue = water, white = air; the red line is
 the hull outline, the hull interior has no cells). The hull rises out of the
 water; at 0.20 s its keel is about 2 mm above the undisturbed waterline
-(z = 0) and the water surface is raised around it. Images are made by
+(z = 0) and the water surface is raised around it. At 1.75 s the hull floats
+with its keel in the water again and the surface is slightly tilted. Images are made by
 `make_images.py` (`pvbatch make_images.py`, run in the project directory
 after a run).*
 

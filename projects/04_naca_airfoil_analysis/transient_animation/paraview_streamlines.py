@@ -24,6 +24,7 @@ from paraview.simple import (
     GetAnimationScene,
     GetColorTransferFunction,
     GetScalarBar,
+    GetParaViewVersion,
     GetTimeKeeper,
     Gradient,
     Hide,
@@ -228,7 +229,7 @@ def apply_vorticity_coloring(view, display, vort_range):
 
     display.SetScalarBarVisibility(view, True)
     bar = GetScalarBar(lut, view)
-    bar.Title = "\u03c9z  [1/s]"
+    bar.Title = "vorticity z  [1/s]"
     bar.ComponentTitle = ""
     bar.TitleColor = [0.90, 0.90, 0.90]
     bar.LabelColor = [0.90, 0.90, 0.90]
@@ -239,7 +240,12 @@ def apply_vorticity_coloring(view, display, vort_range):
 def add_time_annotation(source, view):
     """Overlay current simulation time in the upper-left corner."""
     ann = AnnotateTimeFilter(Input=source)
-    ann.Format = "t = %.3f s"
+    # ParaView 5.11 and older use printf-style formats, newer versions use "{time}".
+    version = GetParaViewVersion()
+    if (version.major, version.minor) >= (5, 12):
+        ann.Format = "t = {time:.3f} s"
+    else:
+        ann.Format = "t = %.3f s"
     ann.Scale = 1.0
     ann.Shift = 0.0
 
@@ -334,6 +340,12 @@ def main():
     # Time annotation
     SetActiveSource(grad)
     add_time_annotation(grad, view)
+
+    # The first Render() of a view resets the camera, so render once and then
+    # set the camera again.
+    Render()
+    configure_view(view, args.resolution,
+                   cam_x=args.camera_x, cam_y=args.camera_y, zoom=args.zoom)
 
     # Set display time
     scene.AnimationTime = t0

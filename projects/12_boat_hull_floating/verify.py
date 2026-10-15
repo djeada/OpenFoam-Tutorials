@@ -9,7 +9,7 @@ Output: one line per check
     PASS|FAIL|SKIP  <name>  measured=<v>  expected=<v> +- <tol>
 Exit code: 0 if no check FAILED and the logs exist; 1 otherwise.
 SKIP means the run was stopped before the check can be evaluated
-(for example the settling checks need the full 3 s of simulated time).
+(the settling checks need the run to endTime); a complete run has none.
 
 Tolerances are justified in the comment next to each check; they were not
 tuned to make a check pass.
@@ -129,6 +129,37 @@ def equilibrium_waterline(tris, volume):
         else:
             hi = mid
     return 0.5 * (lo + hi)
+
+
+def max_waterplane_area(tris, step=1e-3):
+    """Largest horizontal cross-section of the hull, from d(V_sub)/dz [m2]."""
+    zs = [p[2] for t in tris for p in t]
+    z0, z1 = min(zs), max(zs)
+    n = int(round((z1 - z0) / step))
+    best = 0.0
+    for i in range(n):
+        za = z0 + i * step
+        best = max(best, (submerged_volume(tris, za + step) - submerged_volume(tris, za)) / step)
+    return best
+
+
+def step_series(log):
+    """(time, z_CoM, v_z) of the last outer corrector of every time step."""
+    last = {}
+    t = z = None
+    for line in log.splitlines():
+        m = re.match(r"^Time = (" + NUM + ")", line)
+        if m:
+            t, z = float(m.group(1)), None
+            continue
+        m = re.search(r"Centre of mass: \(\S+ \S+ (" + NUM + r")\)", line)
+        if m:
+            z = float(m.group(1))
+            continue
+        m = re.search(r"Linear velocity: \(\S+ \S+ (" + NUM + r")\)", line)
+        if m and t is not None and z is not None:
+            last[t] = (t, z, float(m.group(1)))
+    return [last[k] for k in sorted(last)]
 
 
 # --------------------------------------------------------------- load files
@@ -311,15 +342,66 @@ add("PASS" if z_end > com0[2] + 1e-4 else "FAIL", "centre of mass rises (z_end -
 
 # Equilibrium from the STL (waterline for displaced volume m/rho): fixes
 # what the settled state must be.  Checked only if the run reached endTime.
+series = step_series(solver_log)
+zmin_hull = min(p[2] for t in tris for p in t)
+draft_eq = wl_eq - zmin_hull
+aw_eq = (submerged_volume(tris, wl_eq + 1e-3) - submerged_volume(tris, wl_eq - 1e-3)) / 2e-3
+aw_max = max_waterplane_area(tris)
+settle = {}
 if full_run:
-    # Tolerance 3 mm = half the equilibrium draft: finest waterline cells are
-    # 6 mm, so a smaller tolerance would test the mesh, not the physics.
-    z_last = sum(c[2] for c in com[-30:]) / len(com[-30:])
-    check("settled z of centre of mass [m]", z_last, z_eq, 3e-3)
+    # 1. Settled height: mean z over the last 1 s (averages out any residual
+    # bobbing).  Tolerance 3 mm = half the equilibrium draft = half a 6 mm
+    # waterline cell: the interface cannot be located better than about one
+    # cell, so a smaller tolerance would test the mesh, not the physics.
+    # Other error sources are smaller: 10 % hull-volume error of the snapped
+    # mesh (5 cm3 / Aw = 0.5 mm) and 0.3 mm of water-level drift.
+    tail = [r for r in series if r[0] >= t_end - 1.0 - 1e-9]
+    z_last = sum(r[1] for r in tail) / len(tail)
+    settle["z_last"] = z_last
+    check("settled z of centre of mass, mean of last 1 s [m]", z_last, z_eq, 3e-3)
+
+    # 2. Oscillation decay: the water-hull system only dissipates energy
+    # (viscosity, wave radiation), so the heave amplitude about z_eq cannot
+    # be larger late in the run than in the first second, which contains the
+    # first overshoot.  No decay rate is prescribed (none is known a priori).
+    head = [r for r in series if r[0] <= 1.0 + 1e-9]
+    amp_first = max(abs(r[1] - z_eq) for r in head)
+    amp_last = max(abs(r[1] - z_eq) for r in tail)
+    settle["amp_first"], settle["amp_last"] = amp_first, amp_last
+    check_max("heave amplitude about z_eq, last 1 s vs first 1 s [m]", amp_last, amp_first)
+
+    # 3. Final state: the residual motion is a heave oscillation with
+    # amplitude <= the 3 mm settling tolerance and angular frequency below
+    # sqrt(rho g Aw_max / m) (no added mass), so |v| <= that frequency * 3 mm.
+    w_max = math.sqrt(RHO_W * G * aw_max / mass)
+    v_last = abs(series[-1][2])
+    settle["v_last"] = v_last
+    check_max("final heave speed [m/s]", v_last, w_max * 3e-3)
+
+    # 4. Heave period: spacing of upward crossings of z_eq.  Restoring force
+    # slope is at most rho g Aw_max everywhere (largest waterplane area of
+    # the STL), and added mass and damping only lengthen the period, so
+    # T >= 2 pi sqrt(m / (rho g Aw_max)) (Sturm comparison).
+    up = []
+    for (ta, za, _), (tb, zb, _) in zip(series, series[1:]):
+        if za - z_eq < 0.0 <= zb - z_eq:
+            up.append(ta + (tb - ta) * (z_eq - za) / (zb - za))
+    t_min = 2.0 * math.pi * math.sqrt(mass / (RHO_W * G * aw_max))
+    settle["t_min"], settle["up"] = t_min, up
+    if len(up) >= 2:
+        periods = [b - a for a, b in zip(up, up[1:])]
+        settle["periods"] = periods
+        t_mean = sum(periods) / len(periods)
+        add("PASS" if t_mean >= t_min else "FAIL", "heave period, mean of %d [s]" % len(periods),
+            t_mean, ">= " + fmt(t_min), "-")
+    else:
+        add("FAIL", "heave period (>= 2 upward crossings of z_eq)", len(up), ">= 2", "-")
 else:
-    skip("settled z of centre of mass [m]",
+    skip("settled z of centre of mass, mean of last 1 s [m]",
          "z_eq = %.4f m (needs run to endTime=%g, stopped at %.4g s)" % (z_eq, end_time, t_end))
-    skip("heave oscillation decays", "needs run to endTime")
+    skip("heave amplitude about z_eq, last 1 s vs first 1 s [m]", "needs run to endTime")
+    skip("final heave speed [m/s]", "needs run to endTime")
+    skip("heave period [s]", "needs run to endTime")
 
 # Time directories written
 tdirs = sorted(d for d in os.listdir(HERE)
@@ -345,6 +427,17 @@ print("Initial state: waterline at the hull centre, buoyancy %.3f N vs weight %.
       "(net %+.2f N, by design); the hull must rise %.1f mm to float at the %.1f mm draft"
       % (RHO_W * G * v_sub0, mass * G, RHO_W * G * v_sub0 - mass * G, rise * 1e3,
          (wl_eq - min(p[2] for t in tris for p in t)) * 1e3))
+if settle:
+    print("Settling: mean z of last 1 s = %.5f m (equilibrium %.5f m, difference %+.2f mm), "
+          "final draft %.1f mm (equilibrium %.1f mm)"
+          % (settle["z_last"], z_eq, (settle["z_last"] - z_eq) * 1e3,
+             (-(settle["z_last"] - com0[2]) - zmin_hull) * 1e3, draft_eq * 1e3))
+    print("Amplitude about z_eq: first 1 s %.2f mm, last 1 s %.2f mm; final |v_z| = %.4f m/s"
+          % (settle["amp_first"] * 1e3, settle["amp_last"] * 1e3, settle["v_last"]))
+    print("Upward crossings of z_eq at t = %s s; periods %s s; lower bound %.3f s (Aw_max = %.1f cm2, Aw at equilibrium = %.1f cm2)"
+          % (", ".join("%.3f" % x for x in settle["up"]),
+             ", ".join("%.3f" % x for x in settle.get("periods", [])), settle["t_min"],
+             aw_max * 1e4, aw_eq * 1e4))
 print("SUMMARY: %d PASS, %d FAIL, %d SKIP%s"
       % (n_pass, n_fail, n_skip, " (SKIP = needs a full run to endTime)" if n_skip else ""))
 sys.exit(1 if n_fail else 0)

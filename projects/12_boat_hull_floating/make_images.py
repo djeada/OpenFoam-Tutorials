@@ -48,30 +48,44 @@ with open(csv_path, "w", newline="") as f:
     for r in data:
         w.writerow([r[0], r[1], r[2], Z_EQ])
 
-# ------------------------------------------------------------ heave chart
-rd = CSVReader(FileName=[csv_path])
-lay = CreateLayout("heave")
-v1 = CreateView("XYChartView")
-v2 = CreateView("XYChartView")
-AssignViewToLayout(view=v1, layout=lay, hint=0)
-lay.SplitHorizontal(0, 0.5)
-AssignViewToLayout(view=v2, layout=lay, hint=2)
-for vw, cols, ylab in ((v1, ["z_CoM", "z_equilibrium"], "z of centre of mass [m]"),
-                       (v2, ["v_z"], "vertical velocity [m/s]")):
-    d = Show(rd, vw)
-    d.UseIndexForXAxis = 0
-    d.XArrayName = "time"
-    d.SeriesVisibility = cols
-    for c in cols:
-        d.SeriesPlotCorner = [c, "0"]
-    vw.BottomAxisTitle = "time [s]"
-    vw.LeftAxisTitle = ylab
-    vw.ShowLegend = 1 if len(cols) > 1 else 0
-lay.SetSize(1500, 520)
-SaveScreenshot(os.path.join(OUT, "heave.png"), lay, ImageResolution=[1500, 520])
-for s in (v1, v2):
-    Delete(s)
-Delete(lay)
+# ------------------------------------------------------------ heave charts
+def heave_chart(csv_file, png):
+    """z (with the Archimedes level) and v_z against time, side by side."""
+    rd = CSVReader(FileName=[csv_file])
+    lay = CreateLayout("heave")
+    v1 = CreateView("XYChartView")
+    v2 = CreateView("XYChartView")
+    AssignViewToLayout(view=v1, layout=lay, hint=0)
+    lay.SplitHorizontal(0, 0.5)
+    AssignViewToLayout(view=v2, layout=lay, hint=2)
+    for vw, cols, ylab in ((v1, ["z_CoM", "z_equilibrium"], "z of centre of mass [m]"),
+                           (v2, ["v_z"], "vertical velocity [m/s]")):
+        d = Show(rd, vw)
+        d.UseIndexForXAxis = 0
+        d.XArrayName = "time"
+        d.SeriesVisibility = cols
+        for c in cols:
+            d.SeriesPlotCorner = [c, "0"]
+        vw.BottomAxisTitle = "time [s]"
+        vw.LeftAxisTitle = ylab
+        vw.ShowLegend = 1 if len(cols) > 1 else 0
+    lay.SetSize(1500, 520)
+    SaveScreenshot(os.path.join(OUT, png), lay, ImageResolution=[1500, 520])
+    for s in (v1, v2):
+        Delete(s)
+    Delete(lay)
+    Delete(rd)
+
+
+heave_chart(csv_path, "heave.png")                       # whole run
+early_path = os.path.join(os.environ.get("TMPDIR", "/tmp"), "boat_hull_heave_early.csv")
+with open(early_path, "w", newline="") as f:             # first 0.5 s: the first overshoot
+    w = csv.writer(f)
+    w.writerow(["time", "z_CoM", "v_z", "z_equilibrium"])
+    for r in data:
+        if r[0] <= 0.5 + 1e-9:
+            w.writerow([r[0], r[1], r[2], Z_EQ])
+heave_chart(early_path, "heave_early.png")
 
 # ------------------------------------------------------------------- case
 foam = os.path.join(HERE, "boat_hull_floating.foam")
@@ -83,7 +97,11 @@ case.UpdatePipelineInformation()
 times = list(case.TimestepValues) if case.TimestepValues else [0.0]
 if not isinstance(times, list):
     times = [times]
-pick = [t for t in times if t <= 0.2 + 1e-9] or times   # 0.05 ... 0.2 s (t = 0 has no water field)
+# 0.05 ... 0.2 s (the rise and first overshoot) and the last written time
+# (t = 0 has no water field)
+pick = [t for t in times if t <= 0.2 + 1e-9] or times
+if times[-1] > pick[-1] + 1e-9:
+    pick.append(times[-1])
 print("time steps:", times)
 
 # Hull patch (separate reader instance so that the patch has its own pipeline)

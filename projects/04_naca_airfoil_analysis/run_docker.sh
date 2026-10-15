@@ -10,7 +10,8 @@
 #  Usage:
 #    ./run_docker.sh              Steady-state RANS case (default), then verify.py
 #    ./run_docker.sh steady       same
-#    ./run_docker.sh transient    Transient animation case (pimpleFoam)
+#    ./run_docker.sh transient    Transient animation case (pimpleFoam, 4 MPI ranks),
+#                                 then transient_animation/verify.py
 #    ./run_docker.sh all          Both cases, one after the other
 # =========================================================================
 set -eu
@@ -70,6 +71,7 @@ run_transient() {
     docker_foam transient_animation ./Allrun
 
     echo "Transient case complete."
+    python3 transient_animation/verify.py
 }
 
 case "$CASE" in
