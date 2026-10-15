@@ -282,9 +282,11 @@ air) using a scalar field **$\alpha$** (alpha):
 
 The transport equation for $\alpha$:
 
-```
-  ∂α/∂t + ∇·(U α) + ∇·(U_r α(1-α)) = 0
-```
+$$
+\frac{\partial\alpha}{\partial t}+
+\nabla\cdot(\mathbf U\alpha)+
+\nabla\cdot\bigl(\mathbf U_r\alpha(1-\alpha)\bigr)=0
+$$
 
 where `U_r` is a compression velocity that sharpens the interface.
 
@@ -558,19 +560,30 @@ low centre of mass improves roll stability). The mean density of the hull is
 
 For a uniform rectangular solid with mass m, length L, width W, height H:
 
-```
-  Ixx = m/12 · (W² + H²) = 0.05/12 · (0.082² + 0.054²) ≈ 4.0e-05
-  Iyy = m/12 · (L² + H²) = 0.05/12 · (0.155² + 0.054²) ≈ 1.1e-04
-  Izz = m/12 · (L² + W²) = 0.05/12 · (0.155² + 0.082²) ≈ 1.3e-04
-```
+Approximate bounding-box inertias are:
+
+$$
+\begin{aligned}
+I_{xx}&=\frac m{12}(W^2+H^2)
+=\frac{0.05}{12}(0.082^2+0.054^2)\approx4.0\times10^{-5},\\
+I_{yy}&=\frac m{12}(L^2+H^2)
+=\frac{0.05}{12}(0.155^2+0.054^2)\approx1.1\times10^{-4},\\
+I_{zz}&=\frac m{12}(L^2+W^2)
+=\frac{0.05}{12}(0.155^2+0.082^2)\approx1.3\times10^{-4}.
+\end{aligned}
+$$
+
+All three moments of inertia have units $\mathrm{kg\,m}^2$.
 
 The hull is not a full rectangular block, so the bounding-box values are an
 upper estimate. Integrating the actual STL volume with uniform density
 (mass 0.05 kg, about the bounding-box centre) gives
 
-```
-  Ixx = 3.4e-05    Iyy = 7.1e-05    Izz = 8.3e-05   kg·m²
-```
+Actual case values:
+
+$$
+I_{xx}=3.4\times10^{-5},\quad I_{yy}=7.1\times10^{-5},\quad I_{zz}=8.3\times10^{-5}\quad[\mathrm{kg\,m}^2].
+$$
 
 which are the values in `dynamicMeshDict`. A hollow hull with the same mass
 has *larger* moments of inertia than this uniform-density estimate (mass is
@@ -734,11 +747,11 @@ type on the boat means "the motion solver will fill in this value."
 
 Two-phase fluid properties — identical to Project 11.
 
-```
-  Water:  ρ = 998.2 kg/m³,   ν = 1.0 × 10⁻⁶ m²/s
-  Air:    ρ = 1.225 kg/m³,   ν = 1.48 × 10⁻⁵ m²/s
-  Surface tension: σ = 0.072 N/m
-```
+Water: $\rho=998.2\ \mathrm{kg/m}^3$, $\nu=1.0\times10^{-6}\ \mathrm{m}^2/\mathrm s$.
+
+Air: $\rho=1.225\ \mathrm{kg/m}^3$, $\nu=1.48\times10^{-5}\ \mathrm{m}^2/\mathrm s$.
+
+Surface tension: $\sigma=0.072\ \mathrm{N/m}$.
 
 ### 8.6 `constant/turbulenceProperties`
 
@@ -1178,9 +1191,9 @@ pressure force is the **buoyancy force** acting on the hull.
 
 At equilibrium, the vertical hull force (pressure + viscous) balances the
 weight:
-```
-  F_buoyancy (z)  ≈  m × g  =  0.050 × 9.81  =  0.4905 N
-```
+$$
+F_{\mathrm{buoyancy},z}\approx mg=0.050\cdot9.81=0.4905\ \mathrm N
+$$
 
 ---
 
@@ -1190,20 +1203,26 @@ weight:
 
 By Archimedes' principle, the boat floats when:
 
-```
-  Weight = Buoyancy
-  m · g  = ρ_water · g · V_submerged
-  m      = ρ_water · V_submerged
+At equilibrium, weight equals buoyancy:
 
-  V_submerged = m / ρ_water = 0.050 / 998.2 ≈ 5.01 × 10⁻⁵ m³
-```
+$$
+\begin{aligned}
+mg&=\rho_{\mathrm{water}}gV_{\mathrm{submerged}},\\
+m&=\rho_{\mathrm{water}}V_{\mathrm{submerged}},\\
+V_{\mathrm{submerged}}&=\frac m{\rho_{\mathrm{water}}}
+=\frac{0.050}{998.2}\approx5.01\times10^{-5}\ \mathrm{m}^3.
+\end{aligned}
+$$
 
 A rough estimate treating the waterplane as the bounding rectangle:
 
-```
-  A_waterplane ≈ L × W = 0.155 × 0.082 = 0.01271 m²
-  draft ≈ V_submerged / A_waterplane = 5.01e-5 / 0.01271 ≈ 0.0039 m ≈ 4 mm
-```
+$$
+\begin{aligned}
+A_{\mathrm{waterplane}}&\approx LW=0.155\cdot0.082=0.01271\ \mathrm{m}^2,\\
+\mathrm{draft}&\approx\frac{V_{\mathrm{submerged}}}{A_{\mathrm{waterplane}}}
+=\frac{5.01\times10^{-5}}{0.01271}\approx0.0039\ \mathrm m\approx4\ \mathrm{mm}.
+\end{aligned}
+$$
 
 The hull is not a box, so this underestimates the draft. Clipping the real
 STL with a horizontal plane (done by `verify.py`) gives the displaced volume

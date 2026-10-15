@@ -160,11 +160,9 @@ explains how it works in detail.
 
 The volume fraction **α** is a scalar field defined on every cell:
 
-```
-  α = 1    →  Cell is 100% phase 1  (e.g., water)
-  α = 0    →  Cell is 100% phase 2  (e.g., air)
-  0 < α < 1  →  Cell contains the interface
-```
+- $\alpha=1$: the cell contains 100% phase 1 (for example, water).
+- $\alpha=0$: the cell contains 100% phase 2 (for example, air).
+- $0<\alpha<1$: the cell contains the interface.
 
 Visually, here is what α looks like across a free surface:
 
@@ -198,14 +196,11 @@ Visually, here is what α looks like across a free surface:
 
 The α field is advected by the flow velocity **U**:
 
-```
-    ∂α
-   ──── + ∇·(α U) = 0
-    ∂t
+$$
+\frac{\partial\alpha}{\partial t}+\nabla\cdot(\alpha\mathbf U)=0
+$$
 
-  In words: the rate of change of α in a cell equals the net flux
-  of α through its faces, carried by the velocity field.
-```
+The change in the volume fraction within a cell is set by the net flux across its faces.
 
 This is a pure advection equation — there is no diffusion term. However,
 numerical diffusion from the discretization can smear the interface, which is
@@ -217,15 +212,13 @@ OpenFOAM uses the **MULES** (Multidimensional Universal Limiter with Explicit
 Solution) algorithm to keep the interface sharp. MULES adds an artificial
 **compression term** to the α transport equation:
 
-```
-    ∂α
-   ──── + ∇·(α U) + ∇·(α(1−α) U_c) = 0
-    ∂t
-                      ↑
-                      Compression velocity
-                      Only active at the interface (where 0 < α < 1)
-                      Pushes α toward 0 or 1
-```
+$$
+\frac{\partial\alpha}{\partial t}
++\nabla\cdot(\alpha\mathbf U)
++\nabla\cdot\bigl(\alpha(1-\alpha)\mathbf U_c\bigr)=0
+$$
+
+The compression velocity $\mathbf U_c$ acts at the interface ($0<\alpha<1$), sharpening the phase transition.
 
 The compression velocity U_c acts perpendicular to the interface, squeezing
 the transition region. The strength of compression is controlled by the
@@ -242,16 +235,18 @@ the transition region. The strength of compression is controlled by the
 With α known in every cell, the mixture properties are computed as
 volume-weighted averages:
 
-```
-    Density:     ρ  = α · ρ₁  +  (1 − α) · ρ₂
-    Viscosity:   ν  = α · ν₁  +  (1 − α) · ν₂
+Mixture density and kinematic viscosity are volume-fraction weighted:
 
-    Example (water–air):
-    ───────────────────
-    Cell with α = 1.0:  ρ = 1.0 × 1000 + 0.0 × 1   = 1000 kg/m³  (pure water)
-    Cell with α = 0.0:  ρ = 0.0 × 1000 + 1.0 × 1   = 1    kg/m³  (pure air)
-    Cell with α = 0.5:  ρ = 0.5 × 1000 + 0.5 × 1   = 500.5 kg/m³ (interface)
-```
+$$
+\rho=\alpha\rho_1+(1-\alpha)\rho_2,\qquad
+\nu=\alpha\nu_1+(1-\alpha)\nu_2.
+$$
+
+For a water–air example using $\rho_{\mathrm{water}}=1000\ \mathrm{kg/m}^3$ and $\rho_{\mathrm{air}}=1\ \mathrm{kg/m}^3$:
+
+- $\alpha=1.0$: $\rho=1000\ \mathrm{kg/m}^3$ (pure water).
+- $\alpha=0.0$: $\rho=1\ \mathrm{kg/m}^3$ (pure air).
+- $\alpha=0.5$: $\rho=500.5\ \mathrm{kg/m}^3$ (interface).
 
 > **⚠️ Warning:** The 1000:1 density ratio between water and air is one of the
 > reasons multiphase simulations are more numerically challenging than
@@ -653,14 +648,12 @@ In VOF, the interface is not a discrete boundary — it's a smooth transition ov
 a few cells. Surface tension is modeled as a **body force** distributed over this
 transition region, using the CSF model by Brackbill et al. (1992):
 
-```
-    F_σ = σ · κ · ∇α
+$$
+\mathbf F_\sigma=\sigma\kappa\nabla\alpha,\qquad
+\kappa=-\nabla\cdot\left(\frac{\nabla\alpha}{|\nabla\alpha|}\right).
+$$
 
-    where:
-      σ  = surface tension coefficient [N/m]
-      κ  = interface curvature = −∇·(∇α / |∇α|)
-      ∇α = gradient of α (points from light to heavy phase)
-```
+Here $\sigma$ is surface tension ($\mathrm{N/m}$), $\kappa$ is interface curvature, and $\nabla\alpha$ is the phase-fraction gradient.
 
 The force is concentrated where ∇α is large (i.e., at the interface) and
 vanishes in the bulk of each phase.

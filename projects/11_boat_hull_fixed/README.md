@@ -278,9 +278,9 @@ Surface tension $\sigma$ acts at the interface and is modeled using the
 **Continuum Surface Force (CSF)** method. The surface tension force is
 converted to a volume force:
 
-```
-F_σ = σ κ ∇α
-```
+$$
+\mathbf F_\sigma=\sigma\kappa\nabla\alpha
+$$
 
 where $\kappa$ is the interface curvature estimated from the $\alpha$ field.
 
@@ -499,11 +499,11 @@ The water volume fraction. Initialized to 0 everywhere (all air), then
 
 Defines the two-phase material properties:
 
-```
-Water:  ν = 1.00 × 10⁻⁶ m²/s,  ρ = 998.2 kg/m³   (at 20°C)
-Air:    ν = 1.48 × 10⁻⁵ m²/s,  ρ = 1.225 kg/m³    (at 20°C, 1 atm)
-Surface tension: σ = 0.072 N/m
-```
+Water: $\nu=1.00\times10^{-6}\ \mathrm{m}^2/\mathrm s$, $\rho=998.2\ \mathrm{kg/m}^3$ (at 20°C).
+
+Air: $\nu=1.48\times10^{-5}\ \mathrm{m}^2/\mathrm s$, $\rho=1.225\ \mathrm{kg/m}^3$ (at 20°C, 1 atm).
+
+Surface tension: $\sigma=0.072\ \mathrm{N/m}$.
 
 ### constant/turbulenceProperties
 
@@ -798,9 +798,10 @@ directory.
 
 The VOF method solves a transport equation for the phase fraction $\alpha$:
 
-```
-∂α/∂t + ∇·(U α) + ∇·(U_r α(1-α)) = 0
-```
+$$
+\frac{\partial\alpha}{\partial t}+\nabla\cdot(\mathbf U\alpha)
++\nabla\cdot\bigl(\mathbf U_r\alpha(1-\alpha)\bigr)=0
+$$
 
 where:
 - `α`: volume fraction of water (0 = air, 1 = water)
@@ -831,10 +832,12 @@ introduce artifacts.
 
 The mixture properties are computed cell-by-cell:
 
-```
-ρ = α · 998.2 + (1-α) · 1.225        [kg/m³]
-μ = α · 998.2e-6 + (1-α) · 1.225·1.48e-5  [Pa·s]
-```
+$$
+\begin{aligned}
+\rho&=\alpha\cdot998.2+(1-\alpha)\cdot1.225\quad[\mathrm{kg/m}^3],\\
+\mu&=\alpha\cdot998.2\times10^{-6}+(1-\alpha)\cdot1.225\cdot1.48\times10^{-5}\quad[\mathrm{Pa\,s}].
+\end{aligned}
+$$
 
 This creates a smooth transition across the interface, avoiding sharp
 discontinuities that would destabilize the numerics.
@@ -848,19 +851,27 @@ discontinuities that would destabilize the numerics.
 `interFoam` solves the following coupled system at each time step:
 
 1. **Volume fraction equation** ($\alpha$ transport):
-   ```
-   ∂α/∂t + ∇·(Uα) + ∇·(U_c α(1-α)) = 0
-   ```
+$$
+\frac{\partial\alpha}{\partial t}+
+\nabla\cdot(\mathbf U\alpha)+
+\nabla\cdot\bigl(\mathbf U_c\alpha(1-\alpha)\bigr)=0
+$$
 
 2. **Momentum equation** (Navier-Stokes for the mixture):
-   ```
-   ∂(ρU)/∂t + ∇·(ρUU) = -∇p_rgh - (g·h)∇ρ + ∇·(μ_eff (∇U + ∇Uᵀ)) + σκ∇α
-   ```
+$$
+\frac{\partial(\rho\mathbf U)}{\partial t}
++\nabla\cdot(\rho\mathbf U\mathbf U)
+=-\nabla p_{rgh}-(\mathbf g\cdot\mathbf h)\nabla\rho
++\nabla\cdot\left[\mu_{\mathrm{eff}}\left(\nabla\mathbf U+(\nabla\mathbf U)^T\right)\right]
++\sigma\kappa\nabla\alpha
+$$
 
 3. **Pressure equation** (from continuity):
-   ```
-   ∇·((1/ρ) ∇p_rgh) = ∇·U*  (approximate)
-   ```
+The approximate pressure-correction equation is
+
+$$
+\nabla\cdot\left(\frac1\rho\nabla p_{rgh}\right)=\nabla\cdot\mathbf U^*.
+$$
 
 The variables are:
 - `U`: velocity vector field
