@@ -300,8 +300,8 @@ T_mixed = (0.1 × 350 + 0.025 × 300) / (0.1 + 0.025)
         = 340 K
 ```
 
-With the actual densities of the Boussinesq model (978.9 kg/m³ at 350 K,
-1001.1 kg/m³ at 300 K) the mass flows are 97.9 and 25.0 kg/(s m), giving
+With the actual densities of the Boussinesq model (978.9 $\mathrm{kg}/\mathrm{m}^{3}$ at 350 K,
+1001.1 $\mathrm{kg}/\mathrm{m}^{3}$ at 300 K) the mass flows are 97.9 and 25.0 kg/(s m), giving
 339.8 K. The solver result is 340.2 K (mass-flux-weighted at the outlet).
 
 ### Mixing Quality Metrics
@@ -604,8 +604,8 @@ The internal field is initialised to 325 K.
 
 | Patch | Type | Value | Notes |
 |---|---|---|---|
-| `mainInlet` | `fixedValue` | `0.06` m$^2$/s$^2$ | TI = 20 % at 1.0 m/s |
-| `branchInlet` | `fixedValue` | `0.015` m$^2$/s$^2$ | TI = 20 % at 0.5 m/s |
+| `mainInlet` | `fixedValue` | `0.06` $\mathrm{m}^{2}/\mathrm{s}^{2}$ | TI = 20 % at 1.0 m/s |
+| `branchInlet` | `fixedValue` | `0.015` $\mathrm{m}^{2}/\mathrm{s}^{2}$ | TI = 20 % at 0.5 m/s |
 | `outlet` | `zeroGradient` | — | Free outflow |
 | `walls` | `kqRWallFunction` | `0.06` | Wall function for k |
 | `frontAndBack` | `empty` | — | 2D constraint |
@@ -629,8 +629,8 @@ Branch: k = 1.5 × (0.5 × 0.2)²   = 0.015    (using TI=20%)
 
 | Patch | Type | Value | Notes |
 |---|---|---|---|
-| `mainInlet` | `fixedValue` | `0.345` m$^2$/s$^3$ | From k and l = 0.07 H |
-| `branchInlet` | `fixedValue` | `0.0863` m$^2$/s$^3$ | From k and l = 0.07 W |
+| `mainInlet` | `fixedValue` | `0.345` $\mathrm{m}^{2}/\mathrm{s}^{3}$ | From k and l = 0.07 H |
+| `branchInlet` | `fixedValue` | `0.0863` $\mathrm{m}^{2}/\mathrm{s}^{3}$ | From k and l = 0.07 W |
 | `outlet` | `zeroGradient` | — | Free outflow |
 | `walls` | `epsilonWallFunction` | `0.345` | Wall function for $\varepsilon$ |
 | `frontAndBack` | `empty` | — | 2D constraint |
@@ -698,19 +698,19 @@ model used by `buoyantSimpleFoam`:
 
 > **Note on equation of state:** The original version of this tutorial used
 > `perfectGas`, which gives water the density of steam
-> ($\rho = pW/(RT) \approx 0.7$ kg/m$^3$ with $M = 18$ g/mol) and therefore
-> $\nu \approx 1.5\times10^{-3}$ m$^2$/s, inconsistent with the Reynolds
+> ($\rho = pW/(RT) \approx 0.7$ $\mathrm{kg}/\mathrm{m}^{3}$ with $M = 18$ g/mol) and therefore
+> $\nu \approx 1.5\times10^{-3}$ $\mathrm{m}^{2}/\mathrm{s}$, inconsistent with the Reynolds
 > numbers above. `Boussinesq` gives a liquid-like density with a realistic
 > temperature dependence. `rhoConst`, `icoPolynomial` or `perfectFluid`
 > are alternatives.
 
 | Equation-of-state parameter | Symbol | Value | Units |
 |---|---|---|---|
-| Reference density | $\rho_0$ | 990 | kg/m$^3$ |
+| Reference density | $\rho_0$ | 990 | $\mathrm{kg}/\mathrm{m}^{3}$ |
 | Reference temperature | $T_0$ | 325 | K |
 | Thermal expansion coefficient | $\beta$ | 4.5e-4 | 1/K |
 
-The density then ranges from 978.9 kg/m$^3$ at 350 K to 1001.1 kg/m$^3$ at
+The density then ranges from 978.9 $\mathrm{kg}/\mathrm{m}^{3}$ at 350 K to 1001.1 $\mathrm{kg}/\mathrm{m}^{3}$ at
 300 K (about $\pm$1 %).
 
 ### Mixture Properties
@@ -720,7 +720,7 @@ The density then ranges from 978.9 kg/m$^3$ at 350 K to 1001.1 kg/m$^3$ at
 | Molecular weight | M | 18.0 | g/mol (required by `specie`, not used by Boussinesq) |
 | Specific heat capacity | Cp | 4182 | J/(kg·K) |
 | Heat of formation | Hf | 0 | J/kg |
-| Dynamic viscosity | $\mu$ | 1$\times$10$^{-3}$ | Pa·s |
+| Dynamic viscosity | $\mu$ | $1 \times 10^{-3}$ | Pa·s |
 | Prandtl number | Pr | 7.0 | — |
 
 ### Transport Properties
@@ -728,16 +728,16 @@ The density then ranges from 978.9 kg/m$^3$ at 350 K to 1001.1 kg/m$^3$ at
 `buoyantSimpleFoam` reads viscosity and Prandtl number from the thermo
 package (`mu`, `Pr` above); a `constant/transportProperties` file is not
 read by this solver and has been removed. The equivalent kinematic
-viscosity is $\nu = \mu/\rho \approx 1\times10^{-6}$ m$^2$/s, the value used
+viscosity is $\nu = \mu/\rho \approx 1\times10^{-6}$ $\mathrm{m}^{2}/\mathrm{s}$, the value used
 in the Reynolds numbers.
 
 ### Gravity
 
 | Component | Value | Units |
 |---|---|---|
-| g_x | 0 | m/s$^2$ |
-| g_y | -9.81 | m/s$^2$ |
-| g_z | 0 | m/s$^2$ |
+| g_x | 0 | $\mathrm{m}/\mathrm{s}^{2}$ |
+| g_y | -9.81 | $\mathrm{m}/\mathrm{s}^{2}$ |
+| g_z | 0 | $\mathrm{m}/\mathrm{s}^{2}$ |
 
 The cold, denser stream enters at the top, so the stratification is
 statically unstable; at these velocities inertia dominates and buoyancy
@@ -826,8 +826,8 @@ a steady solver has no physical meaning.
 
 | Field | Solver | Preconditioner / smoother | Tolerance | Relative Tolerance |
 |---|---|---|---|---|
-| `p_rgh` | `GAMG` | `GaussSeidel` (smoother) | 1$\times$10$^{-7}$ | 0.01 |
-| `U`, `h`, `k`, `epsilon` | `PBiCGStab` | `DILU` | 1$\times$10$^{-7}$ | 0.1 |
+| `p_rgh` | `GAMG` | `GaussSeidel` (smoother) | $1 \times 10^{-7}$ | 0.01 |
+| `U`, `h`, `k`, `epsilon` | `PBiCGStab` | `DILU` | $1 \times 10^{-7}$ | 0.1 |
 
 **SIMPLE algorithm settings:**
 
@@ -850,7 +850,7 @@ pressure reference cell is needed.)
 
 **Residual control:**
 
-All fields converge to 1$\times$10$^{-4}$. The solver stops when all residuals drop
+All fields converge to $1 \times 10^{-4}$. The solver stops when all residuals drop
 below these thresholds, even before reaching `endTime`.
 
 ---
@@ -1009,10 +1009,10 @@ the under-relaxation factors (especially `p_rgh`).
 
 ![Turbulent kinetic energy](images/k.png)
 
-*Turbulent kinetic energy `k`: look for the maximum (about 0.17 m²/s²) in the shear layer and recirculation region behind the branch, above the inlet value of 0.06 m²/s² on the main inlet (0.015 m²/s² on the branch inlet).*
+*Turbulent kinetic energy `k`: look for the maximum (about 0.17 $\mathrm{m}^{2}/\mathrm{s}^{2}$) in the shear layer and recirculation region behind the branch, above the inlet value of 0.06 $\mathrm{m}^{2}/\mathrm{s}^{2}$ on the main inlet (0.015 $\mathrm{m}^{2}/\mathrm{s}^{2}$ on the branch inlet).*
 
 The eddy-viscosity ratio $\nu_t/\nu$ reaches about 970 (maximum `nut` =
-9.7e-4 m$^2$/s).
+9.7e-4 $\mathrm{m}^{2}/\mathrm{s}$).
 
 ### Bulk Quantities
 
@@ -1021,10 +1021,10 @@ The eddy-viscosity ratio $\nu_t/\nu$ reaches about 970 (maximum `nut` =
 | Outlet bulk temperature (mass-flux-weighted) | 340.2 K (energy balance: 339.8 K) |
 | Area-averaged outlet temperature | 337.7 K |
 | Temperature range at outlet (cell centres) | 311–350 K (not fully mixed) |
-| Mean outlet $u_x$ | 1.25 m/s (= 0.125 m$^2$/s inflow / 0.1 m height) |
+| Mean outlet $u_x$ | 1.25 m/s (= 0.125 $\mathrm{m}^{2}/\mathrm{s}$ inflow / 0.1 m height) |
 | Maximum $|U|$ in the domain | 1.6 m/s |
 | Temperature range in the domain | 299.8–350.6 K |
-| Density range | 978.6–1001.2 kg/m$^3$ |
+| Density range | 978.6–1001.2 $\mathrm{kg}/\mathrm{m}^{3}$ |
 | Mass flow, main inlet / branch inlet / outlet | 0.979 / 0.250 / 1.229 kg/s (0.01 m deep slice) |
 | Wall $y^+$ (min / max / mean) | 31 / 160 / 93 |
 
@@ -1230,7 +1230,7 @@ differs substantially from 325 K.)
 ### Exercise 3: Lower Inlet Turbulence
 
 Use TI = 5 %: `k` = 0.00375 (main) and 0.00094 (branch), `epsilon` from the
-formula above (0.0054 and 0.00135 m$^2$/s$^3$). Compare the outlet
+formula above (0.0054 and 0.00135 $\mathrm{m}^{2}/\mathrm{s}^{3}$). Compare the outlet
 temperature profile with the baseline.
 
 ### Exercise 4: Switch to k-$\omega$ SST Model
