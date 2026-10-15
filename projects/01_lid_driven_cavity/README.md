@@ -5,7 +5,7 @@
 | **Difficulty** | ⭐ Beginner |
 | **Solver** | `icoFoam` (incompressible, laminar, transient) |
 | **Algorithm** | PISO (2 correctors) |
-| **Reynolds Number** | 100 (U = 1 m/s, L = 0.1 m, $\nu$ = 0.001 m$^2$/s) |
+| **Reynolds Number** | 100 (U = 1 m/s, L = 0.1 m, $\nu$ = 0.001 $\mathrm{m}^{2}/\mathrm{s}$) |
 | **Mesh** | 20 x 20 x 1 hexahedra (400 cells), 2D |
 | **Run time** | 500 steps of 1 ms (t = 0 to 0.5 s), a few seconds |
 | **OpenFOAM Version** | 6 |
@@ -27,7 +27,7 @@ A first complete OpenFOAM workflow on the simplest closed-domain benchmark: buil
 
 ## Target
 
-Reynolds number 100 (lid speed 1 m/s, side 0.1 m, $\nu$ = 0.001 m$^2$/s), 20 x 20 cells, run to t = 0.5 s with $\Delta t$ = 1 ms.
+Reynolds number 100 (lid speed 1 m/s, side 0.1 m, $\nu$ = 0.001 $\mathrm{m}^{2}/\mathrm{s}$), 20 x 20 cells, run to t = 0.5 s with $\Delta t$ = 1 ms.
 
 | Quantity | Reference | Value expected from this case |
 |---|---|---|
@@ -123,7 +123,7 @@ $$\partial U / \partial t + (U \cdot \nabla)U = -\nabla p + \nu \nabla^2 U$$
 
 where `U` is the velocity vector, `p` is the kinematic pressure (pressure divided by density) and `ν` is the kinematic viscosity.
 
-Since icoFoam is an incompressible solver, density does not appear explicitly. The pressure field `p` has dimensions of m$^2$/s$^2$.
+Since icoFoam is an incompressible solver, density does not appear explicitly. The pressure field `p` has dimensions of $\mathrm{m}^{2}/\mathrm{s}^{2}$.
 
 ### Reynolds Number
 
@@ -137,7 +137,7 @@ For this case:
 |---|---|---|
 | Lid velocity | U | 1 m/s |
 | Cavity width | L | 0.1 m |
-| Kinematic viscosity | $\nu$ | 0.001 m$^2$/s |
+| Kinematic viscosity | $\nu$ | 0.001 $\mathrm{m}^{2}/\mathrm{s}$ |
 
 $$Re = 1 \times 0.1 / 0.001 = 100$$
 
@@ -332,7 +332,7 @@ The maximum Courant number reported by `icoFoam` is about 0.17 (log.icoFoam), be
 |---|---|
 | Solver | `PCG` (Preconditioned Conjugate Gradient) |
 | Preconditioner | `DIC` (Diagonal Incomplete Cholesky) |
-| Tolerance | 1$\times$10$^{-6}$ |
+| Tolerance | $1 \times 10^{-6}$ |
 | Relative tolerance | 0.05 (0 for final corrector) |
 
 **Velocity solver (`U`):**
@@ -341,7 +341,7 @@ The maximum Courant number reported by `icoFoam` is about 0.17 (log.icoFoam), be
 |---|---|
 | Solver | `smoothSolver` |
 | Smoother | `symGaussSeidel` (Symmetric Gauss-Seidel) |
-| Tolerance | 1$\times$10$^{-5}$ |
+| Tolerance | $1 \times 10^{-5}$ |
 | Relative tolerance | 0 |
 
 **PISO algorithm settings:**
@@ -447,7 +447,7 @@ Values below are from this case (20 x 20 mesh) at t = 0.5 s:
 
 - **Primary vortex**: Clockwise, with its center near ($x$ = 0.0625 m, $y$ = 0.0725 m), i.e. ($x/L \approx 0.62$, $y/L \approx 0.73$), within about one cell of the Ghia et al. value ($0.617$, $0.734$).
 - **Velocity magnitude**: The lid moves at 1 m/s, but the cell-centre values in the top row reach only about 0.84 m/s, since the cell centres are half a cell away from the lid.
-- **Pressure** (kinematic, relative to cell 0 at the bottom-left): highest at the top-right corner (about +0.78 m$^2$/s$^2$), where the lid drives fluid into the right wall, and lowest at the top-left corner (about -0.35 m$^2$/s$^2$). At the vortex center it is about -0.08 m$^2$/s$^2$.
+- **Pressure** (kinematic, relative to cell 0 at the bottom-left): highest at the top-right corner (about +0.78 $\mathrm{m}^{2}/\mathrm{s}^{2}$), where the lid drives fluid into the right wall, and lowest at the top-left corner (about -0.35 $\mathrm{m}^{2}/\mathrm{s}^{2}$). At the vortex center it is about -0.08 $\mathrm{m}^{2}/\mathrm{s}^{2}$.
 
 ![Pressure field](images/pressure.png)
 
@@ -564,7 +564,7 @@ These exercises build progressively on the base case. Try them in order:
 
 Modify `constant/transportProperties` to change `ν` and observe different flow regimes:
 
-| $\nu$ (m$^2$/s) | Re | Expected Behavior |
+| $\nu$ ($\mathrm{m}^{2}/\mathrm{s}$) | Re | Expected Behavior |
 |---|---|---|
 | 0.01 | 10 | Very viscous, vortex center closer to the cavity center; this is the viscosity of the standard OpenFOAM cavity tutorial |
 | 0.001 | 100 | ← Current case. Clear primary vortex |

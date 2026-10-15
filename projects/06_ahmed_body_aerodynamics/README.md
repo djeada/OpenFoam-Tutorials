@@ -45,7 +45,7 @@ After working through this case you should be able to:
 
 | Quantity | Target | Basis |
 |---|---|---|
-| Flow condition | $U_\infty$ = 40 m/s, $\nu = 1.5 \times 10^{-5}$ m$^2$/s, $Re_L$ = 2.78e6, $Re_H$ = 7.68e5 | case files |
+| Flow condition | $U_\infty$ = 40 m/s, $\nu = 1.5 \times 10^{-5}$ $\mathrm{m}^{2}/\mathrm{s}$, $Re_L$ = 2.78e6, $Re_H$ = 7.68e5 | case files |
 | Mesh | about 1.0 M cells, 5 prism layers on the body, max non-orthogonality < 65°, max skewness < 4, `checkMesh` reports `Mesh OK` | measured: 968,553 cells, 4.98 layers, 64.7°, 2.38 |
 | Wall treatment | average $y^+$ on the body between 30 and 300 (wall functions) | measured: 61.5 (min 12.8, max 142.6) at iteration 3000 |
 | Convergence | residuals of `p`, `U`, `k`, `omega` below 1e-5, or `Cd` constant within 1 % over the last 200 iterations (typically 1500-3000 iterations) | `residualControl` in `fvSolution`; **residual targets not reached** (the run used all 3000 iterations, `Uy`/`Uz` residuals stay near 1e-2); **Cd not constant within 1 %**: it oscillates with a period of about 40 iterations (5.6 % peak-to-peak over the last 200 iterations), but its mean is steady within 0.1 % |
@@ -104,8 +104,8 @@ over the last 200 iterations and the mean of the 200 before.
 |---|---|---|---|---|
 | `stl_slant_angle` | STL has the requested slant | 25.0° | $\pm$ 0.05° (STL written with 7 digits) | 25.00° |
 | `stl_watertight` | STL is a closed surface (each edge shared by two triangles with opposite orientation) | 0 open edges | exact | 0 open edges, 116 triangles |
-| `stl_outward_positive_volume` | normals point outward (positive volume) and the volume is that of the rounded, slanted box | 0.102 ... 0.1133 m$^3$ | upper bound: box minus slant wedge; lower: 10 % below | 0.11074 m$^3$ |
-| `Aref_equals_STL_frontal_area` | `Aref` in `forceCoeffs` is the projected frontal area of the STL | 0.112032 m$^2$ | 0.1 % (rounding) | 0.112032 m$^2$ |
+| `stl_outward_positive_volume` | normals point outward (positive volume) and the volume is that of the rounded, slanted box | 0.102 ... 0.1133 $\mathrm{m}^{3}$ | upper bound: box minus slant wedge; lower: 10 % below | 0.11074 $\mathrm{m}^{3}$ |
+| `Aref_equals_STL_frontal_area` | `Aref` in `forceCoeffs` is the projected frontal area of the STL | 0.112032 $\mathrm{m}^{2}$ | 0.1 % (rounding) | 0.112032 $\mathrm{m}^{2}$ |
 | `stl_nose_radius` | the four front edges have R = 100 mm | 0.100 m | $\pm$ 1 mm | 0.1000 m |
 | `lRef_equals_body_length` | `lRef` is the body length | 1.044 m | 0.1 % (rounding) | 1.0440 m |
 | `magUInf_equals_inlet_velocity` | coefficients use the real inlet speed | 40 m/s | exact | 40.000 m/s |
@@ -239,7 +239,7 @@ body data. Its value comes from:
 ### Flow Regime
 
 The test condition uses a freestream velocity of **$U_\infty$ = 40 m/s** in
-air ($\nu = 1.5 \times 10^{-5}$ m$^2$/s). Based on the body height $H = 0.288$ m:
+air ($\nu = 1.5 \times 10^{-5}$ $\mathrm{m}^{2}/\mathrm{s}$). Based on the body height $H = 0.288$ m:
 
 $$Re_H = U_\infty \cdot H / \nu = 40 \times 0.288 / (1.5 \times 10^{-5}) \approx 768{,}000$$
 
@@ -379,7 +379,7 @@ instead of a sphere octant; the deviation is below the mesh size. `verify.py`
 checks the STL: closed surface (every edge shared by two triangles with
 opposite orientation), positive volume (outward normals), a frontal area equal
 to `Aref`, and the 100 mm front inset. Measured: 116 triangles, volume
-0.110744 m$^3$, frontal area 0.112032 m$^2$.
+0.110744 $\mathrm{m}^{3}$, frontal area 0.112032 $\mathrm{m}^{2}$.
 
 The nose is at x = 0, the body is centred on y = 0 and its underside is at
 z = 0.05 m. The stilts are omitted. The committed
@@ -469,7 +469,7 @@ This gives a domain of:
 - y: -5.0 m to +5.0 m (10 m total)
 - z: 0.0 m to 5.0 m (5 m total)
 
-The blockage of the body ($0.112$ m$^2$ against $10 \times 5$ m$^2$) is 0.2 %.
+The blockage of the body ($0.112$ $\mathrm{m}^{2}$ against $10 \times 5$ $\mathrm{m}^{2}$) is 0.2 %.
 
 ```
  Side view (y = 0), not to scale
@@ -988,7 +988,7 @@ boundaryField
 
 $$\omega = k^{0.5} / (C_\mu^{0.25} \cdot l) = 0.24^{0.5} / (0.09^{0.25} \cdot 0.01) \approx 89.4 \text{ s}^{-1}$$
 
-Rounding to **90 s$^{-1}$** for the inlet value.
+Rounding to **90 $\mathrm{s}^{-1}$** for the inlet value.
 
 ```cpp
 dimensions      [0 0 -1 0 0 0 0];
@@ -1149,9 +1149,9 @@ l = 0.01 m (about 3.5 % of body height):
 
 | Quantity | Formula | Value |
 |---|---|---|
-| k | 1.5 $\times$ ($U_\infty$ $\times$ I)$^2$ | 0.24 m$^2$/s$^2$ |
-| $\omega$ | $k^{0.5}$ / ($C_\mu^{0.25}$ $\times$ l) | $\approx$ 90 s$^{-1}$ |
-| $\nu_t$ | k / $\omega$ | $\approx$ 2.7 $\times$ 10$^{-3}$ m$^2$/s |
+| k | 1.5 $\times$ ($U_\infty$ $\times$ I)$^2$ | 0.24 $\mathrm{m}^{2}/\mathrm{s}^{2}$ |
+| $\omega$ | $k^{0.5}$ / ($C_\mu^{0.25}$ $\times$ l) | $\approx$ 90 $\mathrm{s}^{-1}$ |
+| $\nu_t$ | k / $\omega$ | $\approx$ $2.7 \times 10^{-3}$ $\mathrm{m}^{2}/\mathrm{s}$ |
 | $\nu_t / \nu$ | — | $\approx$ 178 |
 
 I and l are assumed values, not measurements. They give a turbulent viscosity
@@ -1461,8 +1461,8 @@ forceCoeffs
 |---|---|---|
 | `libs` | `("libforces.so")` | OpenFOAM 6 needs the library file name; `(forces)` is rejected |
 | `patches` | `ahmed_body` | patch created by snappyHexMesh |
-| `rhoInf`, `magUInf` | 1.225 kg/m$^3$, 40 m/s | `p` is kinematic, so `rho rhoInf` converts to force; `magUInf` = inlet velocity |
-| `Aref` | 0.112032 m$^2$ | frontal area W $\times$ H = 0.389 $\times$ 0.288 |
+| `rhoInf`, `magUInf` | 1.225 $\mathrm{kg}/\mathrm{m}^{3}$, 40 m/s | `p` is kinematic, so `rho rhoInf` converts to force; `magUInf` = inlet velocity |
+| `Aref` | 0.112032 $\mathrm{m}^{2}$ | frontal area W $\times$ H = 0.389 $\times$ 0.288 |
 | `lRef` | 1.044 m | body length |
 | `CofR` | (0.522 0 0.194) | mid-length, y = 0, mid-height |
 
@@ -1735,7 +1735,7 @@ README were made with `pvbatch render_figures.py`.
 
    $$Cp = p / (0.5 \cdot 40 \cdot 40)$$
 
-   (Note: OpenFOAM pressure `p` is kinematic, p/$\rho$, in m$^2$/s$^2$.)
+   (Note: OpenFOAM pressure `p` is kinematic, p/$\rho$, in $\mathrm{m}^{2}/\mathrm{s}^{2}$.)
 
 3. Color the body surface by Cp.
 

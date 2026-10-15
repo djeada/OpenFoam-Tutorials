@@ -6,7 +6,7 @@
 | **Solver** | `icoFoam` (incompressible, laminar, transient) |
 | **Algorithm** | PISO |
 | **Mesh** | Fluent `.msh` file imported with `fluentMeshToFoam` (918 triangular cells, 2-D) |
-| **Fluid** | $\nu = 0.01$ m²/s |
+| **Fluid** | $\nu = 0.01$ $\mathrm{m}^{2}/\mathrm{s}$ |
 | **Simulated time** | 75 s, $\Delta t = 0.05$ s (1500 steps) |
 | **OpenFOAM version** | 6 |
 
@@ -70,8 +70,8 @@ reproducible values measured with OpenFOAM 6 (Docker image `cfdengine/openfoam`)
 | Maximum Courant number | below 1 | 0.526 |
 | Mass balance at t = 75 s | inflow = outflow | 30.0076 + 22.5057 = 52.5133 in; 52.5133 out |
 | Outlet pressure | 0 (fixed) | 0 |
-| Maximum $|\mathbf{U}|$ at t = 75 s | 4.07 m/s (regression value, tolerance ±0.05) | 4.067 m/s at (56.2, 11.6) |
-| Pressure range at t = 75 s | -6.2 to 1.2 m²/s² (regression value) | -6.17 to 1.24 m²/s² |
+| Maximum $|\mathbf{U}|$ at t = 75 s | 4.07 m/s (regression value, tolerance $\pm 0.05$) | 4.067 m/s at (56.2, 11.6) |
+| Pressure range at t = 75 s | -6.2 to 1.2 $\mathrm{m}^{2}/\mathrm{s}^{2}$ (regression value) | -6.17 to 1.24 $\mathrm{m}^{2}/\mathrm{s}^{2}$ |
 | Approach to steady state | maximum $|\mathbf{U}|$ changes by less than 0.01 m/s between t = 60 s and 75 s | 4.074 and 4.067 m/s |
 
 The velocity and pressure values are regression values for this mesh and these
@@ -112,12 +112,12 @@ physical reference data.
 | 9 | Max Courant number | Time step is stable | below 1 | usual PISO guideline | 0.526 |
 | 10 | Cumulative continuity error | Flux field is divergence-free | below 1e-5 | orders above measured; flags a broken solve | 2.2e-7 |
 | 11 | No NaN in `U`, `p` | Solution is finite | True | exact | True |
-| 12 | (outflow + inflows) / outflow, from `phi` | Mass is conserved | 0 | ±1e-4, two orders above the final `p` tolerance (1e-6) | 5.7e-7 |
-| 13 | Inflow of each inlet / (prescribed $U$ x patch area) | Boundary conditions applied, mesh areas consistent | 1 | ±1e-4, boundary flux of a `fixedValue` patch is exact up to round-off | 0.999999 and 1.000000 |
-| 14 | Max $|\mathbf{U}|$ at t = 75 s | Regression value | 4.067 m/s | ±0.05 (about 1 %): allows round-off and platform differences, detects a different scheme, step or mesh | 4.0671 |
-| 15 | Min `p` at t = 75 s | Regression value | -6.165 m²/s² | ±0.1 (about 1.5 %), same reason | -6.165 |
-| 16 | Max `p` at t = 75 s | Regression value | 1.236 m²/s² | ±0.1, same reason | 1.236 |
-| 17 | Change of peak $|\mathbf{U}|$ between t = 60 and 75 s | Flow has reached a plateau | 0 | ±0.01 m/s (0.25 % of the peak); this tests the peak speed only, not the full field | -0.0068 |
+| 12 | (outflow + inflows) / outflow, from `phi` | Mass is conserved | 0 | $\pm 1e-4$, two orders above the final `p` tolerance (1e-6) | 5.7e-7 |
+| 13 | Inflow of each inlet / (prescribed $U$ x patch area) | Boundary conditions applied, mesh areas consistent | 1 | $\pm 1e-4$, boundary flux of a `fixedValue` patch is exact up to round-off | 0.999999 and 1.000000 |
+| 14 | Max $|\mathbf{U}|$ at t = 75 s | Regression value | 4.067 m/s | $\pm 0.05$ (about 1 %): allows round-off and platform differences, detects a different scheme, step or mesh | 4.0671 |
+| 15 | Min `p` at t = 75 s | Regression value | -6.165 $\mathrm{m}^{2}/\mathrm{s}^{2}$ | $\pm 0.1$ (about 1.5 %), same reason | -6.165 |
+| 16 | Max `p` at t = 75 s | Regression value | 1.236 $\mathrm{m}^{2}/\mathrm{s}^{2}$ | $\pm 0.1$, same reason | 1.236 |
+| 17 | Change of peak $|\mathbf{U}|$ between t = 60 and 75 s | Flow has reached a plateau | 0 | $\pm 0.01$ m/s (0.25 % of the peak); this tests the peak speed only, not the full field | -0.0068 |
 | 18 | `fluentInterface/case.msh` and `case75.dat` exist | Fluent export worked | True | exact | True |
 
 Expected values for checks 14 to 16 are the values measured in this repository,
@@ -224,8 +224,8 @@ which OpenFOAM interprets as metres.
 - **frontAndBackPlanes** makes the simulation two-dimensional (single cell in z)
   by applying the `empty` condition.
 
-The fast side stream (3 m/s through a channel of width 4) carries 22.5 m³/s
-against 30.0 m³/s from the main inlet, and it enters at three times the speed.
+The fast side stream (3 m/s through a channel of width 4) carries 22.5 $\mathrm{m}^{3}/\mathrm{s}$
+against 30.0 $\mathrm{m}^{3}/\mathrm{s}$ from the main inlet, and it enters at three times the speed.
 Where the two streams meet, a shear layer forms and the fast stream stays
 attached to the outer wall. Momentum diffusion (controlled by the kinematic
 viscosity $\nu$) slowly smooths the velocity differences along the vertical leg.
@@ -259,7 +259,7 @@ $$\nabla \cdot \mathbf{U} = 0 \quad \text{(continuity)}$$
 $$\frac{\partial \mathbf{U}}{\partial t} + \nabla \cdot (\mathbf{U}\mathbf{U}) = -\nabla p + \nu \nabla^2 \mathbf{U} \quad \text{(momentum)}$$
 
 where $\mathbf{U}$ is the velocity vector, $p$ is the kinematic pressure
-(pressure divided by density, $p/\rho$, units m²/s²), and $\nu$ is the
+(pressure divided by density, $p/\rho$, units $\mathrm{m}^{2}/\mathrm{s}^{2}$), and $\nu$ is the
 kinematic viscosity. Because the fluid is incompressible and the viscosity is
 constant, no energy equation or equation of state is needed.
 
@@ -293,7 +293,7 @@ the velocity field; Exercise 6 adds a passive scalar to make it visible.
 
 ### Reynolds Number Estimate
 
-With $\nu = 0.01$ m²/s, based on channel width and the speed at each opening:
+With $\nu = 0.01$ $\mathrm{m}^{2}/\mathrm{s}$, based on channel width and the speed at each opening:
 
 | Location | Speed | Width | $Re = UL/\nu$ |
 |---|---|---|---|
@@ -514,10 +514,10 @@ nu    [0 2 -1 0 0 0 0]    0.01;
 
 | Property            | Symbol | Value   | Dimensions | Dimensional formula        |
 |---------------------|--------|---------|------------|----------------------------|
-| Kinematic viscosity | $\nu$  | 0.01    | m²/s       | [0 2 -1 0 0 0 0]           |
+| Kinematic viscosity | $\nu$  | 0.01    | $\mathrm{m}^{2}/\mathrm{s}$       | [0 2 -1 0 0 0 0]           |
 
 This is a relatively high viscosity (for context, water at 20 °C has
-$\nu \approx 1 \times 10^{-6}$ m²/s). The large value keeps the Reynolds
+$\nu \approx 1 \times 10^{-6}$ $\mathrm{m}^{2}/\mathrm{s}$). The large value keeps the Reynolds
 number low (160 to about 2800, see above), so the flow can be solved as laminar
 without a turbulence model.
 
@@ -860,17 +860,17 @@ as a front. Measured maximum velocity magnitudes:
 | Slow region              | Inner (left) wall of the vertical leg, below about 1 m/s; the outlet profile is skewed toward wall-8 (about 0.9 m/s at x = 48.7, 2.6 m/s at x = 61.5) |
 | Low-speed layer          | Along the outer wall of the bend, upstream of the junction |
 | Weak reverse flow        | One or two cells at the upstream corner of the junction near (52, 8), $U_y = -0.26$ m/s; there is no large recirculation zone |
-| Pressure minimum         | Junction corner, (56.6, 11.9): -6.17 m²/s² |
-| Pressure maximum         | Bottom of the side channel (inlet 6): 1.24 m²/s² |
-| Pressure at the inlets   | Area averages 0.53 (inlet 5) and 1.19 m²/s² (inlet 6), relative to the outlet |
+| Pressure minimum         | Junction corner, (56.6, 11.9): -6.17 $\mathrm{m}^{2}/\mathrm{s}^{2}$ |
+| Pressure maximum         | Bottom of the side channel (inlet 6): 1.24 $\mathrm{m}^{2}/\mathrm{s}^{2}$ |
+| Pressure at the inlets   | Area averages 0.53 (inlet 5) and 1.19 $\mathrm{m}^{2}/\mathrm{s}^{2}$ (inlet 6), relative to the outlet |
 
 ### Quantitative Checks
 
 - **Maximum velocity** is about 4.07 m/s, a little above the fastest inlet
   speed (3 m/s), at the junction.
 - **Outlet pressure** is 0 (fixed reference).
-- **Mass conservation:** the outflow of 52.51 m³/s equals the sum of the inflows
-  (30.01 + 22.51 m³/s). Verify with
+- **Mass conservation:** the outflow of 52.51 $\mathrm{m}^{3}/\mathrm{s}$ equals the sum of the inflows
+  (30.01 + 22.51 $\mathrm{m}^{3}/\mathrm{s}$). Verify with
   `postProcess -func "flowRatePatch(name=velocity-inlet-5)" -latestTime` (and the
   other two patches; the function name in OpenFOAM 6 is `flowRatePatch`), or
   run `python3 verify.py`. See [Verification Method](#verification-method).

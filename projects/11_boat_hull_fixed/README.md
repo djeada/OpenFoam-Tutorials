@@ -52,16 +52,16 @@ values come from a real, complete run to `endTime = 3 s` with OpenFOAM 6
 
 | Target | Value | Tolerance | Source of the value |
 |--------|-------|-----------|---------------------|
-| Background mesh | 14,400 cells | exact | 60 × 20 × 12 in `blockMeshDict` |
-| Final mesh | 75,515 cells, `checkMesh` "Mesh OK" | ±10 % cells | measured, OpenFOAM 6 |
+| Background mesh | 14,400 cells | exact | $60 \times 20 \times 12$ in `blockMeshDict` |
+| Final mesh | 75,515 cells, `checkMesh` "Mesh OK" | $\pm 10$ % cells | measured, OpenFOAM 6 |
 | Mesh quality | max non-orthogonality 48.6°, max skewness 3.0 | below 65° and 4 | `meshQualityControls` limits |
-| Initial water fraction | 0.4997 | ±0.002 around 0.4998 | half of the domain minus the submerged hull volume |
+| Initial water fraction | 0.4997 | $\pm 0.002$ around 0.4998 | half of the domain minus the submerged hull volume |
 | Courant numbers | max Co 0.56, max interface Co 0.47 (one step of 4,933; 99th percentile 0.30) | Co below 1.5 × `maxCo` (0.5); interface Co 99th percentile below 1.1 × `maxAlphaCo` (0.3) and maximum below 1 | `controlDict`; the step follows the previous step's Co |
 | `alpha.water` | stays in [0, 1] up to MULES undershoots (about -6·10⁻⁴) | ±0.01 | `fvSolution` MULES settings |
 | Hull vertical force at start-up | 1.86 N (Archimedes for the STL below z = 0: 2.065 N, minus the suction of the initial potential flow) | 1.48 … 2.17 N | `rho·g·V_submerged` from `boat_hull.stl`, minus at most ½ρU²·A_proj (0.59 N) |
 | Hull force direction | mean drag force along +x (flow direction) | sign only | flow is +x |
 | Final state | `endTime = 3 s` reached, no `FOAM FATAL ERROR` | — | `controlDict` |
-| Drag settled at `endTime` | time-averaged drag over the last two windows of one seiche period T = 0.824 s agrees within 10 % | ±10 % | **met**: 0.0578 N vs 0.0567 N (1.9 % change) |
+| Drag settled at `endTime` | time-averaged drag over the last two windows of one seiche period T = 0.824 s agrees within 10 % | $\pm 10$ % | **met**: 0.0578 N vs 0.0567 N (1.9 % change) |
 
 The drag does not tend to a constant: after the start the hull force
 oscillates around a mean of about 0.055 N with the period of the transverse
@@ -100,30 +100,30 @@ stopped earlier, and the summary says so. On the complete run described here
 |-------|----------------|----------|-------------------|----------|
 | `blockMesh cells` | background mesh as in `blockMeshDict` | 14,400 | exact | 14,400 |
 | `snappyHexMesh finished` | meshing ended without errors | "Finished meshing without any errors" | — | finished |
-| `final cell count` | meshing settings give the same mesh | 75,515 | ±10 %: deterministic per version, differs slightly between OpenFOAM versions | 75,515 |
+| `final cell count` | meshing settings give the same mesh | 75,515 | $\pm 10$ %: deterministic per version, differs slightly between OpenFOAM versions | 75,515 |
 | `checkMesh Mesh OK` | no failed mesh checks | "Mesh OK." | — | Mesh OK |
-| `max non-orthogonality [deg]` | within `meshQualityControls` | ≤ 65 | `maxNonOrtho` of `snappyHexMeshDict` | 48.6 |
-| `max skewness` | within `meshQualityControls` | ≤ 4 | `maxInternalSkewness` | 2.99 |
-| `domain bounding box error [m]` | snapped mesh keeps the domain | ≤ 1e-6 | print precision of `checkMesh` | 0 |
-| `hull patch faces` | `boat` patch exists and is not empty | ≥ 1 | — | 3712 |
-| `initial water fraction` | `setFields` filled z < 0 only | 0.4998 | ±0.002 (0.4 %): snapping of the hull | 0.4997 |
+| `max non-orthogonality [deg]` | within `meshQualityControls` | $\leq 65$ | `maxNonOrtho` of `snappyHexMeshDict` | 48.6 |
+| `max skewness` | within `meshQualityControls` | $\leq 4$ | `maxInternalSkewness` | 2.99 |
+| `domain bounding box error [m]` | snapped mesh keeps the domain | $\leq 1e-6$ | print precision of `checkMesh` | 0 |
+| `hull patch faces` | `boat` patch exists and is not empty | $\geq 1$ | — | 3712 |
+| `initial water fraction` | `setFields` filled z < 0 only | 0.4998 | $\pm 0.002$ (0.4 %): snapping of the hull | 0.4997 |
 | `no FOAM FATAL ERROR` | solver did not abort | none | — | none |
-| `max Courant number` | time step control works | ≤ 0.75 | 1.5 × `maxCo`: the step is chosen from the previous step's Co, so single steps overshoot (a first guess of 1.1× was too tight for the interface Co) | 0.56 |
-| `interface Courant, 99th percentile` | the time step control keeps the interface Co at its target | ≤ 0.33 | 1.1 × `maxAlphaCo`: 99 % of the steps sit at the target; the controller is slow to react when the flow changes | 0.300 |
-| `max interface Courant number` | interface transport is resolved | ≤ 1 | stability limit of the explicit MULES predictor; single steps overshoot `maxAlphaCo` (an earlier 1.5 × `maxAlphaCo` bound = 0.45 was exceeded by one step, 0.467, in this run) | 0.47 |
+| `max Courant number` | time step control works | $\leq 0.75$ | 1.5 × `maxCo`: the step is chosen from the previous step's Co, so single steps overshoot (a first guess of 1.1× was too tight for the interface Co) | 0.56 |
+| `interface Courant, 99th percentile` | the time step control keeps the interface Co at its target | $\leq 0.33$ | 1.1 × `maxAlphaCo`: 99 % of the steps sit at the target; the controller is slow to react when the flow changes | 0.300 |
+| `max interface Courant number` | interface transport is resolved | $\leq 1$ | stability limit of the explicit MULES predictor; single steps overshoot `maxAlphaCo` (an earlier 1.5 × `maxAlphaCo` bound = 0.45 was exceeded by one step, 0.467, in this run) | 0.47 |
 | `min deltaT [s]` | time step did not collapse | ≥ 1e-5 | divergence drives deltaT to zero; 1e-5 is 10× below the smallest step seen | 1.2e-4 |
 | `min alpha.water (log)`, `(field)` | phase fraction bounded below | ≥ -0.01 | 1 % of the unit range; MULES undershoot seen: 6e-4 | -6.0e-4 (log), -2.4e-5 (field at 3 s) |
-| `max alpha.water (log)`, `(field)` | phase fraction bounded above | ≤ 1.01 | 1 % of the unit range | 1.00008 (log), 1.0 (field) |
-| `water gain <= inlet flux` | water enters only below z = 0 | ≤ 1.05 · U·W·depth·t / V | water cannot arrive faster than the lower inlet half supplies it; the old inlet (alpha = 1 on the whole face) gained twice as fast | -0.0007 at 3 s (bound 0.30): inlet and outlet fluxes balance, no surge |
+| `max alpha.water (log)`, `(field)` | phase fraction bounded above | $\leq 1.01$ | 1 % of the unit range | 1.00008 (log), 1.0 (field) |
+| `water gain <= inlet flux` | water enters only below z = 0 | $\leq 1.05$ · U·W·depth·t / V | water cannot arrive faster than the lower inlet half supplies it; the old inlet (alpha = 1 on the whole face) gained twice as fast | -0.0007 at 3 s (bound 0.30): inlet and outlet fluxes balance, no surge |
 | `water gain >= 0` | no unphysical water loss | ≥ -0.002 | — | -0.0007 |
-| `|cumulative continuity err|` | incompressible solve is consistent | ≤ 1e-5 | typical `interFoam` values are below 1e-6 | 1.8e-8 |
+| `|cumulative continuity err|` | incompressible solve is consistent | $\leq 1e-5$ | typical `interFoam` values are below 1e-6 | 1.8e-8 |
 | `latest time has U,p_rgh,alpha.water` | results were written | all present | — | present (t = 3) |
 | `forces finite` | no NaN in the force file | all finite | — | 493 rows, finite |
-| `buoyancy Fz [N] (start-up)` | hydrostatic pressure and hull patch are right | 2.065 N (Archimedes) | window 1.48 … 2.17 N: lower bound = Archimedes − ½ρU²·A_proj (45 Pa times the 0.0131 m² wetted projection from the STL; the water already moves at U, so the flow is accelerated under the hull and the pressure there is below hydrostatic); upper bound +5 % for the snapped geometry; mean of rows with t ≤ 0.02 s | 1.86 |
+| `buoyancy Fz [N] (start-up)` | hydrostatic pressure and hull patch are right | 2.065 N (Archimedes) | window 1.48 … 2.17 N: lower bound = Archimedes − ½ρU²·A_proj (45 Pa times the 0.0131 m² wetted projection from the STL; the water already moves at U, so the flow is accelerated under the hull and the pressure there is below hydrostatic); upper bound +5 % for the snapped geometry; mean of rows with t $\leq 0.02$ s | 1.86 |
 | `drag Fx > 0 [N]` | force on the hull points downstream | > 0 | sign only | 0.056 N (mean of the last 20 % of rows) |
-| `Cd consistent with Fx` | `magUInf`, `Aref`, `rhoInf` in `forceCoeffs` agree with `forces` | Fx | ±1 % (output precision) | consistent |
-| `drag change, last 2 periods` | drag has settled (full run only) | time-averaged drag of the last two windows of one period T = 2W/√(g·d) = 0.824 s equal | ±10 %; window length = period of the transverse free-surface mode of the domain (W = 0.5 m, d = 0.15 m), so the oscillation averages out | 0.0578 N vs 0.0567 N (1.9 %) |
-| `solver reached endTime` | complete run (full run only) | t ≥ 3 s | — | t = 3 s |
+| `Cd consistent with Fx` | `magUInf`, `Aref`, `rhoInf` in `forceCoeffs` agree with `forces` | Fx | $\pm 1$ % (output precision) | consistent |
+| `drag change, last 2 periods` | drag has settled (full run only) | time-averaged drag of the last two windows of one period T = 2W/√(g·d) = 0.824 s equal | $\pm 10$ %; window length = period of the transverse free-surface mode of the domain (W = 0.5 m, d = 0.15 m), so the oscillation averages out | 0.0578 N vs 0.0567 N (1.9 %) |
+| `solver reached endTime` | complete run (full run only) | t $\geq 3$ s | — | t = 3 s |
 
 How the drag criterion was chosen, for transparency: the first criterion
 (mean of the last two 10 % blocks of the force rows, 0.3 s each) was fixed
@@ -210,7 +210,7 @@ from the case files:
 | Solver | `interFoam` | `interDyMFoam` + `sixDoFRigidBodyMotion` |
 | Hull | fixed, `noSlip` wall | moves (`movingWallVelocity`; 6-DoF solver with constraints) |
 | Inlet velocity | 0.3 m/s | 0 (no imposed flow) |
-| Domain z | -0.15 … 0.15 m (14,400 background cells: 60 × 20 × 12) | -0.20 … 0.15 m (60 × 20 × 14) |
+| Domain z | -0.15 … 0.15 m (14,400 background cells: $60 \times 20 \times 12$) | -0.20 … 0.15 m ($60 \times 20 \times 14$) |
 | Lateral boundaries | `port`/`starboard` symmetry planes | one `sides` patch (slip) |
 | End time | 3 s | 3 s |
 | Force output | `forces` + `forceCoeffs` | `forces` + `sixDoFRigidBodyState` |
@@ -220,7 +220,7 @@ from the case files:
 | Parameter            | Value                                |
 |----------------------|--------------------------------------|
 | Solver               | `interFoam` (VOF two-phase)          |
-| Phases               | Water ($\rho$=998.2 kg/m$^3$) + Air ($\rho$=1.225 kg/m$^3$) |
+| Phases               | Water ($\rho$=998.2 $\mathrm{kg}/\mathrm{m}^{3}$) + Air ($\rho$=1.225 $\mathrm{kg}/\mathrm{m}^{3}$) |
 | Flow speed           | 0.3 m/s (towing speed)               |
 | Boat length          | 0.155 m (~6 inches)                  |
 | Reynolds number      | Re $\approx$ 46,500 (based on boat length)   |
@@ -230,8 +230,8 @@ from the case files:
 | Gravity              | g = -9.81 m/s$^2$ (z-direction)         |
 | End time             | 3 s (60 write times, every 0.05 s)   |
 
-Re = U L / ν = 0.3 · 0.155 / 10⁻⁶ = 46,500.
-The **Froude number** Fr = U / $\sqrt{gL}$ $\approx$ 0.3 / $\sqrt{9.81 × 0.155}$ $\approx$ 0.243,
+$Re = U L / \nu = 0.3 \cdot 0.155 / 10^{-6} = 46{,}500$.
+The **Froude number** Fr = U / $\sqrt{gL}$ $\approx$ 0.3 / $\sqrt{$9.81 \times 0.155$}$ $\approx$ 0.243,
 which is in the wave-making regime — surface waves are generated.
 
 ---
@@ -341,7 +341,7 @@ The STL is centered at the origin with:
 The hull is **symmetric about the XZ-plane** (Y = 0). Its bounding box is
 centred on z = 0, so the waterline at z = 0 cuts the box in half; because the
 hull narrows towards the deck, about **71 %** of the hull volume lies below
-z = 0 (0.000211 m³ of 0.000297 m³, computed from the STL).
+z = 0 (0.000211 $\mathrm{m}^{3}$ of 0.000297 $\mathrm{m}^{3}$, computed from the STL).
 
 The end of the hull at **x = -0.0775 m is wide and blunt** (half-width about
 35 mm) while the end at **x = +0.0775 m is narrow** (about 5 mm). The inlet is
@@ -363,11 +363,11 @@ Rule of thumb for external flow around a body of length L = 0.155 m:
 
 | Direction    | Distance                       | Value            | Reason                     |
 |-------------|--------------------------------|------------------|----------------------------|
-| Upstream    | 0.42 m from the hull (≈ 2.7 L)  | inlet at x = -0.5 m | Undisturbed inflow         |
-| Downstream  | 0.92 m from the hull (≈ 5.9 L)  | outlet at x = 1.0 m | Wake/wave development      |
-| Lateral     | 0.25 m from the centre line (≈ 3 W) | $\pm$0.25 m     | No wall interference       |
-| Below       | 0.15 m below the waterline (≈ 3 H) | bottom at z = -0.15 m | No bottom effects          |
-| Above       | 0.15 m above the waterline (≈ 3 H) | top at z = +0.15 m | Air space for waves        |
+| Upstream    | 0.42 m from the hull ($\approx 2.7$ L)  | inlet at x = -0.5 m | Undisturbed inflow         |
+| Downstream  | 0.92 m from the hull ($\approx 5.9$ L)  | outlet at x = 1.0 m | Wake/wave development      |
+| Lateral     | 0.25 m from the centre line ($\approx 3$ W) | $\pm$0.25 m     | No wall interference       |
+| Below       | 0.15 m below the waterline ($\approx 3$ H) | bottom at z = -0.15 m | No bottom effects          |
+| Above       | 0.15 m above the waterline ($\approx 3$ H) | top at z = +0.15 m | Air space for waves        |
 
 (W = 0.082 m hull width, H = 0.054 m hull height.)
 
@@ -545,7 +545,7 @@ Creates the base hexahedral mesh that `snappyHexMesh` will refine.
 The `forces` and `forceCoeffs` function objects compute forces and
 coefficients on the hull patch every 10th time step.
 `forceCoeffs` uses `magUInf = 0.3`, `lRef = 0.155` and `Aref = 0.00443 m²`
-(hull width × full hull height, 0.0817 × 0.0545 m, not the submerged frontal
+(hull width $\times$ full hull height, $0.0817 \times 0.0545$ m, not the submerged frontal
 area), with `liftDir = (0 0 1)` and `dragDir = (1 0 0)`. Cd and Cl scale with
 this `Aref`; the force values in `forces.dat` do not.
 
@@ -596,7 +596,7 @@ Three-stage mesh generation:
 1. **Castellated mesh**: Refines cells near the hull surface
    - Surface refinement: levels 2-3 (cells 4-8$\times$ smaller than background)
    - Region refinement: level 2 in a box around the waterline
-     (x -0.15…0.40, y ±0.10, z ±0.05 m)
+     (x -0.15…0.40, y $\pm 0.10$, z $\pm 0.05$ m)
 2. **Snap**: Moves cell vertices onto the STL surface
 3. **Add layers**: Disabled (`addLayers false`); the layer settings in the file
    are present but unused
@@ -742,8 +742,8 @@ max non-orthogonality 48.6°, max skewness 2.99, max aspect ratio 4.3,
 
 - **fixedFluxPressure**: Adjusts the pressure gradient at the boundary to
   be consistent with the velocity BC. Essential for gravity-driven flows.
-- **totalPressure**: Sets p$_0$ = 0 at the outlet/atmosphere: the pressure
-  equals p$_0$ for outflow and p$_0$ - ½ρ|U|² for inflow (Bernoulli-like
+- **totalPressure**: Sets $p_0$ = 0 at the outlet/atmosphere: the pressure
+  equals $p_0$ for outflow and $p_0$ - ½$\rho$|U|² for inflow (Bernoulli-like
   condition).
 - **pressureInletOutletVelocity**: Zero-gradient for outflow; for inflow the
   velocity is taken normal to the patch from the flux, with zero tangential
@@ -819,7 +819,7 @@ OpenFOAM uses the **Multidimensional Universal Limiter with Explicit
 Solution (MULES)** algorithm to solve the $\alpha$ equation. MULES ensures:
 
 1. **Boundedness**: $\alpha$ stays between 0 and 1 (no unphysical overshoot);
-   small undershoots of the order 10⁻⁴ remain in practice (-5.7·10⁻⁴ in this run)
+   small undershoots of the order $10^{-4}$ remain in practice ($-5.7 \times 10^{-4}$ in this run)
 2. **Sharpness**: The interface remains thin (a few cells wide)
 3. **Conservation**: Total water volume is conserved
 
@@ -1096,7 +1096,7 @@ pvbatch paraview_screenshots.py            # writes images/*.png
 2. Add a **Clip** filter:
    - Scalars: `alpha.water`
    - Value: `0.5`
-   - **Invert**: unchecked (keeps `alpha.water` ≥ 0.5)
+   - **Invert**: unchecked (keeps `alpha.water` $\geq 0.5$)
 3. This clips away the air, showing only the water volume
 4. Color by `p_rgh` to see pressure distribution on the water surface
 
@@ -1168,7 +1168,7 @@ under [Running time](#running-time). They are not reference values.
 > force does not become constant, though. The hull waves are reflected between
 > the two symmetry planes 0.5 m apart, and the channel rings with the
 > transverse free-surface mode, whose period 2W/√(g·d) = 0.824 s matches the
-> oscillation seen in the drag (minima at t ≈ 0.58, 1.38, 2.14, 2.87 s,
+> oscillation seen in the drag (minima at t $\approx 0.58$, 1.38, 2.14, 2.87 s,
 > maxima at 1.0, 1.8, 2.5 s). Numerical damping does not remove it within
 > 3 s. The drag is therefore reported as an average over whole periods:
 > 0.0578 N over 2.18 … 3.0 s and 0.0567 N over 1.35 … 2.18 s (1.9 % change,
@@ -1207,7 +1207,7 @@ of this STL is the downstream end, see [Orientation](#orientation).)
 3. **Depression behind the hull** (expected in steady state): water level
    drops downstream of the hull
 4. **Boundary layer**: laminar boundary-layer thickness at this Re is about
-   5 L/√Re ≈ 3.6 mm, about one cell of the 3.1 mm surface layer; without
+   5 L/√Re $\approx 3.6$ mm, about one cell of the 3.1 mm surface layer; without
    prism layers it is not resolved
 
 What the 3 s run actually shows (Figure 4): the free surface stays within
@@ -1285,7 +1285,7 @@ drag.
 | Hull force Fx (pressure + viscous) | −0.023 … 0.49 N over the run; time-averaged window means 0.29 N (t < 0.05 s), 0.16 N (0.05–0.5 s), 0.035 N (0.5–1 s), 0.052 N (1–1.5 s), 0.077 N (1.5–2 s), 0.054 N (2–2.5 s), 0.052 N (2.5–3 s); mean over 0.5–3 s 0.054 N |
 | Drag over the last two periods (0.824 s each) | 0.0567 N (1.35–2.18 s), 0.0578 N (2.18–3.0 s), change 1.9 % |
 | Cd (with `Aref` = 0.00443 m²) | −0.12 … 2.44; 0.166 at 3 s (oscillates; not a resistance value) |
-| Hull force Fz (buoyancy) | 1.86 N at start (mean of t ≤ 0.02 s) (STL: 2.065 N), 1.46 … 1.95 N over the run; mean over 0.5–3 s 1.83 N |
+| Hull force Fz (buoyancy) | 1.86 N at start (mean of t $\leq 0.02$ s) (STL: 2.065 N), 1.46 … 1.95 N over the run; mean over 0.5–3 s 1.83 N |
 | Max Courant number | 0.56 (limit 0.5) |
 | Max interface Courant number | 0.47 (limit 0.3), one step; 99th percentile 0.30 |
 | Time step | 1.2·10⁻⁴ s at the start, median 5.7·10⁻⁴ s, at most 1.04·10⁻³ s |
@@ -1314,7 +1314,7 @@ the 0.5 m wide channel. No wave-height reference is available.
   at −x, so the flow meets the blunt end first. Rotating the STL by 180° about
   z (`surfaceTransformPoints -rotate-z 180`) would put the pointed end
   upstream; Project 12 uses the same orientation.
-- **Reference area.** `Aref = 0.00443 m²` is width × full height of the
+- **Reference area.** `Aref = 0.00443 m²` is width $\times$ full height of the
   hull, not the wetted frontal area, so Cd is not a conventional resistance
   coefficient.
 - **Mass in Project 12.** With the waterline at z = 0 the hull displaces
