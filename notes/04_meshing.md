@@ -671,8 +671,8 @@ Typical output sections:
 | Non-orthogonality   | < 40°       | < 70°         | > 80°         | Angle between face normal and d-vector |
 | Max skewness        | < 2         | < 4           | > 6           | Face centre offset from d intersection |
 | Max aspect ratio    | < 10        | < 100         | > 1000        | Longest-to-shortest cell dimension     |
-| Min volume          | > 0         | > 0           | ≤ 0           | Negative volume = inverted cell        |
-| Min determinant     | > 0.1       | > 0.001       | ≤ 0           | Cell shape regularity measure          |
+| Min volume          | > 0         | > 0           | $\le 0$           | Negative volume = inverted cell        |
+| Min determinant     | > 0.1       | > 0.001       | $\le 0$           | Cell shape regularity measure          |
 
 ### Visualising Non-Orthogonality
 

@@ -24,7 +24,7 @@
 Every CFD simulation ultimately boils down to solving enormous systems of linear equations.
 The Navier-Stokes equations are **nonlinear partial differential equations**, but after
 discretization (finite volume method) and linearization, each time step or outer iteration
-requires solving one or more **linear systems** of the form **Ax = b**.
+requires solving one or more **linear systems** of the form $\mathbf{Ax}=\mathbf b$.
 
 The linear solver is often the **single most expensive** part of a CFD simulation. Choosing
 the wrong solver can mean the difference between a simulation that converges in minutes
@@ -89,7 +89,7 @@ The properties of matrix **A** determine which solvers we can use:
 | **Positive-definite** | All eigenvalues > 0 | Pressure (with proper BCs) |
 | **Sparse** | Mostly zeros | ALL CFD matrices (only neighbors are non-zero) |
 | **Banded** | Non-zeros near diagonal | Structured meshes |
-| **Diagonally dominant** | |aᵢᵢ| ≥ Σⱼ≠ᵢ |aᵢⱼ| | Well-posed CFD problems |
+| **Diagonally dominant** | $\lvert a_{ii}\rvert\ge\sum_{j\ne i}\lvert a_{ij}\rvert$ | Well-posed CFD problems |
 
 ### Why Not Direct Solvers?
 
@@ -421,7 +421,7 @@ p
 ### What Preconditioners Do
 
 Preconditioning transforms the linear system into one that is easier to solve. Instead of
-solving **Ax = b** directly, we solve **M⁻¹Ax = M⁻¹b** where **M** approximates **A**.
+solving $\mathbf{Ax}=\mathbf b$ directly, we solve $M^{-1}Ax=M^{-1}b$ where **M** approximates **A**.
 
 ```
   Without preconditioning:         With preconditioning:
@@ -897,7 +897,7 @@ can overshoot and cause divergence. Under-relaxation **dampens** the update:
 | **p** (pressure) | 0.3 | Most sensitive — always low |
 | **U** (velocity) | 0.7 | Standard starting point |
 | **k** (turb. KE) | 0.7 | Match velocity |
-| **ε** (turb. dissipation) | 0.7 | Match velocity |
+| $\varepsilon$ (turb. dissipation) | 0.7 | Match velocity |
 | **ω** (specific dissipation) | 0.7 | Match velocity |
 | **nuTilda** (SA model) | 0.7 | Match velocity |
 | **T** (temperature) | 0.7–1.0 | Often less sensitive |

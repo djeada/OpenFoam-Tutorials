@@ -331,8 +331,7 @@ $$Ri = Gr / Re^2 = (g \times \beta \times \Delta T \times D_h^3) / (\nu^2 \times
 - If Ri $\approx$ 1: mixed convection
 
 With $\beta = 1/T_{film}$ ($T_{film} \approx 325$ K), $\Delta T = 50$ K, $D_h = 0.2$ m
-and $\nu$ at the film temperature, $Gr \approx 4 \times 10^7$ and $Re^2 \approx 4 \times
-10^7$, so $Ri \approx 1$: the case is **mixed convection**, not purely forced
+and $\nu$ at the film temperature, $Gr\approx4\times10^7$ and $Re^2\approx4\times10^7$, so $Ri \approx 1$: the case is **mixed convection**, not purely forced
 convection. Buoyancy is weak in the heat transfer result, but it is visible in the
 solution as a small vertical velocity (up to about 0.07 m/s near the outlet) and a
 slight top/bottom temperature asymmetry (Section 8.2).
@@ -792,9 +791,7 @@ The energy balance gives the outlet bulk temperature:
 $$T_{out,bulk} = T_{in} + Q_{wall} / (\dot{m} \times C_p)$$
 
 For the slab of depth 0.01 m, the `wallHeatFlux` integrals are 4.38 W (top wall) and
-4.36 W (bottom wall); $\dot m = 1.174 \times 0.5 \times 0.1 \times 0.01 = 5.87 \times
-10^{-4}$ kg/s, so $\Delta T_{bulk} = 8.73 / (5.87 \times 10^{-4} \times 1005) \approx
-14.8$ K. `verify.py` compares this with the outlet bulk temperature computed from the
+4.36 W (bottom wall); $\dot m=1.174\times0.5\times0.1\times0.01=5.87\times10^{-4}$ kg/s, so $\Delta T_{bulk}=8.73/(5.87\times10^{-4}\times1005)\approx14.8$ K. `verify.py` compares this with the outlet bulk temperature computed from the
 face values of `T` and `phi`.
 
 **Wall heat flux:**
