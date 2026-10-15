@@ -52,7 +52,7 @@ functions
         type            forceCoeffs;
         libs            ("libforces.so");
         writeControl    timeStep;
-        writeInterval   20;
+        writeInterval   1;
         patches         (airfoil);
         p               p;
         U               U;

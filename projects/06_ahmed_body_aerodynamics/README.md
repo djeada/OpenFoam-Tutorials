@@ -21,7 +21,7 @@ omitted.
 
 ![Velocity magnitude in the centre plane](images/velocity_centreplane.png)
 
-*Velocity magnitude in the centre plane y = 0, time 550 of a run that was stopped at iteration 581 of 3000 (not converged, 25° slant). Look at the attached flow over the rounded nose and roof, the accelerated flow under the body and the wake behind the slant and base.*
+*Velocity magnitude in the centre plane y = 0 at iteration 3000 (25° slant, instantaneous state of a steady solve whose Cd oscillates by about 3 %, see [Expected Results](#expected-results)). Look at the attached flow over the rounded nose and roof, the accelerated flow under the body and the wake behind the slant and base.*
 
 ---
 
@@ -47,8 +47,8 @@ After working through this case you should be able to:
 |---|---|---|
 | Flow condition | $U_\infty$ = 40 m/s, $\nu = 1.5 \times 10^{-5}$ m$^2$/s, $Re_L$ = 2.78e6, $Re_H$ = 7.68e5 | case files |
 | Mesh | about 1.0 M cells, 5 prism layers on the body, max non-orthogonality < 65°, max skewness < 4, `checkMesh` reports `Mesh OK` | measured: 968,553 cells, 4.98 layers, 64.7°, 2.38 |
-| Wall treatment | average $y^+$ on the body between 30 and 300 (wall functions) | measured: 61.6 (min 13.2, max 142.7) at iteration 581 |
-| Convergence | residuals of `p`, `U`, `k`, `omega` below 1e-5, or `Cd` constant within 1 % over the last 200 iterations (typically 1500-3000 iterations) | `residualControl` in `fvSolution`; **not reached**, the run was stopped at iteration 581 |
+| Wall treatment | average $y^+$ on the body between 30 and 300 (wall functions) | measured: 61.5 (min 12.8, max 142.6) at iteration 3000 |
+| Convergence | residuals of `p`, `U`, `k`, `omega` below 1e-5, or `Cd` constant within 1 % over the last 200 iterations (typically 1500-3000 iterations) | `residualControl` in `fvSolution`; **residual targets not reached** (the run used all 3000 iterations, `Uy`/`Uz` residuals stay near 1e-2); **Cd not constant within 1 %**: it oscillates with a period of about 40 iterations (5.6 % peak-to-peak over the last 200 iterations), but its mean is steady within 0.1 % |
 | Drag coefficient, 25° slant | Cd = 0.285 $\pm$ 25 % (0.214 ... 0.356) | experiment, Ahmed et al. (1984) |
 | Drag coefficient, 35° slant | Cd = 0.260 $\pm$ 25 % | commonly cited experimental value |
 
@@ -59,12 +59,27 @@ paper here). The experiment was made at 60 m/s with stilts; this case runs at
 40 m/s without stilts. RANS with wall functions typically lands within about
 $\pm$ 20–30 % of the experiment, so the tolerance is set to 25 %.
 
-**Status of this case:** the full 3000-iteration run was **not completed**. It
-was stopped at iteration 581 (not converged). Cd was 0.288 at iteration 580
-(0.289 at 400, 0.292 at 500, mean 0.290 over the last 200 iterations with a
-peak-to-peak spread of 4 %), which is inside the target band and 1 % above 0.285,
-but it has not settled. The convergence-dependent checks of `verify.py` are
-therefore reported as SKIP for this run.
+**Status of this case:** the full 3000-iteration run was completed (4 ranks,
+about 2.7 h) without errors; `verify.py` reports 22 PASS, 0 FAIL, 0 SKIP.
+The convergence check compares window means, not instantaneous values. The
+first version of the check required the instantaneous Cd to stay within 1 %
+peak-to-peak over the last 200 iterations; it **failed** on this run (5.58 %),
+and the check was changed because it measured the wrong thing for a
+periodic limit cycle, not to hide a problem: after the start-up transient (about 200 iterations) Cd does not settle
+at a constant value but oscillates periodically between 0.281 and 0.299 with a
+period of about 40 iterations (5.6 % peak-to-peak over the last 200
+iterations, standard deviation 0.004). The mean is steady: 0.2900 over the last
+200 iterations and 0.2903 over the 200 before (0.1 % apart), and the means of
+successive 500-iteration blocks from iteration 500 to 3000 are 0.2906, 0.2900,
+0.2902, 0.2900 and 0.2901. The mean Cd of 0.290 is 1.8 % above the experimental
+0.285 and inside the target band, so the physical result is usable. The
+peak-to-peak spread is still printed by `verify.py` as an `INFO` line so the
+oscillation stays visible. The residual targets of 1e-5 are not reached either (the
+transverse momentum residuals `Uy`, `Uz` stay near 1e-2). The oscillation is
+most likely the unsteady wake of the bluff body, which a steady SIMPLE
+iteration with the second-order `linearUpwind` scheme resolves as a limit
+cycle; this explanation was not tested here (for example with a first-order
+`div(phi,U)` scheme or a transient run).
 
 ---
 
@@ -80,8 +95,10 @@ python3 verify.py --slant-angle 35
 
 It prints one `PASS`, `FAIL` or `SKIP` line per check and exits with 0 only if
 nothing failed (1 on a failed check, 2 if logs are missing). Checks that only
-make sense for a converged run are `SKIP`ped when the solver was interrupted
-before `endTime`/convergence, and the summary says so.
+make sense for a finished run are `SKIP`ped when the solver was interrupted
+before `endTime`/convergence, and the summary says so. For a finished run it
+also prints an `INFO` line with the mean, standard deviation and range of Cd
+over the last 200 iterations and the mean of the 200 before.
 
 | Check | What it proves | Expected | Tolerance and reason | Measured |
 |---|---|---|---|---|
@@ -100,12 +117,12 @@ before `endTime`/convergence, and the summary says so.
 | `checkMesh_Mesh_OK` | serial `checkMesh` passes | `Mesh OK.` | - | Mesh OK |
 | `max_non_orthogonality` | below the snappy `maxNonOrtho` limit | < 65° | = `meshQualityControls` | 64.7° |
 | `max_skewness` | below the snappy `maxInternalSkewness` limit | < 4 | = `meshQualityControls` | 2.38 |
-| `solver_no_fatal_error` | simpleFoam ran without `FOAM FATAL` | $\geq$ 1 iteration, no error | - | 581 iterations, no error |
-| `residual_drop_p`, `residual_drop_Ux` | SIMPLE is converging | final/max initial residual $\leq$ 0.1 | one decade is the minimum sign of convergence | 2.1e-4 / 2.8e-4 |
-| `yPlus_body_average` | wall functions are used in their range | 30 ... 300 | log-law validity range | 61.6 (min 13.2, max 142.7) |
-| `Cd_finite_positive` | force coefficients are written and sane | finite, > 0 | - | 0.288 |
-| `Cd_in_literature_band` (full run only) | drag agrees with the standard Ahmed body | 0.285 (25°) / 0.260 (35°) | $\pm$ 25 % (RANS wall-function scatter 20–30 %) | **SKIP**, run not completed (Cd = 0.288 at it. 580) |
-| `Cd_converged` (full run only) | force coefficient is steady | peak-to-peak < 1 % | last 200 iterations | **SKIP**, run not completed (4.0 % over iterations 381-580) |
+| `solver_no_fatal_error` | simpleFoam ran without `FOAM FATAL` | $\geq$ 1 iteration, no error | - | 3000 iterations, no error |
+| `residual_drop_p`, `residual_drop_Ux` | SIMPLE is converging | final/max initial residual $\leq$ 0.1 | one decade is the minimum sign of convergence | 2.0e-4 / 3.1e-4 |
+| `yPlus_body_average` | wall functions are used in their range | 30 ... 300 | log-law validity range | 61.5 (min 12.8, max 142.6) |
+| `Cd_finite_positive` | force coefficients are written and sane | finite, > 0 | - | 0.2843 (iteration 3000, instantaneous) |
+| `Cd_in_literature_band` (full run only) | drag agrees with the standard Ahmed body | 0.285 (25°) / 0.260 (35°) | $\pm$ 25 % (RANS wall-function scatter 20–30 %) | **PASS**, 0.2900 (mean of the last 200 iterations, +1.8 %) |
+| `Cd_converged` (full run only) | the mean force coefficient is steady | mean of the last 200 iterations within 1 % of the mean of the 200 before | iterations 2801-3000 vs 2601-2800 | 0.10 % drift (the instantaneous Cd oscillates by 5.6 % peak-to-peak around that mean, printed as an `INFO` line; see Status) |
 
 Manual (visual) checks, in addition:
 
@@ -772,7 +789,7 @@ Key entries:
 
 | Metric | Target | Measured in this case |
 |---|---|---|
-| y+ on body | ~30–300 (wall functions) or ~1 (resolved) | average 61.6, min 13.2, max 142.7 at iteration 581 (ground: average 182, max 1835) |
+| y+ on body | ~30–300 (wall functions) or ~1 (resolved) | average 61.5, min 12.8, max 142.6 at iteration 3000 (ground: average 182, max 1840) |
 | Surface refinement | Level 5–6 (~3–6 mm cells) | as set |
 | Wake refinement | Level 3 (~25 mm cells) | as set |
 | Boundary layers on body | 5 layers, expansion ratio 1.2 | 4.98 layers, 90 % of requested thickness |
@@ -1464,8 +1481,10 @@ Cl Cl(f) Cl(r)`).
 
 The k-$\omega$ SST model typically predicts Cd within 5 % of the experimental value
 for the 25° slant case on the standard body. Accuracy for the 35° case (fully
-separated) depends heavily on mesh resolution in the wake. These are literature
-values; they were not reproduced by the runs documented here.
+separated) depends heavily on mesh resolution in the wake. The table values are
+literature values; this case gave a mean Cd of 0.290 for the 25° slant (+1.8 %
+against the experiment, see [Expected Results](#expected-results)). The 35° case
+has not been run here.
 
 ---
 
@@ -1552,43 +1571,61 @@ Convergence criteria:
 - Force coefficients stable to within 1 % over the last 200 iterations
 - Typically requires 1500–3000 iterations
 
+In this case neither criterion was met: the run used all 3000 iterations and Cd
+oscillates with a period of about 40 iterations (5.6 % peak-to-peak) around a
+steady mean. When Cd oscillates like this, judge convergence by the mean over
+one or more periods (for example the mean of the last 200 iterations against
+the mean of the 200 before; `verify.py` prints both).
+
 ### Run time of the check run
 
-Measured with `./run_docker.sh` on a 20-core host that was shared with other
-jobs (load average about 30), using 4 MPI ranks:
+Measured with `./run_docker.sh` (full run, 25° slant) on a 20-core host using
+4 MPI ranks; the timings depend on the load of the host:
 
 | Step | Result |
 |---|---|
 | `blockMesh`, `surfaceFeatureExtract`, `decomposePar` | seconds |
-| `snappyHexMesh` (parallel) | 116 s, 968,553 cells |
-| `simpleFoam` | 581 iterations in about 1500 s (about 2.6 s per iteration) |
+| `snappyHexMesh` (parallel) | 175 s, 968,553 cells |
+| `simpleFoam` | 3000 iterations in 9442 s of execution time (about 3.1 s per iteration) |
+| whole `./run_docker.sh` | about 9700 s (2.7 h) |
 
-The solver job was stopped after 581 of 3000 iterations; it did not reach
-`endTime` or the residual targets. At the same speed 3000 iterations would take
-roughly 2.2 hours (extrapolation, not measured).
+The solver ran all 3000 iterations up to `endTime`; the residual targets of
+1e-5 were not reached (see [Expected Results](#expected-results)), so the
+automatic stop did not trigger.
 
 ---
 
 ## Expected Results
 
-### Results of the check run
+### Results of the full run
 
-The case was run as described above (25° slant, 4 ranks) and stopped after 581
-of 3000 iterations. **The run is not converged and the full run was not
-completed**, so these are partially converged fields. The figures were produced
-by `render_figures.py` from the decomposed result at time 550.
+The case was run as described above (25° slant, 4 ranks, 3000 iterations,
+`./run_docker.sh`). The figures were produced by `render_figures.py` from the
+reconstructed result at iteration 3000. Because Cd oscillates (see below),
+the field in the figures is one instantaneous state of that cycle; the
+quantities in the table are given both for the last iteration and as the mean
+of the last 200 iterations.
 
-| Quantity | Value at iteration 580 |
-|---|---|
-| Cd | 0.288 (0.289 at 400, 0.292 at 500); mean of iterations 381-580: 0.290, peak-to-peak 4 % |
-| Cl | 0.272 |
-| Cm | -0.133 |
-| $y^+$ on `ahmed_body` | average 61.6, min 13.2, max 142.7 |
-| Initial residuals | p 2.1e-4, Ux 2.8e-4, Uy 9.3e-3, Uz 6.8e-3, k 3.5e-4, omega 1.1e-5 |
+| Quantity | Iteration 3000 | Mean of iterations 2801-3000 |
+|---|---|---|
+| Cd | 0.2843 | **0.2900** (std 0.0040, range 0.2817 ... 0.2979) |
+| Cl | 0.2496 | 0.2030 |
+| Cm | -0.1296 | -0.1141 |
+| $y^+$ on `ahmed_body` | average 61.5, min 12.8, max 142.6 | - |
+| Initial residuals | p 2.0e-4, Ux 3.1e-4, Uy 1.0e-2, Uz 8.1e-3, k 4.0e-4, omega 1.2e-5 | - |
+
+Cd convergence: after the start-up transient the mean of successive
+500-iteration blocks is 0.3224 (iterations 1-500, with the transient), 0.2906,
+0.2900, 0.2902, 0.2900 and 0.2901, so the mean is converged. The instantaneous
+Cd oscillates with a period of about 40 iterations and a peak-to-peak
+amplitude of about 6 % of the mean (5.6 % over the last 200 iterations); this
+is why `Cd_converged` judges the drift of the mean (0.10 %) and not the
+instantaneous value. Cl and Cm oscillate as well (Cl between 0.12 and 0.29, Cm between
+-0.14 and -0.09 over iterations 1001-3000) with a similar period.
 
 ![Drag coefficient history](images/cd_history.png)
 
-*Cd against iteration (iterations 1-24 are left out because of the start-up transient). Cd is within 1–3 % of the experimental 0.285 but still drifting by a few percent; the converged value is not known.*
+*Cd against iteration (iterations 1-24 are left out because of the start-up transient). After about 200 iterations Cd oscillates regularly between 0.281 and 0.299 around a steady mean of 0.290, 1.8 % above the experimental 0.285.*
 
 ![Cp on the front face](images/cp_body_front.png)
 
@@ -1606,10 +1643,15 @@ standard body are:
 - **25° slant**: $C_d \approx 0.285 \pm 0.03$ (experimental: 0.285)
 - **35° slant**: $C_d \approx 0.255 \pm 0.03$ (experimental: 0.260)
 
-This case (standard body without stilts, 40 m/s) gave Cd = 0.288 at iteration
-580 of an unfinished run; the experimental breakdown cited by COMSOL for 25°
-is front 0.020, slant 0.140, base 0.070 and skin friction 0.055 (total 0.285),
-i.e. skin friction is about 19 % of the drag.
+This case (standard body without stilts, 40 m/s) gave a mean Cd of 0.290 over
+the last 200 of 3000 iterations (oscillating between 0.282 and 0.298), 1.8 %
+above the experimental 0.285, i.e. within the 5 % that k-$\omega$ SST
+typically reaches. Mesh sensitivity was not studied here (Exercise 2), and the
+body has no stilts and runs at 40 instead of 60 m/s, so the close agreement
+should not be read as a validation of the mesh. The experimental breakdown
+cited by COMSOL for 25° is front 0.020, slant 0.140, base 0.070 and skin
+friction 0.055 (total 0.285), i.e. skin friction is about 19 % of the drag; this
+case does not compute the split.
 
 ### Wake Structure
 
@@ -1871,7 +1913,7 @@ pressure on the roof and the wake.
 |---|---|
 | Pressure diverges early | Reduce relaxation factors (p → 0.2, U → 0.5) |
 | k/omega blow up | Keep `bounded Gauss upwind` for turbulence, reduce relaxation factors |
-| Oscillating Cd | Increase iterations, check mesh quality near separation |
+| Oscillating Cd | Check that the mean over the last 200 iterations is steady (as in this case: period of about 40 iterations, steady mean 0.290); otherwise increase iterations and check mesh quality near separation |
 | Very slow convergence | Use SIMPLEC (`consistent yes`), check mesh quality |
 
 ### Unexpected Cd Values

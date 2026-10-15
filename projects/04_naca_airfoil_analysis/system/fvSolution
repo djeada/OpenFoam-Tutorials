@@ -56,12 +56,12 @@ SIMPLE
 {
     nNonOrthogonalCorrectors 2;
 
-    residualControl
-    {
-        p               1e-6;
-        U               1e-6;
-        nuTilda         1e-6;
-    }
+    // No residualControl on purpose. With first-order upwind and this mesh
+    // (y+ about 476, 62 degree non-orthogonality) the pressure residual plateaus
+    // at about 1e-2 and never reaches a useful tolerance such as 1e-6, so such a
+    // control would never trigger and only suggest that it does. The run always
+    // ends at endTime; convergence is judged from the stationarity of Cl and Cd
+    // in postProcessing/forceCoeffs (see verify.py).
 }
 
 potentialFlow

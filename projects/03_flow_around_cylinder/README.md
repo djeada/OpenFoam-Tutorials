@@ -36,10 +36,16 @@ on t = 100 s to 200 s (the window that `fieldAverage` also uses).
 
 The tolerances are about ±10 %. Published 2D codes scatter by 3–5 %, and this domain differs from
 the unbounded domain of the references: blockage D/H = 1/16 (which raises Cd and St by a few
-percent), 8 D upstream, 25 D downstream, symmetry planes at y = ±8 D. The literature values in the table above
-(Linnick & Fasel, Liu et al., Taira & Colonius, Williamson) were checked against a comparison table in
-a secondary source (an immersed-boundary paper listing lift, drag and St at Re = 200), not against
-the original articles; treat them as approximate.
+percent), 8 D upstream, 25 D downstream, symmetry planes at y = ±8 D.
+
+**Provenance of the literature values.** The original articles were not accessible, so the numbers
+were checked only against secondary sources. The Linnick & Fasel (1.34 ± 0.044, ±0.69, 0.197), Liu et al.
+(1.31 ± 0.049, ±0.69, 0.192) and Taira & Colonius "Case C" (1.34 ± 0.047, ±0.68, 0.195) entries
+and Williamson's experimental St = 0.197 appear identically in the Re = 200 comparison table of an
+immersed-boundary paper (Ref. 12), and the Liu et al. row (1.31 ± 0.049, ±0.69, 0.192) also appears in an
+independent meshless-method paper (Ref. 13). Differences in the third digit between tables are within the scatter of the sources. Williamson's correlation was not re-derived here (its coefficients
+are quoted from the literature). Treat all of these values as approximate; the tolerances (about ±10 %) are
+chosen so that these differences do not matter.
 
 > **Note:** Real flow past a cylinder becomes three-dimensional at Re ≈ 190 (mode A instability),
 > so a 2D simulation at Re = 200 is an idealisation. It is, however, the standard 2D benchmark
@@ -70,7 +76,7 @@ exit status is 0 only if all checks pass (1 on a failed check, 2 if results are 
 | `solver_finished` | Run was not interrupted | `End` in log | `End` |
 | `end_time_reached` | Last `Time =` equals `endTime` | 200 ± 0.001 | 200 |
 | `max_courant` | Adjustable time step respects `maxCo` (5 % slack: dt reacts one step late) | ≤ 0.525 | 0.503 |
-| `continuity_error` | Mass conservation (largest `|cumulative|` continuity error) | < 1e-5 | 3.6e-08 |
+| `continuity_error` | Mass conservation (largest `|cumulative|` continuity error) | < 1e-5 | 2.8e-08 |
 | `last_time_fields` | Last time directory holds `U p UMean pMean UPrime2Mean pPrime2Mean` | present | all present (directory `200`) |
 | `mean_Cd` | Drag against 2D reference (t ≥ 100) | 1.34 ± 0.13 | 1.369 |
 | `mean_Cl` | Lift is symmetric on average | 0 ± 0.05 | 0.004 |
@@ -346,8 +352,9 @@ Mesh statistics from the reference run (`log.checkMesh`):
 | Max aspect ratio | 4.0 |
 | Patches (faces) | frontAndBack 45214, bottom 66, inlet 32, outlet 32, top 66, cylinder 64 |
 
-The figures in this README were rendered from the Gmsh 4.11.1 run; the 4.15.2 mesh differs in
-detail (22607 cells) and gave the same Cd, Cl and St to the printed digits.
+The figures in this README were rendered from the Gmsh 4.15.2 run (22607 cells) with
+`pvbatch paraview_cylinder.py --images images`. An earlier run with Gmsh 4.11.1 (22605 cells) gave the
+same Cd, Cl and St to the printed digits.
 
 ![Mesh of the whole domain](images/mesh_domain.png)
 
@@ -839,6 +846,13 @@ For a transient run there are no steady-state residual targets. A run is accepta
 11. Liu, C., Zheng, X., & Sung, C. H. (1998). "Preconditioned multigrid methods for unsteady
     incompressible flows." *Journal of Computational Physics*, 139(1), 35–57. 2D cylinder data
     at Re = 200.
+
+12. Immersed-boundary paper with a Re = 200 comparison table (lift, drag, St) that lists
+    Linnick & Fasel, Liu et al., Taira & Colonius and Williamson: Hybrid finite
+    difference/finite element immersed boundary method, arXiv:1612.05916.
+
+13. A high-order accurate meshless method for solution of incompressible fluid flow problems,
+    arXiv:2010.01702 (Table 3 compares Re = 100 and 200 drag, lift and St with Liu et al. and others).
 
 ---
 
