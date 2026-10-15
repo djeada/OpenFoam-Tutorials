@@ -29,11 +29,11 @@ Show the complete external-aerodynamics workflow on a single airfoil:
 
 | Quantity | Target | Basis |
 | --- | --- | --- |
-| Reynolds number | $U c / \nu = 6.0\times10^{6}$ | $U = 50 m/s$, `c = 1 m`, $\nu = 8.333\times10^{-6} \mathrm{m}^2/\mathrm{s}$ |
+| Reynolds number | $U c / \nu = 6.0\times10^{6}$ | $U=50\ \mathrm{m/s}$, `c = 1 m`, $\nu = 8.333\times10^{-6} \mathrm{m}^2/\mathrm{s}$ |
 | Angle of attack | `+4 degrees` | airfoil rotated by `-4 degrees` about the quarter chord |
 | Lift coefficient | $C_l = 0.439 \pm  0.05$ | thin-airfoil theory $2\pi\alpha$; the NACA 0012 lift-curve slope at this Re is close to it for small alpha |
 | Drag coefficient | $0 < C_d < C_l$ (see note) | consistency only, no reference value at 4 degrees is used |
-| Moment coefficient | $abs(C_m) < 0.02$ about `x = 0.25 c` | symmetric section: theory gives zero about the quarter chord |
+| Moment coefficient | $\lvert C_m\rvert<0.02$ about `x = 0.25 c` | symmetric section: theory gives zero about the quarter chord |
 | Mesh | no `checkMesh` failures other than skewness, non-orthogonality below 70 degrees; skewness is known to fail (see below) | OpenFOAM's own limits |
 | Solution | mean `Cl` of the last 100 iterations differs from the mean of the 100 before by less than 2 %, and mean `Cd` by less than 1 % | stationary forces; the residuals are not used (see below) |
 
@@ -105,7 +105,7 @@ Tolerance rationale:
   iterations (limit 2 %, measured 0.94 %) is therefore enough for the checks, and 1000 iterations
   do not give a better converged lift. Window means are used because single values scatter
   (standard deviation in the last window 0.3 % of `Cl`, 0.4 % of `Cd`).
-- $abs(C_m) < 0.02$ is about 5 % of `Cl`.
+- $\lvert C_m\rvert<0.02$ is about 5 % of `Cl`.
 - Non-orthogonality 70 degrees is the limit `checkMesh` itself uses for a severe error.
 
 `checkMesh` does not report `Mesh OK` for this mesh. It ends with `Failed 1 mesh checks`: the
@@ -140,7 +140,7 @@ Manual checks (visual, not automated):
 
 - Directory: [`transient_animation/`](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/04_naca_airfoil_analysis/transient_animation)
 - Solver: `pimpleFoam`, laminar, 2D-style (one cell thick), run on 4 MPI ranks
-- Setup: $U = 1 m/s$, $\nu = 1\times10^{-4} \mathrm{m}^2/\mathrm{s}$ (Re = 10 000), airfoil rotated by 15 degrees, `endTime = 20 s`,
+- Setup: $U=1\ \mathrm{m/s}$, $\nu = 1\times10^{-4} \mathrm{m}^2/\mathrm{s}$ (Re = 10 000), airfoil rotated by 15 degrees, `endTime = 20 s`,
   adaptive time step with `maxCo = 0.5`, fields written every `0.25 s` (80 times), `forceCoeffs`
   every `0.01 s`
 - Intended output: many saved time steps for animation and unsteady visualization

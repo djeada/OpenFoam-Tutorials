@@ -24,7 +24,7 @@
 Every CFD simulation ultimately boils down to solving enormous systems of linear equations.
 The Navier-Stokes equations are **nonlinear partial differential equations**, but after
 discretization (finite volume method) and linearization, each time step or outer iteration
-requires solving one or more **linear systems** of the form $\mathbf{Ax}=\mathbf b$.
+requires solving one or more **linear systems** of the form $\mathbf A\mathbf x=\mathbf b$.
 
 The linear solver is often the **single most expensive** part of a CFD simulation. Choosing
 the wrong solver can mean the difference between a simulation that converges in minutes
@@ -421,7 +421,7 @@ p
 ### What Preconditioners Do
 
 Preconditioning transforms the linear system into one that is easier to solve. Instead of
-solving $\mathbf{Ax}=\mathbf b$ directly, we solve $M^{-1}Ax=M^{-1}b$ where **M** approximates **A**.
+solving $\mathbf A\mathbf x=\mathbf b$ directly, we solve $M^{-1}A\mathbf x=M^{-1}\mathbf b$ where **M** approximates **A**.
 
 ```
   Without preconditioning:         With preconditioning:
