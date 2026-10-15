@@ -35,7 +35,7 @@ experimental reference value to compare against. The classic benchmark values
 [references](#the-reattachment-length-xrh)) belong to a different geometry and Reynolds
 number. The target above is therefore the value this case produces with OpenFOAM 6 on
 the supplied mesh (9.0 H); the experiments only provide a plausibility band
-(roughly 5-10 H). Earlier versions of this README stated `Xr/H ≈ 6`; this was not
+(roughly 5-10 H). Earlier versions of this README stated $X_r/H\approx6$; this was not
 what the case produces.
 
 ## Verification method
@@ -74,7 +74,7 @@ Manual checks (visual, secondary):
 1. `./open_paraview.sh`: a closed recirculation bubble behind the step, with a small
    counter-rotating corner eddy next to the step face (see the figures below).
 2. `Ux` is negative only inside the bubble; its zero line reaches the bottom wall at
-   `x/H ≈ 9`.
+   $x/H\approx9$.
 3. `tau_x` on `bottomWall` changes sign three times (see the wall-shear plot).
 
 ---
@@ -178,18 +178,20 @@ $$\partial \bar{U}_i / \partial x_i = 0$$
 
 **Momentum:**
 
-```
-Ūⱼ ∂Ūᵢ/∂xⱼ = -1/ρ ∂p̄/∂xᵢ + ∂/∂xⱼ [ν(∂Ūᵢ/∂xⱼ + ∂Ūⱼ/∂xᵢ) - u'ᵢu'ⱼ]
-```
+$$
+\overline{U}_j\frac{\partial\overline{U}_i}{\partial x_j}
+=-\frac{1}{\rho}\frac{\partial\overline p}{\partial x_i}
++\frac{\partial}{\partial x_j}\left[\nu\left(\frac{\partial\overline U_i}{\partial x_j}+\frac{\partial\overline U_j}{\partial x_i}\right)-\overline{u'_iu'_j}\right]
+$$
 
 The Reynolds stress tensor `u'ᵢu'ⱼ` is modelled using the Boussinesq hypothesis:
 
-```
--u'ᵢu'ⱼ = νₜ(∂Ūᵢ/∂xⱼ + ∂Ūⱼ/∂xᵢ) - 2/3 k δᵢⱼ
-```
+$$
+-\overline{u'_iu'_j}=\nu_t\left(\frac{\partial\overline U_i}{\partial x_j}+\frac{\partial\overline U_j}{\partial x_i}\right)-\frac23 k\delta_{ij}
+$$
 
 where $\nu_t$ is the turbulent eddy viscosity and k is the turbulent kinetic energy.
-In OpenFOAM the pressure is kinematic (`p/ρ`, units $\mathrm{m}^{2}/\mathrm{s}^{2}$), which is why `0/p` has
+In OpenFOAM the pressure is kinematic ($p/\rho$, units $\mathrm{m}^{2}/\mathrm{s}^{2}$), which is why `0/p` has
 dimensions `[0 2 -2 0 0 0 0]`.
 
 ### Flow Separation and Reattachment
@@ -283,7 +285,7 @@ to handle the weaknesses of existing two-equation models in separated flows:
 
 3. **Shear stress limiter** - The SST modification limits the eddy viscosity using
    Bradshaw's assumption that the principal turbulent shear stress is proportional
-   to the turbulent kinetic energy: `τ = ρa₁k` where $a_1$ = 0.31. This prevents
+   to the turbulent kinetic energy: $\tau=\rho a_1k$ where $a_1$ = 0.31. This prevents
    over-prediction of eddy viscosity in adverse pressure gradient flows, which is
    a main failure mode of standard k-$\varepsilon$ in separated flows.
 
@@ -291,38 +293,46 @@ to handle the weaknesses of existing two-equation models in separated flows:
    k-$\omega$ and k-$\varepsilon$ formulations based on wall distance, ensuring the right model is
    active in each region:
 
-```
-  F₁ = tanh(arg₁⁴)
-
-  arg₁ = min[max(√k/(β*ωy), 500ν/(y²ω)), 4ρσ_ω₂k/(CD_kω y²)]
-```
+$$
+\begin{aligned}
+F_1&=\tanh(\mathrm{arg}_1^4),\\
+\mathrm{arg}_1&=\min\left[\max\left(\frac{\sqrt{k}}{\beta^*\omega y},\frac{500\nu}{y^2\omega}\right),\frac{4\rho\sigma_{\omega2}k}{CD_{k\omega}y^2}\right].
+\end{aligned}
+$$
 
 The transport equations for k and $\omega$ in the SST model are:
 
 **Turbulent kinetic energy (k):**
-```
-∂(ρk)/∂t + ∂(ρUⱼk)/∂xⱼ = P̃k - β*ρkω + ∂/∂xⱼ[(μ + σk μt) ∂k/∂xⱼ]
-```
+$$
+\frac{\partial(\rho k)}{\partial t}+\frac{\partial(\rho U_jk)}{\partial x_j}
+=\widetilde P_k-\beta^*\rho k\omega+
+\frac{\partial}{\partial x_j}\left[(\mu+\sigma_k\mu_t)\frac{\partial k}{\partial x_j}\right]
+$$
 
 **Specific dissipation rate ($\omega$):**
-```
-∂(ρω)/∂t + ∂(ρUⱼω)/∂xⱼ = αS² - βρω² + ∂/∂xⱼ[(μ + σω μt) ∂ω/∂xⱼ]
-                             + 2(1-F₁)ρσ_ω₂ (1/ω) ∂k/∂xⱼ ∂ω/∂xⱼ
-```
+$$
+\begin{aligned}
+\frac{\partial(\rho\omega)}{\partial t}+\frac{\partial(\rho U_j\omega)}{\partial x_j}
+&=\alpha S^2-\beta\rho\omega^2+\frac{\partial}{\partial x_j}\left[(\mu+\sigma_\omega\mu_t)\frac{\partial\omega}{\partial x_j}\right]\\
+&\quad+2(1-F_1)\rho\sigma_{\omega2}\frac1\omega\frac{\partial k}{\partial x_j}\frac{\partial\omega}{\partial x_j}.
+\end{aligned}
+$$
 
 ### Turbulent Inlet Conditions
 
 The inlet turbulence quantities are estimated from the turbulence intensity (I) and
 a turbulence length scale (l):
 
-```
-  k = 3/2 (U∞ · I)²  =  3/2 × (10 × 0.04)²  =  0.24 m²/s²      (I = 4 %)
+For turbulence intensity $I=4\%$:
 
-  ω = k^0.5 / (C_μ^0.25 · l)  =  0.49 / (0.5477 × 0.0020)  ≈  440 s⁻¹
+$$
+\begin{aligned}
+k&=\tfrac32(U_\infty I)^2=\tfrac32(10\cdot0.04)^2=0.24\ \mathrm{m}^2/\mathrm{s}^2,\\
+\omega&=\frac{k^{0.5}}{C_\mu^{0.25}l}=\frac{0.49}{0.5477\cdot0.0020}\approx440\ \mathrm{s}^{-1}.
+\end{aligned}
+$$
 
-  where C_μ = 0.09 and l ≈ 0.0020 m (about 8 % of the downstream channel height 2H = 0.0254 m,
-  or 0.16 H)
-```
+Here $C_\mu=0.09$ and $l\approx0.0020\ \mathrm{m}$ (about 8% of the downstream channel height $2H=0.0254\ \mathrm{m}$, or $0.16H$).
 
 > The exact inlet values influence the reattachment length moderately. Literature
 > studies of varying I from 1 % to 10 % report shifts of about $\pm 0.5$ in Xr/H; this was
@@ -444,12 +454,11 @@ maximum aspect ratio 16.1, non-orthogonality 0 (orthogonal block mesh).
 
 The y+ definition and the wall-function ranges:
 
-```
-  y+ = y · u_τ / ν          u_τ = √(τ_w/ρ)
+$$
+y^+=\frac{yu_\tau}{\nu},\qquad u_\tau=\sqrt{\frac{\tau_w}{\rho}}
+$$
 
-  Wall functions:        y+ ≈ 30-100 (log layer)
-  Low-Re (resolved):     y+ ≲ 1 (viscous sublayer)
-```
+Wall functions typically use $y^+\approx30\text{–}100$ (log layer), whereas low-Reynolds-number wall resolution aims for $y^+\lesssim1$ (viscous sublayer).
 
 **This mesh is wall-resolved, not in the wall-function range.** The first cell
 centre is about 7e-5 m from the wall, and the `yPlus` function object measures
@@ -467,8 +476,8 @@ logarithmic omega values, `nutkWallFunction` gives `nut = 0` where y+ is below t
 laminar limit (about 11), and `kqRWallFunction` is a zero-gradient condition. To use
 wall functions in their intended range, the first cell would need to be about
 50-100 times thicker ([Exercise 4](#exercise-4-wall-treatment-study)). An estimate with
-`u_τ ≈ 0.3-0.5 m/s` (the wall shear stress magnitude in this case is at most
-0.16 $\mathrm{m}^{2}/\mathrm{s}^{2}$, so `u_τ = √τ ≤ 0.4 m/s`) gives `y+ = 30` at `y = 30 ν/u_τ ≈ 0.9-1.5 mm`
+$u_\tau\approx0.3\text{–}0.5\ \mathrm{m/s}$ (the wall shear stress magnitude in this case is at most
+0.16 $\mathrm{m}^{2}/\mathrm{s}^{2}$, so $u_\tau=\sqrt{\tau}\le0.4\ \mathrm{m/s}$) gives `y+ = 30` at $y=30\nu/u_\tau\approx0.9\text{–}1.5\ \mathrm{mm}$
 from the wall, about 7-12 % of the step height.
 
 ---
@@ -827,10 +836,9 @@ set to 3000; the run stops by itself at convergence.
 The primary validation metric is the reattachment length, taken from the sign change
 of `wallShearStress` on `bottomWall`:
 
-```
-  Measured (this case):     Xr/H = 9.0   (tau_x changes sign between x/H = 8.95 and 9.04)
-  Corner eddy ends at:      x/H ≈ 1.7    (tau_x sign change between 1.72 and 1.78)
-```
+**Measured for this case:** $X_r/H=9.0$ (the sign of $\tau_x$ changes between $x/H=8.95$ and $9.04$).
+
+**Corner eddy:** $x/H\approx1.7$ (the sign change occurs between $1.72$ and $1.78$).
 
 Both the wall shear stress and `Ux` in the first cell row give the same positions
 (`verify.py` compares them: 9.00 from both). For comparison with experiments, see
@@ -983,9 +991,11 @@ above are shifted for the Xr/H = 9 of this case. Use 6 for an Xr/H = 6 configura
 The skin friction coefficient on the bottom wall (OpenFOAM's `wallShearStress` is
 kinematic, so no density appears):
 
-```
-Cf = τ_w / (0.5 U∞²)        (kinematic τ_w from wallShearStress, U∞ = 10 m/s)
-```
+$$
+C_f=\frac{\tau_w}{0.5U_\infty^2}
+$$
+
+Here $\tau_w$ is the kinematic wall shear stress from wallShearStress, and $U_\infty=10\ \mathrm{m/s}$.
 
 Plot $C_f$ vs $x/H$. The reattachment point is at $C_f = 0$ (last crossing). With
 the OpenFOAM sign convention reverse flow gives positive `tau_x`; multiply by -1 to
@@ -993,9 +1003,11 @@ get the conventional sign (negative Cf = reverse flow).
 
 ### Pressure Coefficient
 
-```
-Cp = (p - p_ref) / (0.5 U∞²)        (kinematic p, p_ref = 0 at the outlet)
-```
+$$
+C_p=\frac{p-p_{\mathrm{ref}}}{0.5U_\infty^2}
+$$
+
+Here $p$ is kinematic pressure and $p_{\mathrm{ref}}=0$ at the outlet.
 
 Plot Cp along the top and bottom walls to visualise the pressure recovery through
 the expansion.
@@ -1060,7 +1072,7 @@ Run the case at different Reynolds numbers by changing the inlet velocity in `0/
 
 The "original estimate" values are the rough numbers of the earlier README; case C
 shows they are not reliable for this geometry. Keep the inlet `k` at 4 % intensity
-(`k = 1.5 (0.04 U)²`) and scale `omega` with `sqrt(k)`. Note: at low Re (< 400), the
+($k=1.5(0.04U)^2$) and scale `omega` with `sqrt(k)`. Note: at low Re (< 400), the
 flow is laminar and the reattachment length depends strongly on Re. At high Re, the
 reattachment length becomes nearly independent of Re. The turbulence model assumes
 fully turbulent flow; for cases A and B, which are transitional at best, results should be

@@ -254,8 +254,8 @@ inconsistency error — this is a powerful safety net.
 | Turbulent viscosity ($\nu_t$) | $m^{2}/s$ | $m^{2} \cdot s^{-1}$ | `[0 2 -1 0 0 0 0]` |
 | Temperature | K | K | `[0 0 0 1 0 0 0]` |
 | Dimensionless | — | — | `[0 0 0 0 0 0 0]` |
-| Force per unit volume | N/m³ | kg·m⁻²·s⁻² | `[1 -2 -2 0 0 0 0]` |
-| Gravity | m/s² | m·s⁻² | `[0 1 -2 0 0 0 0]` |
+| Force per unit volume | $\mathrm{N/m}^3$ | $\mathrm{kg\,m}^{-2}\mathrm{s}^{-2}$ | `[1 -2 -2 0 0 0 0]` |
+| Gravity | $\mathrm{m}/\mathrm{s}^2$ | $\mathrm{m\,s}^{-2}$ | `[0 1 -2 0 0 0 0]` |
 
 ### Reading Dimensions from Project Files
 

@@ -145,12 +145,12 @@ dimensions      [0 1 -1 0 0 0 0];
 | Quantity              | Dimensions Array         | SI Unit   |
 |-----------------------|--------------------------|-----------|
 | Velocity              | `[0 1 -1 0 0 0 0]`      | m/s       |
-| Kinematic pressure    | `[0 2 -2 0 0 0 0]`      | m²/s²     |
-| Kinematic viscosity   | `[0 2 -1 0 0 0 0]`      | m²/s      |
-| Turbulent kinetic energy | `[0 2 -2 0 0 0 0]`   | m²/s²     |
-| Turbulent dissipation (ε) | `[0 2 -3 0 0 0 0]`  | m²/s³     |
+| Kinematic pressure    | `[0 2 -2 0 0 0 0]`      | $\mathrm{m}^2/\mathrm{s}^2$     |
+| Kinematic viscosity   | `[0 2 -1 0 0 0 0]`      | $\mathrm{m}^2/\mathrm{s}$      |
+| Turbulent kinetic energy | `[0 2 -2 0 0 0 0]`   | $\mathrm{m}^2/\mathrm{s}^2$     |
+| Turbulent dissipation (ε) | `[0 2 -3 0 0 0 0]`  | $\mathrm{m}^2/\mathrm{s}^3$     |
 | Dynamic viscosity     | `[1 -1 -1 0 0 0 0]`     | kg/(m·s)  |
-| Density               | `[1 -3 0 0 0 0 0]`      | kg/m³     |
+| Density               | `[1 -3 0 0 0 0 0]`      | $\mathrm{kg/m}^3$     |
 
 > **⚠ Warning:** If you get a dimensions mismatch error at runtime, check this array first.
 > A single wrong exponent (e.g., `[0 2 -1 ...]` vs `[0 2 -2 ...]`) will crash the solver.

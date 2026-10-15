@@ -336,9 +336,9 @@ each computational cell occupied by water:
 
 The volume fraction is advected by the flow velocity:
 
-```
-d(alpha)/dt + div(U alpha) + div(U_r alpha (1 - alpha)) = 0
-```
+$$
+\frac{\partial\alpha}{\partial t}+\nabla\cdot(\mathbf U\alpha)+\nabla\cdot\bigl(\mathbf U_r\alpha(1-\alpha)\bigr)=0
+$$
 
 The last term `div(U_r alpha (1 - alpha))` is the **interface compression** term used
 in OpenFOAM's VOF implementation. `U_r` is an artificial compression velocity that
@@ -385,9 +385,9 @@ Surface tension is modelled using the **Brackbill CSF method** (Brackbill et al.
 1992). Instead of applying a force at the discrete interface, the surface tension is
 converted to a volume force distributed across the interface cells:
 
-```
-F_sigma = sigma kappa grad(alpha)
-```
+$$
+\mathbf F_\sigma=\sigma\kappa\nabla\alpha
+$$
 
 where:
 - `sigma` = surface tension coefficient (0.07 N/m for water-air)
@@ -664,11 +664,17 @@ from 0.00046 s to 0.0047 s in the reference run (initial step 0.001 s, `maxDelta
 
 For VOF simulations, **two** Courant numbers matter:
 
-```
-Standard Courant:     Co = |U| * dt / dx
+**Standard Courant number:**
 
-Alpha Courant:        Co_alpha = |U_interface| * dt / dx
-```
+$$
+Co=\frac{|\mathbf U|\Delta t}{\Delta x}
+$$
+
+**Interface Courant number:**
+
+$$
+Co_\alpha=\frac{|\mathbf U_{\mathrm{interface}}|\Delta t}{\Delta x}
+$$
 
 The alpha Courant number is based on the velocity in the interface cells (cells with
 0 < alpha < 1). Because the interface advection requires high accuracy,

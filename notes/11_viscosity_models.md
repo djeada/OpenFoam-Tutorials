@@ -25,8 +25,8 @@ The velocity profile is linear for a Newtonian fluid — this is **Couette flow*
 
 | Symbol | Name                 | Definition | SI Units     | Physical Meaning                         |
 |--------|----------------------|------------|--------------|------------------------------------------|
-| $\mu$      | Dynamic viscosity    | —          | Pa·s (kg/m·s)| Shear stress per unit shear rate         |
-| $\nu$      | Kinematic viscosity  | $\nu = \mu / \rho$  | m²/s         | Momentum diffusivity                     |
+| $\mu$      | Dynamic viscosity    | —          | $\mathrm{Pa\,s}$ (kg/m·s)| Shear stress per unit shear rate         |
+| $\nu$      | Kinematic viscosity  | $\nu = \mu / \rho$  | $\mathrm{m}^2/\mathrm{s}$         | Momentum diffusivity                     |
 
 **Dynamic viscosity ($\mu$)** relates shear stress to shear rate directly:
 
@@ -37,7 +37,7 @@ $$
 where:
 
 - $\tau$ = shear stress [Pa]
-- $\mu$ = dynamic viscosity [Pa·s]
+- $\mu$ = dynamic viscosity [$\mathrm{Pa\,s}$]
 - $du/dy$ = velocity gradient [1/s]
 
 **Kinematic viscosity ($\nu$)** is dynamic viscosity divided by density. It appears naturally in the incompressible Navier-Stokes equations:
@@ -52,16 +52,16 @@ Here $\nu = \mu/\rho$ controls how fast momentum diffuses through the fluid.
 
 Most OpenFOAM incompressible solvers (`icoFoam`, `simpleFoam`, `pimpleFoam`) divide the entire momentum equation by density $\rho$. This means:
 
-- Pressure becomes $p/\rho$ (kinematic pressure, units m²/s²)
-- Viscosity becomes $\nu = \mu/\rho$ (kinematic viscosity, units m²/s)
+- Pressure becomes $p/\rho$ (kinematic pressure, units $\mathrm{m}^2/\mathrm{s}^2$)
+- Viscosity becomes $\nu = \mu/\rho$ (kinematic viscosity, units $\mathrm{m}^2/\mathrm{s}$)
 
 > **⚠️ Warning:** When you see `nu` in OpenFOAM dictionaries, it is **always**
-> kinematic viscosity $\nu$ (m²/s), not dynamic viscosity $\mu$ (Pa·s).
+> kinematic viscosity $\nu$ ($\mathrm{m}^2/\mathrm{s}$), not dynamic viscosity $\mu$ ($\mathrm{Pa\,s}$).
 > If a data sheet gives you $\mu$, divide by $\rho$ first!
 
 **Typical values:**
 
-| Fluid          | $\mu$ (Pa·s)          | $\rho$ (kg/m³)  | $\nu$ (m²/s)           |
+| Fluid          | $\mu$ ($\mathrm{Pa\,s}$)          | $\rho$ ($\mathrm{kg/m}^3$)  | $\nu$ ($\mathrm{m}^2/\mathrm{s}$)           |
 |----------------|--------------------|------------|---------------------|
 | Air (20 °C)    | $1.825 \times 10^{-5}$      | 1.205      | $1.516 \times 10^{-5}$       |
 | Water (20 °C)  | $1.002 \times 10^{-3}$      | 998.2      | $1.004 \times 10^{-6}$       |
@@ -197,7 +197,7 @@ $$
 
 | Parameter | Symbol | Meaning             | Units |
 |-----------|--------|---------------------|-------|
-| `nu`      | $\nu$      | Kinematic viscosity | m²/s  |
+| `nu`      | $\nu$      | Kinematic viscosity | $\mathrm{m}^2/\mathrm{s}$  |
 
 **Configuration:**
 
@@ -218,7 +218,7 @@ nu              [0 2 -1 0 0 0 0] 1e-06;  // Water at 20°C
 ```
 
 > **💡 Tip:** The `[0 2 -1 0 0 0 0]` is OpenFOAM's dimension set:
-> `[kg m s K mol A cd]`. So `[0 2 -1 0 0 0 0]` means m²/s — exactly
+> `[kg m s K mol A cd]`. So `[0 2 -1 0 0 0 0]` means $\mathrm{m}^2/\mathrm{s}$ — exactly
 > the units of kinematic viscosity. See [OpenFOAM Dictionaries](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/03_openfoam_dictionaries.md)
 > for details on dimension sets.
 
@@ -239,9 +239,9 @@ Clamped: $\nu_{\min} \leq \nu \leq \nu_{\max}$
 
 | Parameter | Symbol | Meaning                        | Units      |
 |-----------|--------|--------------------------------|------------|
-| `nuMax`   | $\nu_{\max}$  | Upper viscosity limit          | m²/s       |
-| `nuMin`   | $\nu_{\min}$  | Lower viscosity limit          | m²/s       |
-| `k`       | k      | Consistency index              | m²/s^n     |
+| `nuMax`   | $\nu_{\max}$  | Upper viscosity limit          | $\mathrm{m}^2/\mathrm{s}$       |
+| `nuMin`   | $\nu_{\min}$  | Lower viscosity limit          | $\mathrm{m}^2/\mathrm{s}$       |
+| `k`       | k      | Consistency index              | $\mathrm{m}^2/\mathrm{s}$^n     |
 | `n`       | n      | Power-law index                | dimensionless |
 
 - **$n < 1$** → shear-thinning (pseudoplastic)
@@ -282,8 +282,8 @@ $$
 
 | Parameter | Symbol | Meaning                             | Units         |
 |-----------|--------|-------------------------------------|---------------|
-| `nu0`     | $\nu_0$     | Zero-shear-rate kinematic viscosity | m²/s          |
-| `nuInf`   | $\nu_\infty$     | Infinite-shear-rate viscosity       | m²/s          |
+| `nu0`     | $\nu_0$     | Zero-shear-rate kinematic viscosity | $\mathrm{m}^2/\mathrm{s}$          |
+| `nuInf`   | $\nu_\infty$     | Infinite-shear-rate viscosity       | $\mathrm{m}^2/\mathrm{s}$          |
 | `m`       | m      | Consistency time constant           | s             |
 | `n`       | n      | Power-law index                     | dimensionless |
 
@@ -331,8 +331,8 @@ $$
 
 | Parameter | Symbol | Meaning                             | Units         |
 |-----------|--------|-------------------------------------|---------------|
-| `nu0`     | $\nu_0$     | Zero-shear-rate kinematic viscosity | m²/s          |
-| `nuInf`   | $\nu_\infty$     | Infinite-shear-rate viscosity       | m²/s          |
+| `nu0`     | $\nu_0$     | Zero-shear-rate kinematic viscosity | $\mathrm{m}^2/\mathrm{s}$          |
+| `nuInf`   | $\nu_\infty$     | Infinite-shear-rate viscosity       | $\mathrm{m}^2/\mathrm{s}$          |
 | `k`       | k      | Relaxation time                     | s             |
 | `n`       | n      | Power-law index (< 1 for thinning)  | dimensionless |
 
@@ -375,13 +375,13 @@ $$
 
 | Parameter | Symbol | Meaning                        | Units         |
 |-----------|--------|--------------------------------|---------------|
-| `nu0`     | $\nu_0$     | Limiting viscosity (yield reg.)| m²/s          |
-| `tau0`    | $\tau_0$     | Yield stress                   | m²/s²  *      |
-| `k`       | k      | Consistency index              | m²/s^n        |
+| `nu0`     | $\nu_0$     | Limiting viscosity (yield reg.)| $\mathrm{m}^2/\mathrm{s}$          |
+| `tau0`    | $\tau_0$     | Yield stress                   | $\mathrm{m}^2/\mathrm{s}^2$  *      |
+| `k`       | k      | Consistency index              | $\mathrm{m}^2/\mathrm{s}$^n        |
 | `n`       | n      | Power-law index                | dimensionless |
 
 > \* Because OpenFOAM works with kinematic quantities (divided by $\rho$),
-> `tau0` has units of m²/s² (kinematic stress), not Pa.
+> `tau0` has units of $\mathrm{m}^2/\mathrm{s}^2$ (kinematic stress), not Pa.
 
 **Configuration:**
 
@@ -530,8 +530,8 @@ BirdCarreauCoeffs
 }
 ```
 
-> **💡 Tip:** For blood flow at physiological conditions (37 °C, $\rho \approx 1060$ kg/m³),
-> typical values are $\nu_0 \approx 3.3 \times 10^{-6}$ m²/s and $\nu_\infty \approx 3.0 \times 10^{-6}$ m²/s.
+> **💡 Tip:** For blood flow at physiological conditions (37 °C, $\rho \approx 1060$ $\mathrm{kg/m}^3$),
+> typical values are $\nu_0 \approx 3.3 \times 10^{-6}$ $\mathrm{m}^2/\mathrm{s}$ and $\nu_\infty \approx 3.0 \times 10^{-6}$ $\mathrm{m}^2/\mathrm{s}$.
 > The shear-thinning effect is moderate compared to polymer melts.
 
 #### Example 3: Polymer Melt (Power Law)
@@ -653,7 +653,7 @@ For many real fluids, viscosity is strongly temperature-dependent. OpenFOAM's st
 
 ### When Temperature Matters
 
-| Fluid    | $\mu$ at 20 °C (Pa·s) | $\mu$ at 80 °C (Pa·s) | Change   |
+| Fluid    | $\mu$ at 20 °C ($\mathrm{Pa\,s}$) | $\mu$ at 80 °C ($\mathrm{Pa\,s}$) | Change   |
 |----------|--------------------|--------------------|----------|
 | Water    | $1.002 \times 10^{-3}$      | $0.354 \times 10^{-3}$      | −65 %    |
 | Engine oil | 0.2              | 0.02               | −90 %    |
@@ -682,7 +682,7 @@ III. **Polynomial fits** via the `polynomial` transport model in some OpenFOAM d
 
 ### Pitfall #1: Dynamic vs Kinematic Viscosity Mix-Up
 
-The most common mistake. Material data sheets typically report **dynamic viscosity $\mu$** in Pa·s or cP, but OpenFOAM expects **kinematic viscosity $\nu$** in m²/s.
+The most common mistake. Material data sheets typically report **dynamic viscosity $\mu$** in $\mathrm{Pa\,s}$ or cP, but OpenFOAM expects **kinematic viscosity $\nu$** in $\mathrm{m}^2/\mathrm{s}$.
 
 $$
 \nu = \mu / \rho
@@ -690,16 +690,16 @@ $$
 
 Example: Water at 20 °C
 
-- $\mu = 1.002 \times 10^{-3}$ Pa·s
-- $\rho = 998.2$ kg/m³
-- $\nu = 1.002 \times 10^{-3} / 998.2 = 1.004 \times 10^{-6}$ m²/s ✓
+- $\mu = 1.002 \times 10^{-3}$ $\mathrm{Pa\,s}$
+- $\rho = 998.2$ $\mathrm{kg/m}^3$
+- $\nu = 1.002 \times 10^{-3} / 998.2 = 1.004 \times 10^{-6}$ $\mathrm{m}^2/\mathrm{s}$ ✓
 
 Common mistake: using $\mu$ = 1e-3 directly as nu → 1000× too high!
 
 | Symptom                                   | Likely Cause                     | Fix                              |
 |-------------------------------------------|----------------------------------|----------------------------------|
 | Re is 1000× too low                       | Used $\mu$ instead of $\nu$              | Divide by density                |
-| Flow looks completely laminar when it shouldn't | Viscosity too high          | Check units — should be m²/s     |
+| Flow looks completely laminar when it shouldn't | Viscosity too high          | Check units — should be $\mathrm{m}^2/\mathrm{s}$     |
 | Wildly wrong drag/lift coefficients       | Wrong viscosity magnitude        | Verify $\nu$ against known values    |
 
 ### Pitfall #2: Wrong Dimensions in the Dictionary
@@ -813,7 +813,7 @@ $$
 Re = U \cdot L / \nu
 $$
 
-Example: Lid-driven cavity, $U = 1$ m/s, $L = 0.1$ m, $\nu = 10^{-6}$ m²/s
+Example: Lid-driven cavity, $U = 1$ m/s, $L = 0.1$ m, $\nu = 10^{-6}$ $\mathrm{m}^2/\mathrm{s}$
 $Re = 1 \times 0.1 / 10^{-6} = 100{,}000$ (turbulent!)
 
 If that's not what you intended, check your $\nu$ value.

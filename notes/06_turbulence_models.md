@@ -26,9 +26,9 @@ where:
 | Highly turbulent | $Re > 1,000,000$ | Aircraft in flight, rivers     |
 
 > **💡 Tip:** Our lid-driven cavity project (`projects/01_lid_driven_cavity/`) uses
-> `ν = 0.001 m²/s` with a lid velocity of 1 m/s and cavity size ~1 m, giving
+> $\nu=0.001\ \mathrm{m}^2/\mathrm{s}$ with a lid velocity of 1 m/s and cavity size ~1 m, giving
 > $Re \approx 1,000$ — firmly laminar, which is why it uses `icoFoam` with no turbulence
-> model. The NACA airfoil project uses `ν = 1e-05 m²/s`, yielding $Re \approx 100,000$ —
+> model. The NACA airfoil project uses $\nu=10^{-5}\ \mathrm{m}^2/\mathrm{s}$, yielding $Re \approx 100,000$ —
 > turbulent, requiring a $k$-$\varepsilon$ model with `simpleFoam`.
 
 ### Laminar-to-Turbulent Transition
@@ -105,7 +105,7 @@ The ratio of the largest to smallest scales grows with Reynolds number:
 $$L / \eta \sim Re^{3/4}$$
 
 This is why we cannot resolve all scales directly — even a moderate $Re = 10,000$
-flow would need approximately `(10,000)^(9/4) ≈ 10^9.75` grid points for a 3D DNS.
+flow would need approximately $(10{,}000)^{9/4}\approx10^{9.75}$ grid points for a 3D DNS.
 For $Re = 1,000,000$ (a car on a highway), you would need $\sim 10^{27}$ cells. This is why
 turbulence **modeling** exists.
 
@@ -173,7 +173,7 @@ a **mean** part and a **fluctuating** part:
 $$u(x,t) = \bar{U}(x) + u'(x,t)$$
 
 Averaging the Navier-Stokes equations produces the **Reynolds stress tensor**
-`-ρ⟨u'ᵢu'ⱼ⟩` — six unknown quantities that must be modeled. This is the famous
+$-\rho\langle u'_iu'_j\rangle$ — six unknown quantities that must be modeled. This is the famous
 **closure problem** of turbulence.
 
 ### 4.1 Spalart-Allmaras (SA)

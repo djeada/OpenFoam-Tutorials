@@ -27,7 +27,7 @@ on t = 100 s to 200 s (the window that `fieldAverage` also uses).
 
 | Quantity | Target | Basis |
 |----------|--------|-------|
-| Strouhal number `St = f D / U∞` | 0.197 $\pm 0.02$ | 2D laminar results at Re = 200: 0.197 (Linnick & Fasel 2005), 0.195 (Taira & Colonius 2007), 0.192 (Liu et al. 1998); Williamson's experimental value 0.197; his correlation `St = -3.3265/Re + 0.1816 + 1.6e-4·Re` gives 0.197 |
+| Strouhal number $St=fD/U_\infty$ | 0.197 $\pm 0.02$ | 2D laminar results at Re = 200: 0.197 (Linnick & Fasel 2005), 0.195 (Taira & Colonius 2007), 0.192 (Liu et al. 1998); Williamson's experimental value 0.197; his correlation $St=-3.3265/Re+0.1816+1.6\times10^{-4}Re$ gives 0.197 |
 | Mean drag coefficient `Cd` | 1.34 $\pm 0.13$ | Published 2D computations at Re = 200: 1.34 $\pm 0.044$ (Linnick & Fasel 2005), 1.34 $\pm 0.047$ (Taira & Colonius 2007), 1.31 $\pm 0.049$ (Liu et al. 1998) |
 | Lift amplitude `(Clmax - Clmin)/2` | 0.69 $\pm 0.10$ | $\pm 0.69$ (Linnick & Fasel 2005; Liu et al. 1998), $\pm 0.68$ (Taira & Colonius 2007) |
 | Mean lift coefficient `Cl` | 0 $\pm 0.05$ | Symmetry of the geometry |
@@ -224,9 +224,9 @@ The Reynolds number is the single most important parameter governing this flow:
 
 $$Re = U_\infty \cdot D / \nu$$
 
-where `U∞` is the free-stream velocity, `D` is the cylinder diameter, and `ν` is the
-kinematic viscosity of the fluid. In this case `U∞ = 1 m/s`, `D = 1 m` and
-`ν = 0.005 m²/s`, so $Re = 1 \cdot 1 / 0.005 = 200$.
+where $U_\infty$ is the free-stream velocity, `D` is the cylinder diameter, and $\nu$ is the
+kinematic viscosity of the fluid. In this case $U_\infty=1\ \mathrm{m/s}$, `D = 1 m` and
+$\nu=0.005\ \mathrm{m}^2/\mathrm{s}$, so $Re = 1 \cdot 1 / 0.005 = 200$.
 
 ### Reynolds Number Regimes
 
@@ -271,7 +271,7 @@ The drag coefficient is defined as:
 
 $$Cd = F_D / (0.5 \cdot \rho \cdot U_\infty^2 \cdot A)$$
 
-where `F_D` is the drag force, `ρ` is the fluid density, and `A` is the projected area
+where `F_D` is the drag force, $\rho$ is the fluid density, and `A` is the projected area
 (A = D · L for a cylinder of span L; here `Aref = 0.1 = 1 × 0.1`). Key reference values:
 
 | Re | Cd (approximate) | Source |
@@ -634,7 +634,7 @@ reconstructPar
 
 ### Changing the Reynolds Number
 
-Edit `nu` in `constant/transportProperties`: `nu = U∞ D / Re`. For vortex shedding at
+Edit `nu` in `constant/transportProperties`: $\nu=U_\infty D/Re$. For vortex shedding at
 $Re = 100$ (`nu = 0.01`) the Strouhal number should converge to $St \approx 0.164$. The time
 step is controlled by `maxCo`, so no other change is needed. If you change the Reynolds number,
 the reference values in `verify.py` no longer apply. For guidance on choosing time steps using
@@ -752,7 +752,7 @@ Measured values from the reference run are in the [verification table](#verifica
 For a transient run there are no steady-state residual targets. A run is acceptable when:
 
 - the solver reaches `endTime` without errors and the Courant number stays at `maxCo`;
-- the force coefficients are periodic over the averaging window (`t ≥ 100`);
+- the force coefficients are periodic over the averaging window ($t\ge100$);
 - `python3 verify.py` passes.
 
 ### Common Issues
@@ -868,7 +868,7 @@ that use it (turbulence model comparison, mesh refinement with `snappyHexMesh`).
 > - `snappyHexMesh` always produces 3D meshes: it refines cells in z as well. The one-cell
 >   `blockMesh` background below therefore does not give a 2D (`empty`) mesh; for a 2D RANS case
 >   use the Gmsh mesh of this project (set `simulationType RAS` and add `k`, `epsilon`, `nut`).
-> - The `epsilon` value in the original text was wrong: with `k = 1.5e-4 m²/s²` and `l = 0.07 D`,
+> - The `epsilon` value in the original text was wrong: with $k=1.5\times10^{-4}\ \mathrm{m}^2/\mathrm{s}^2$ and `l = 0.07 D`,
 >   $\varepsilon = 0.09^{0.75} (1.5\times10^{-4})^{1.5} / 0.07 \approx 4.3\times10^{-6}$ $\mathrm{m}^{2}/\mathrm{s}^{3}$
 >   (not 4.85e-7). The corrected value is used below.
 > - `forceCoeffs` writes `forceCoeffs.dat` (not `coefficient.dat`) with columns

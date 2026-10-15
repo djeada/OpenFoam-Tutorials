@@ -121,7 +121,7 @@ $$\nabla \cdot U = 0$$
 
 $$\partial U / \partial t + (U \cdot \nabla)U = -\nabla p + \nu \nabla^2 U$$
 
-where `U` is the velocity vector, `p` is the kinematic pressure (pressure divided by density) and `ν` is the kinematic viscosity.
+where `U` is the velocity vector, `p` is the kinematic pressure (pressure divided by density) and $\nu$ is the kinematic viscosity.
 
 Since icoFoam is an incompressible solver, density does not appear explicitly. The pressure field `p` has dimensions of $\mathrm{m}^{2}/\mathrm{s}^{2}$.
 
@@ -562,7 +562,7 @@ These exercises build progressively on the base case. Try them in order:
 
 ### 1. Change the Reynolds Number
 
-Modify `constant/transportProperties` to change `ν` and observe different flow regimes:
+Modify `constant/transportProperties` to change $\nu$ and observe different flow regimes:
 
 | $\nu$ ($\mathrm{m}^{2}/\mathrm{s}$) | Re | Expected Behavior |
 |---|---|---|
