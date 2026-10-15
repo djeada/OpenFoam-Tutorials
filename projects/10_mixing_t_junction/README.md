@@ -236,8 +236,8 @@ $$
 
 Here $p_{rgh}$ is pressure minus the hydrostatic contribution; $\mathbf g$ is gravitational acceleration, and OpenFOAM stores the height-dependent potential in its gh field.
 
-The momentum equation is solved with `-∇p_rgh - (g·h)∇ρ` in place of
-`-∇p + ρg`, so a uniform density produces no spurious force.
+The momentum equation is solved with $-\nabla p_{rgh}-(\mathbf g\cdot\mathbf h)\nabla\rho$ in place of
+$-\nabla p+\rho\mathbf g$, so a uniform density produces no spurious force.
 
 ### Reynolds Number
 

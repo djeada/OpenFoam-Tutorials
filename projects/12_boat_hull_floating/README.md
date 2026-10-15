@@ -291,7 +291,7 @@ $$
 where `U_r` is a compression velocity that sharpens the interface.
 
 Fluid properties are blended (interFoam blends density and dynamic
-viscosity; `ν` is then `μ/ρ`):
+viscosity; $\nu$ is then $\mu/\rho$):
 
 ```
   ρ = α · ρ_water + (1-α) · ρ_air
@@ -360,7 +360,7 @@ pulls the boat down. The net force determines the translational acceleration.
     ω = angular velocity
 ```
 
-For our small boat, the cross-coupling term `ω × (I · ω)` is very small
+For our small boat, the cross-coupling term $\boldsymbol\omega\times(\mathbf I\cdot\boldsymbol\omega)$ is very small
 since angular velocities are low. But OpenFOAM solves the full equations.
 
 **In this case only heave and yaw are free** (see
@@ -421,7 +421,7 @@ point with a function of the distance to the hull:
 ```
 
 (Laplacian mesh motion, for comparison, solves
-`∇·(γ ∇ cellDisplacement) = 0`; that is why `cellDisplacement` entries are
+$\nabla\cdot(\gamma\nabla\mathrm{cellDisplacement})=0$; that is why `cellDisplacement` entries are
 *not* needed in `fvSchemes`/`fvSolution` of this case.)
 
 The `innerDistance` and `outerDistance` parameters define three zones:
@@ -1316,11 +1316,9 @@ the instantaneous force with Archimedes.
 
 With dynamic mesh, three timestep constraints must be satisfied simultaneously:
 
-```
-  1. Courant number:    Co = U · Δt / Δx  <  maxCo (0.4)
-  2. Interface Courant:  Co_α            <  maxAlphaCo (0.25)
-  3. Mesh quality:       No inverted cells after mesh motion
-```
+1. **Flow Courant number:** $Co=U\Delta t/\Delta x<\mathrm{maxCo}$ (0.4).
+2. **Interface Courant number:** $Co_\alpha<\mathrm{maxAlphaCo}$ (0.25).
+3. **Mesh quality:** No inverted cells after mesh motion.
 
 Constraint 3 is the new one. If the body moves too far in one step, cells
 near it can invert. The `adjustTimeStep` mechanism handles constraints 1 and 2

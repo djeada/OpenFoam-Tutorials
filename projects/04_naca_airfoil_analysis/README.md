@@ -23,27 +23,27 @@ Show the complete external-aerodynamics workflow on a single airfoil:
 - applying an angle of attack by rotating the geometry while keeping the freestream horizontal, so
   `liftDir` / `dragDir` stay `(0 1 0)` / `(1 0 0)`
 - reading lift, drag and moment coefficients from `forceCoeffs`, and judging them against theory
-- understanding why mesh quality, `y+` and numerical schemes limit the drag prediction
+- understanding why mesh quality, $y^+$ and numerical schemes limit the drag prediction
 
 ## Target
 
 | Quantity | Target | Basis |
 | --- | --- | --- |
-| Reynolds number | `U c / nu = 6.0e6` | `U = 50 m/s`, `c = 1 m`, `nu = 8.333e-6 m^2/s` |
+| Reynolds number | $U c / \nu = 6.0\times10^{6}$ | $U = 50 m/s$, `c = 1 m`, $\nu = 8.333\times10^{-6} \mathrm{m}^2/\mathrm{s}$ |
 | Angle of attack | `+4 degrees` | airfoil rotated by `-4 degrees` about the quarter chord |
-| Lift coefficient | `Cl = 0.439 +/- 0.05` | thin-airfoil theory `2 pi alpha`; the NACA 0012 lift-curve slope at this Re is close to it for small alpha |
-| Drag coefficient | `0 < Cd < Cl` (see note) | consistency only, no reference value at 4 degrees is used |
-| Moment coefficient | `abs(Cm) < 0.02` about `x = 0.25 c` | symmetric section: theory gives zero about the quarter chord |
+| Lift coefficient | $C_l = 0.439 \pm  0.05$ | thin-airfoil theory $2\pi\alpha$; the NACA 0012 lift-curve slope at this Re is close to it for small alpha |
+| Drag coefficient | $0 < C_d < C_l$ (see note) | consistency only, no reference value at 4 degrees is used |
+| Moment coefficient | $abs(C_m) < 0.02$ about `x = 0.25 c` | symmetric section: theory gives zero about the quarter chord |
 | Mesh | no `checkMesh` failures other than skewness, non-orthogonality below 70 degrees; skewness is known to fail (see below) | OpenFOAM's own limits |
 | Solution | mean `Cl` of the last 100 iterations differs from the mean of the 100 before by less than 2 %, and mean `Cd` by less than 1 % | stationary forces; the residuals are not used (see below) |
 
 Note on drag: `Cd` at this mesh is **not expected to match published values** for the NACA 0012,
 and no validated reference value for this angle of attack, Reynolds number and solver is
 available in this repository, so none is used as a pass/fail criterion. The reasons are numerical:
-the mesh is coarse, the boundary layer is handled only by wall functions with `y+` of about
-215 to 750 (average 476, far from the `y+` of about 1 needed to resolve the sublayer), and `U` and
-`nuTilda` use first-order upwind. The measured `Cd = 0.0441` is much larger than a well-resolved
-turbulent airfoil at this Reynolds number would give; only `Cd > 0` and `Cd < Cl` are checked.
+the mesh is coarse, the boundary layer is handled only by wall functions with $y^+$ of about
+215 to 750 (average 476, far from the $y^+$ of about 1 needed to resolve the sublayer), and `U` and
+`nuTilda` use first-order upwind. The measured $C_d = 0.0441$ is much larger than a well-resolved
+turbulent airfoil at this Reynolds number would give; only $C_d > 0$ and $C_d < C_l$ are checked.
 The reference data for a proper comparison is listed under [References](#references).
 
 ## Verification Method
@@ -61,25 +61,25 @@ exits `0` only if all checks pass, and exits `2` if results are missing. Values 
 column were measured in a complete `./run_docker.sh` run of this repository's case
 (Gmsh 4.12.1 on the host, OpenFOAM 6 in the container, 600 iterations, `forceCoeffs` written
 every iteration). Results depend somewhat on the Gmsh version, which changes the mesh slightly:
-an earlier full run with Gmsh 4.11.1 gave 38 584 cells, `Cl = 0.430`, `Cd = 0.0447`, average `y+`
-476 and final `p` residual 1.2e-2; one with Gmsh 4.15.2 gave 39 412 cells, `Cl = 0.427`,
-`Cd = 0.0465`, average `y+` 485 and max non-orthogonality 58.1 degrees. All three pass the
+an earlier full run with Gmsh 4.11.1 gave 38 584 cells, $C_l = 0.430$, $C_d = 0.0447$, average $y^+$
+476 and final `p` residual 1.2e-2; one with Gmsh 4.15.2 gave 39 412 cells, $C_l = 0.427$,
+$C_d = 0.0465$, average $y^+$ 485 and max non-orthogonality 58.1 degrees. All three pass the
 checks below.
 
 | Check | What it proves | Expected | Measured |
 | --- | --- | --- | --- |
 | freestream `abs(U)` at inlet vs `magUInf` | force coefficients use the actual freestream | equal, relative 1e-6 | 50 vs 50 |
 | `Aref` = `lRef` x span | reference area matches the 0.02 m extrusion | equal, 1e-9 | 0.02 |
-| Reynolds number `U c / nu` | case is at the stated Re | 6.0e6 +/- 5 % (nu is rounded) | 6.0e6 |
+| Reynolds number $U c / \nu$ | case is at the stated Re | 6.0e6 +/- 5 % (nu is rounded) | 6.0e6 |
 | `checkMesh` failed checks other than skewness | topology, openness, aspect ratio, non-orthogonality are fine | 0 | 0 |
 | max non-orthogonality | below OpenFOAM's severe limit | < 70 deg | 62.18 deg |
 | `simpleFoam` no `FOAM FATAL ERROR` | solver ran cleanly | none | none |
 | `simpleFoam` ran to `End` | log is complete | `End` | `End` |
 | run finished | `residualControl` met or `endTime` reached | 600 iterations | 600 iterations |
-| `Cl` vs `2 pi alpha` (alpha = 4 deg) | lift magnitude is physically right | 0.4386 +/- 0.05 | 0.4264 |
-| `Cl > 0` | lift direction is consistent with nose-up rotation and `liftDir` | > 0 | 0.4264 |
-| `0 < Cd < Cl` | drag acts downstream and is smaller than lift | 0 < Cd < Cl | 0.04407 |
-| `abs(Cm)` about quarter chord | symmetric section has near-zero moment | < 0.02 | 0.0059 |
+| `Cl` vs $2\pi\alpha$ (alpha = 4 deg) | lift magnitude is physically right | 0.4386 +/- 0.05 | 0.4264 |
+| $C_l > 0$ | lift direction is consistent with nose-up rotation and `liftDir` | > 0 | 0.4264 |
+| $0 < C_d < C_l$ | drag acts downstream and is smaller than lift | 0 < Cd < Cl | 0.04407 |
+| $abs(C_m)$ about quarter chord | symmetric section has near-zero moment | < 0.02 | 0.0059 |
 | `forceCoeffs` values finite | no NaN / inf in the force history | yes | yes |
 | `Cl` drift: mean of last 100 iterations vs the 100 before | lift is stationary | < 2 % | 0.94 % |
 | `Cd` drift: mean of last 100 iterations vs the 100 before | drag is stationary | < 1 % | 0.10 % |
@@ -88,10 +88,10 @@ Tolerance rationale:
 
 - `Cl` band `0.05` is about 11 %: it has to absorb the coarse wall-function mesh, the
   15-chord domain with symmetry-plane top and bottom boundaries, first-order upwind schemes and
-  the idealisation of `2 pi alpha`. It is a consistency check, not a validation.
+  the idealisation of $2\pi\alpha$. It is a consistency check, not a validation.
 - Convergence is judged from the force coefficients, not from the residuals. The pressure
   residual plateaus at about `1e-2` (1.0e-2 at iteration 600, 8e-3 at iteration 1000) with first-order
-  upwind, `y+` of several hundred and 62 degree non-orthogonality, so it never gets near
+  upwind, $y^+$ of several hundred and 62 degree non-orthogonality, so it never gets near
   any useful tolerance. An earlier version of `verify.py` accepted any final residual below `1e-1`,
   which only proved that the residual was below its initial value of 1. The final residuals are now
   printed as `INFO` lines without a limit.
@@ -105,14 +105,14 @@ Tolerance rationale:
   iterations (limit 2 %, measured 0.94 %) is therefore enough for the checks, and 1000 iterations
   do not give a better converged lift. Window means are used because single values scatter
   (standard deviation in the last window 0.3 % of `Cl`, 0.4 % of `Cd`).
-- `abs(Cm) < 0.02` is about 5 % of `Cl`.
+- $abs(C_m) < 0.02$ is about 5 % of `Cl`.
 - Non-orthogonality 70 degrees is the limit `checkMesh` itself uses for a severe error.
 
 `checkMesh` does not report `Mesh OK` for this mesh. It ends with `Failed 1 mesh checks`: the
 skewness check fails with max skewness 4.25 on 2 faces (OpenFOAM limit 4). All other checks
 pass (max non-orthogonality 62.2 degrees, average 6.6; max aspect ratio 4.0). `simpleFoam` ran
 without problems on this mesh, so `verify.py` does not count the skewness failure but prints it
-as a `WARN` line. It also prints `INFO` lines for `y+` (min 216, max 747, average 476), for the mean and standard
+as a `WARN` line. It also prints `INFO` lines for $y^+$ (min 216, max 747, average 476), for the mean and standard
 deviation of `Cl` and `Cd` in the last 100 iterations (`Cl` 0.4246 +/- 0.0012, `Cd` 0.04423 +/- 0.00016),
 for the final residuals (`p` 1.0e-2, `Ux` 1.1e-3, `Uy` 1.3e-3, `nuTilda` 1.7e-4; no limit) and for
 `Cd`, which is deliberately not compared with any published value (see the note above).
@@ -140,7 +140,7 @@ Manual checks (visual, not automated):
 
 - Directory: [`transient_animation/`](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/04_naca_airfoil_analysis/transient_animation)
 - Solver: `pimpleFoam`, laminar, 2D-style (one cell thick), run on 4 MPI ranks
-- Setup: `U = 1 m/s`, `nu = 1e-4 m^2/s` (Re = 10 000), airfoil rotated by 15 degrees, `endTime = 20 s`,
+- Setup: $U = 1 m/s$, $\nu = 1\times10^{-4} \mathrm{m}^2/\mathrm{s}$ (Re = 10 000), airfoil rotated by 15 degrees, `endTime = 20 s`,
   adaptive time step with `maxCo = 0.5`, fields written every `0.25 s` (80 times), `forceCoeffs`
   every `0.01 s`
 - Intended output: many saved time steps for animation and unsteady visualization
@@ -169,9 +169,9 @@ video is the goal (400 times, about 2 GB estimated from the 5.5 MB per written t
 From the verification run (OpenFOAM 6, Gmsh 4.12.1, 600 SIMPLE iterations, 99 s of solver
 time on one core; meshing takes about 4 minutes):
 
-- `Cl = 0.426`, `Cd = 0.0441`, `Cm = 0.0059` (about `x = 0.25 c`); mean of the last 100 iterations
-  `Cl = 0.4246`, `Cd = 0.04423`
-- average `y+` on the airfoil about `476` (min 216, max 747)
+- $C_l = 0.426$, $C_d = 0.0441$, $C_m = 0.0059$ (about `x = 0.25 c`); mean of the last 100 iterations
+  $C_l = 0.4246$, $C_d = 0.04423$
+- average $y^+$ on the airfoil about `476` (min 216, max 747)
 - mesh: 38 585 cells (38 491 hexahedra, 94 prisms), one cell thick
 
 Result files:
@@ -184,9 +184,9 @@ Result files:
 
 Important limitations of these numbers:
 
-- the wall treatment is coarse for an airfoil case: average `y+` of about `476` is acceptable for a
+- the wall treatment is coarse for an airfoil case: average $y^+$ of about `476` is acceptable for a
   runnable tutorial-style wall-function case, but too high for validation-quality drag prediction
-- `Cd = 0.0441` is not expected to match published NACA 0012 values on this mesh (see the note
+- $C_d = 0.0441$ is not expected to match published NACA 0012 values on this mesh (see the note
   under [Target](#target)); it should not be used as a result
 - `checkMesh` fails one check: max skewness 4.25 on 2 faces (limit 4), so it does not print `Mesh OK`
 - the residuals stall between about `1e-4` and `1e-2`: the forces are stationary (`Cd` to 0.1 %, `Cl` to
@@ -213,7 +213,7 @@ check, exit `0` / `1` / `2`). Measured in the run described above:
 | Check | Expected | Measured |
 | --- | --- | --- |
 | freestream `abs(U)` vs `magUInf`, `Aref` = `lRef` x span | equal | 1, 0.02 |
-| Reynolds number `U c / nu` | 1.0e4 +/- 5 % | 1.0e4 |
+| Reynolds number $U c / \nu$ | 1.0e4 +/- 5 % | 1.0e4 |
 | `checkMesh` failed checks other than skewness; max non-orthogonality | 0; < 70 deg | 0; 55.45 deg |
 | `pimpleFoam` no `FOAM FATAL ERROR`, ran to `End` | none; `End` | none; `End` |
 | end time reached | 20 s +/- `maxDeltaT` | 20 s |
@@ -221,9 +221,9 @@ check, exit `0` / `1` / `2`). Measured in the run described above:
 | Courant number over the whole run | <= 1.2 x `maxCo` = 0.6 | 0.575 (third step, impulsive start) |
 | written time directories; last time | 80; 20 | 80; 20 |
 | `forceCoeffs` finite, reaches endTime | yes | yes |
-| max abs(`Cl`) over the run | < 1.5 x `2 pi alpha` = 2.47 | 1.785 (at t = 3.3 s) |
+| max abs(`Cl`) over the run | < 1.5 x $2\pi\alpha$ = 2.47 | 1.785 (at t = 3.3 s) |
 | mean `Cl` in the second half | > 0 | 0.904 |
-| `0 < Cd < Cl` (means, second half) | yes | 0.319 < 0.904 |
+| $0 < C_d < C_l$ (means, second half) | yes | 0.319 < 0.904 |
 
 Tolerance rationale: the Courant checks follow from the time-step control (the step is chosen
 from the previous step's Courant number and may grow by at most 20 %, so the first steps after
@@ -311,7 +311,7 @@ run.
 | Chord length `c` | `1 m` (`lRef`) | `system/controlDict` |
 | Span of the extrusion | `0.02 m` | `make_mesh.sh` / generator default |
 | Reference area `Aref` | `0.02 m^2` (chord x span) | `system/controlDict` |
-| Reynolds number | `U c / nu = 6e6` | derived |
+| Reynolds number | $U c / \nu = 6\times10^{6}$ | derived |
 | Angle of attack | `+4 degrees` (geometry rotated by `-4 degrees`) | `make_mesh.sh` |
 | Moment reference point `CofR` | `(0.25 0 0)` (quarter chord of the unrotated airfoil) | `system/controlDict` |
 | Density for coefficients `rhoInf` | `1.225 kg/m^3` (the solver is kinematic) | `system/controlDict` |
@@ -579,9 +579,9 @@ the CFD solution actually contains.
 ## Known Limitations
 
 - The steady root case is stable, but not validation-grade.
-- Drag is much higher than expected for a high-quality NACA 0012 benchmark case (`Cd = 0.0441`);
+- Drag is much higher than expected for a high-quality NACA 0012 benchmark case ($C_d = 0.0441$);
   no validated reference value is available in this repository to quantify the difference.
-- Near-wall resolution is too coarse for trustworthy airfoil drag prediction (`y+` 217 to 749).
+- Near-wall resolution is too coarse for trustworthy airfoil drag prediction ($y^+$ 217 to 749).
 - `U` and `nuTilda` use first-order upwind, which adds numerical diffusion.
 - Residuals plateau (pressure at about `1e-2`); the run always ends at `endTime` and there is no
   `residualControl`. `Cl` is stationary only to about 1 to 2 % (it wanders by up to 1.5 % per
@@ -603,7 +603,7 @@ If you want to improve physics rather than just visualization, the best next ste
 
 1. move the steady case to a better airfoil mesh topology, ideally a structured or true
    C-grid style external-aero mesh
-2. reduce wall-function dependence by improving first-layer control and `y+`
+2. reduce wall-function dependence by improving first-layer control and $y^+$
 3. use a second-order scheme for `U` and `nuTilda` (for example `linearUpwind`)
 4. compare `Cl`, `Cd`, and surface pressure against NASA / TMR reference data
 5. use the transient case for animation-oriented work rather than trying to animate the

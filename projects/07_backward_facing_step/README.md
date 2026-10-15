@@ -35,7 +35,7 @@ experimental reference value to compare against. The classic benchmark values
 [references](#the-reattachment-length-xrh)) belong to a different geometry and Reynolds
 number. The target above is therefore the value this case produces with OpenFOAM 6 on
 the supplied mesh (9.0 H); the experiments only provide a plausibility band
-(roughly 5-10 H). Earlier versions of this README stated `Xr/H ≈ 6`; this was not
+(roughly 5-10 H). Earlier versions of this README stated $X_r/H\approx6$; this was not
 what the case produces.
 
 ## Verification method
@@ -74,7 +74,7 @@ Manual checks (visual, secondary):
 1. `./open_paraview.sh`: a closed recirculation bubble behind the step, with a small
    counter-rotating corner eddy next to the step face (see the figures below).
 2. `Ux` is negative only inside the bubble; its zero line reaches the bottom wall at
-   `x/H ≈ 9`.
+   $x/H\approx9$.
 3. `tau_x` on `bottomWall` changes sign three times (see the wall-shear plot).
 
 ---
@@ -191,7 +191,7 @@ $$
 $$
 
 where $\nu_t$ is the turbulent eddy viscosity and k is the turbulent kinetic energy.
-In OpenFOAM the pressure is kinematic (`p/ρ`, units $\mathrm{m}^{2}/\mathrm{s}^{2}$), which is why `0/p` has
+In OpenFOAM the pressure is kinematic ($p/\rho$, units $\mathrm{m}^{2}/\mathrm{s}^{2}$), which is why `0/p` has
 dimensions `[0 2 -2 0 0 0 0]`.
 
 ### Flow Separation and Reattachment
@@ -285,7 +285,7 @@ to handle the weaknesses of existing two-equation models in separated flows:
 
 3. **Shear stress limiter** - The SST modification limits the eddy viscosity using
    Bradshaw's assumption that the principal turbulent shear stress is proportional
-   to the turbulent kinetic energy: `τ = ρa₁k` where $a_1$ = 0.31. This prevents
+   to the turbulent kinetic energy: $\tau=\rho a_1k$ where $a_1$ = 0.31. This prevents
    over-prediction of eddy viscosity in adverse pressure gradient flows, which is
    a main failure mode of standard k-$\varepsilon$ in separated flows.
 
@@ -454,12 +454,11 @@ maximum aspect ratio 16.1, non-orthogonality 0 (orthogonal block mesh).
 
 The y+ definition and the wall-function ranges:
 
-```
-  y+ = y · u_τ / ν          u_τ = √(τ_w/ρ)
+$$
+y^+=\frac{yu_\tau}{\nu},\qquad u_\tau=\sqrt{\frac{\tau_w}{\rho}}
+$$
 
-  Wall functions:        y+ ≈ 30-100 (log layer)
-  Low-Re (resolved):     y+ ≲ 1 (viscous sublayer)
-```
+Wall functions typically use $y^+\approx30\text{–}100$ (log layer), whereas low-Reynolds-number wall resolution aims for $y^+\lesssim1$ (viscous sublayer).
 
 **This mesh is wall-resolved, not in the wall-function range.** The first cell
 centre is about 7e-5 m from the wall, and the `yPlus` function object measures
@@ -477,8 +476,8 @@ logarithmic omega values, `nutkWallFunction` gives `nut = 0` where y+ is below t
 laminar limit (about 11), and `kqRWallFunction` is a zero-gradient condition. To use
 wall functions in their intended range, the first cell would need to be about
 50-100 times thicker ([Exercise 4](#exercise-4-wall-treatment-study)). An estimate with
-`u_τ ≈ 0.3-0.5 m/s` (the wall shear stress magnitude in this case is at most
-0.16 $\mathrm{m}^{2}/\mathrm{s}^{2}$, so `u_τ = √τ ≤ 0.4 m/s`) gives `y+ = 30` at `y = 30 ν/u_τ ≈ 0.9-1.5 mm`
+$u_\tau\approx0.3\text{–}0.5\ \mathrm{m/s}$ (the wall shear stress magnitude in this case is at most
+0.16 $\mathrm{m}^{2}/\mathrm{s}^{2}$, so $u_\tau=\sqrt{\tau}\le0.4\ \mathrm{m/s}$) gives `y+ = 30` at $y=30\nu/u_\tau\approx0.9\text{–}1.5\ \mathrm{mm}$
 from the wall, about 7-12 % of the step height.
 
 ---
@@ -837,10 +836,9 @@ set to 3000; the run stops by itself at convergence.
 The primary validation metric is the reattachment length, taken from the sign change
 of `wallShearStress` on `bottomWall`:
 
-```
-  Measured (this case):     Xr/H = 9.0   (tau_x changes sign between x/H = 8.95 and 9.04)
-  Corner eddy ends at:      x/H ≈ 1.7    (tau_x sign change between 1.72 and 1.78)
-```
+**Measured for this case:** $X_r/H=9.0$ (the sign of $\tau_x$ changes between $x/H=8.95$ and $9.04$).
+
+**Corner eddy:** $x/H\approx1.7$ (the sign change occurs between $1.72$ and $1.78$).
 
 Both the wall shear stress and `Ux` in the first cell row give the same positions
 (`verify.py` compares them: 9.00 from both). For comparison with experiments, see
@@ -1074,7 +1072,7 @@ Run the case at different Reynolds numbers by changing the inlet velocity in `0/
 
 The "original estimate" values are the rough numbers of the earlier README; case C
 shows they are not reliable for this geometry. Keep the inlet `k` at 4 % intensity
-(`k = 1.5 (0.04 U)²`) and scale `omega` with `sqrt(k)`. Note: at low Re (< 400), the
+($k=1.5(0.04U)^2$) and scale `omega` with `sqrt(k)`. Note: at low Re (< 400), the
 flow is laminar and the reattachment length depends strongly on Re. At high Re, the
 reattachment length becomes nearly independent of Re. The turbulence model assumes
 fully turbulent flow; for cases A and B, which are transitional at best, results should be

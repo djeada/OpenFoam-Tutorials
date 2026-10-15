@@ -251,10 +251,10 @@ frame and the rotating frame introduces two additional body forces:
 ```
 
 In OpenFOAM the solver keeps the absolute velocity as the unknown in the zone and adds
-the `ω × U` term to the momentum equation, with the convecting flux taken relative to
+the $\boldsymbol\omega\times\mathbf U$ term to the momentum equation, with the convecting flux taken relative to
 the rotating frame (see `MRFZone.C`). The physical content is the same two forces.
 
-#### Coriolis Force: `-2ω × U_r`
+#### Coriolis Force: $-2\boldsymbol\omega\times\mathbf U_r$
 
 The Coriolis force acts perpendicular to both the rotation axis and the relative velocity.
 It is responsible for deflecting the flow and creating the swirling motion that is
@@ -273,7 +273,7 @@ lower side of the zone.
                     ▼
 ```
 
-#### Centrifugal Acceleration: `-ω × (ω × r)`
+#### Centrifugal Acceleration: $-\boldsymbol\omega\times(\boldsymbol\omega\times\mathbf r)$
 
 The centrifugal term always points radially **outward** from the rotation axis with
 magnitude $\omega^{2}$ r. In a closed rotating frame it is balanced by a radial pressure gradient.
@@ -634,7 +634,7 @@ MRF1                            // Name for this MRF zone (arbitrary)
   └──────────────────────────────────────┘
 ```
 
-With `R = 0.3 m` and `U = 10 m/s`, the tip-speed ratio `λ = ω R / U` is 0.31 for
+With `R = 0.3 m` and `U = 10 m/s`, the tip-speed ratio $\lambda=\omega R/U$ is 0.31 for
 100 RPM and scales linearly with `omega` (200 RPM gives 0.63, 500 RPM gives 1.57).
 
 ### Multiple MRF Zones

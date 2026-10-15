@@ -212,12 +212,12 @@ $$\partial (\rho U) / \partial t + \nabla \cdot (\rho U U) = -\nabla p + \nabla 
 $$\partial (\rho h) / \partial t + \nabla \cdot (\rho U h) = \nabla \cdot (\alpha_{eff} \nabla h) + \partial p / \partial t$$
 
 where:
-- `ρ` = density (ideal gas law: $\rho = p/(RT)$)
+- $\rho$ = density (ideal gas law: $\rho = p/(RT)$)
 - `U` = velocity vector
 - `p` = pressure
 - `h` = specific (sensible) enthalpy
-- `μ_eff` = effective (molecular + turbulent) viscosity
-- `α_eff` = effective thermal diffusivity, $\alpha + \alpha_t$ with $\alpha_t = \mu_t / Pr_t$
+- $\mu_{\mathrm{eff}}$ = effective (molecular + turbulent) viscosity
+- $\alpha_{\mathrm{eff}}$ = effective thermal diffusivity, $\alpha + \alpha_t$ with $\alpha_t = \mu_t / Pr_t$
   and $Pr_t = 0.85$
 - `g` = gravitational acceleration
 
@@ -510,7 +510,7 @@ reality (aspect ratio 4).*
   viscous no-slip condition.
 
 #### Pressure (p_rgh)
-- `p_rgh` is the "reduced pressure", defined as `p_rgh = p - ρgh`. This formulation
+- `p_rgh` is the "reduced pressure", defined as $p_{rgh}=p-\rho gh$. This formulation
   removes the hydrostatic pressure from the solution, improving numerical stability for
   buoyant flows.
 - **Absolute level:** the solver computes $\rho$ from the absolute pressure `p`, so
