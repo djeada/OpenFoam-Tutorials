@@ -1,5 +1,67 @@
 # Multiphase Flow Modeling in OpenFOAM
 
+[All notes](../README.md#-notes-overview) · [Previous: Note 11](11_viscosity_models.md)
+
+> **Version scope:** Classic OpenFOAM Foundation 6, matching the project launchers.
+> Other releases/forks may need different dictionaries or executables; see
+> [version guidance](../README.md#version-and-example-scope) and the
+> [current reference cases](02_openfoam_cases.md#current-reference-cases).
+
+<details>
+<summary>Contents</summary>
+
+- [Lecture 7 — Models in OpenFOAM: The Multiphase Part](#lecture-7--models-in-openfoam-the-multiphase-part)
+- [1. What Is Multiphase Flow?](#1-what-is-multiphase-flow)
+  - [Types of Phase Combinations](#types-of-phase-combinations)
+  - [Real-World Applications](#real-world-applications)
+  - [Why Multiphase Flow Is Challenging](#why-multiphase-flow-is-challenging)
+- [2. Multiphase Modeling Approaches](#2-multiphase-modeling-approaches)
+  - [2.1 Euler-Euler Methods](#21-euler-euler-methods)
+  - [2.2 Euler-Lagrange Methods](#22-euler-lagrange-methods)
+  - [2.3 Level-Set Method](#23-level-set-method)
+  - [Comparison: When to Use Each Approach](#comparison-when-to-use-each-approach)
+- [3. Volume of Fluid (VOF) Method — Deep Dive](#3-volume-of-fluid-vof-method--deep-dive)
+  - [3.1 The α (Alpha) Field](#31-the-α-alpha-field)
+  - [3.2 The Transport Equation](#32-the-transport-equation)
+  - [3.3 Interface Sharpening — The MULES Algorithm](#33-interface-sharpening--the-mules-algorithm)
+  - [3.4 Property Interpolation](#34-property-interpolation)
+- [4. OpenFOAM Multiphase Solvers](#4-openfoam-multiphase-solvers)
+  - [Solver Overview](#solver-overview)
+  - [Solver Comparison Table](#solver-comparison-table)
+- [5. Setting Up a Multiphase Case in OpenFOAM](#5-setting-up-a-multiphase-case-in-openfoam)
+  - [5.1 Transport Properties](#51-transport-properties)
+  - [5.2 Gravity](#52-gravity)
+  - [5.3 Initializing the α Field with setFieldsDict](#53-initializing-the-α-field-with-setfieldsdict)
+  - [5.4 Boundary Conditions for alpha.water](#54-boundary-conditions-for-alphawater)
+  - [5.5 controlDict Settings for Multiphase](#55-controldict-settings-for-multiphase)
+  - [5.6 Numerical Schemes (fvSchemes)](#56-numerical-schemes-fvschemes)
+  - [5.7 Solver Settings (fvSolution)](#57-solver-settings-fvsolution)
+- [6. Surface Tension](#6-surface-tension)
+  - [6.1 The Continuum Surface Force (CSF) Model](#61-the-continuum-surface-force-csf-model)
+  - [6.2 The Sigma Parameter](#62-the-sigma-parameter)
+  - [6.3 When Does Surface Tension Matter?](#63-when-does-surface-tension-matter)
+- [7. The CFL Condition for Multiphase Flows](#7-the-cfl-condition-for-multiphase-flows)
+  - [7.1 Two Courant Numbers](#71-two-courant-numbers)
+  - [7.2 Why the Interface Needs Tighter Control](#72-why-the-interface-needs-tighter-control)
+- [8. Real Case Studies from This Repository](#8-real-case-studies-from-this-repository)
+  - [8.1 Dam Break — `projects/08_dam_break/`](#81-dam-break--projects08_dam_break)
+  - [8.2 Boat Hull (Fixed) — `projects/11_boat_hull_fixed/`](#82-boat-hull-fixed--projects11_boat_hull_fixed)
+  - [8.3 Boat Hull (Floating) — `projects/12_boat_hull_floating/`](#83-boat-hull-floating--projects12_boat_hull_floating)
+- [9. Common Pitfalls & Troubleshooting](#9-common-pitfalls--troubleshooting)
+  - [Pitfall 1: Interface Smearing](#pitfall-1-interface-smearing)
+  - [Pitfall 2: Forgetting to Run setFields](#pitfall-2-forgetting-to-run-setfields)
+  - [Pitfall 3: CFL Too High for Interface Sharpness](#pitfall-3-cfl-too-high-for-interface-sharpness)
+  - [Pitfall 4: Wrong Boundary Conditions for Alpha](#pitfall-4-wrong-boundary-conditions-for-alpha)
+  - [Pitfall 5: Density Ratio Instability](#pitfall-5-density-ratio-instability)
+  - [Pitfall 6: Parasitic Currents from Surface Tension](#pitfall-6-parasitic-currents-from-surface-tension)
+  - [Pitfall 7: Gravity Direction Wrong or Missing](#pitfall-7-gravity-direction-wrong-or-missing)
+  - [Troubleshooting Checklist](#troubleshooting-checklist)
+- [10. Quick Reference](#10-quick-reference)
+  - [Solver Selection Flowchart](#solver-selection-flowchart)
+- [11. Where to Go Next](#11-where-to-go-next)
+
+</details>
+
 ## Lecture 7 — Models in OpenFOAM: The Multiphase Part
 
 ---
@@ -209,8 +271,9 @@ why special treatment is needed.
 ### 3.3 Interface Sharpening — The MULES Algorithm
 
 OpenFOAM uses the **MULES** (Multidimensional Universal Limiter with Explicit
-Solution) algorithm to keep the interface sharp. MULES adds an artificial
-**compression term** to the α transport equation:
+Solution) algorithm to limit phase-fraction flux corrections and help preserve
+$0\leq\alpha\leq1$. Interface sharpening comes from a separate artificial
+**compression flux**, controlled by `cAlpha`, rather than from MULES itself:
 
 $$
 \frac{\partial\alpha}{\partial t}
@@ -232,15 +295,16 @@ the transition region. The strength of compression is controlled by the
 
 ### 3.4 Property Interpolation
 
-With α known in every cell, the mixture properties are computed as
-volume-weighted averages:
-
-Mixture density and kinematic viscosity are volume-fraction weighted:
+For the classic incompressible two-phase mixture, density and **dynamic**
+viscosity are volume-fraction weighted. Kinematic viscosity is then their ratio:
 
 $$
 \rho=\alpha\rho_1+(1-\alpha)\rho_2,\qquad
-\nu=\alpha\nu_1+(1-\alpha)\nu_2.
+\mu=\alpha\rho_1\nu_1+(1-\alpha)\rho_2\nu_2,\qquad\nu=\mu/\rho.
 $$
+
+This is not generally an arithmetic average of the two kinematic viscosities
+when densities differ. See the [v6 mixture implementation](https://cpp.openfoam.org/v6/incompressibleTwoPhaseMixture_8C_source.html).
 
 For a water–air example using $\rho_{\mathrm{water}}=1000\ \mathrm{kg/m}^3$ and $\rho_{\mathrm{air}}=1\ \mathrm{kg/m}^3$:
 
@@ -263,6 +327,12 @@ choose the right tool for your problem.
 
 ### Solver Overview
 
+Names vary by fork and release. Foundation 6 integrates dynamic-mesh support
+into `interFoam`; `interDyMFoam` is an older separate solver name retained here
+for context, not the executable used by project 12. A phase-change solver also
+needs the appropriate energy/mass-transfer physics: a cavitation solver alone
+is not a general boiling model.
+
 ```
   ┌──────────────────────────────────────────────────────────────────────┐
   │                  OPENFOAM MULTIPHASE SOLVER FAMILY                  │
@@ -270,21 +340,21 @@ choose the right tool for your problem.
   │                                                                      │
   │  interFoam                                                           │
   │  ├── The workhorse: 2 incompressible, isothermal, immiscible fluids │
-  │  ├── VOF with MULES interface sharpening                            │
+  │  ├── VOF with compression and MULES limiting                            │
   │  └── Used in: projects/08_dam_break/                                │
   │              projects/11_boat_hull_fixed/                            │
   │                                                                      │
-  │  interDyMFoam                                                        │
+  │  interDyMFoam (historical separate dynamic-mesh solver)               │
   │  ├── interFoam + dynamic mesh capability                            │
   │  ├── Mesh moves/deforms each time step                              │
-  │  └── Used in: projects/12_boat_hull_floating/ (6-DoF body motion)  │
+  │  └── Foundation 6: project 12 uses interFoam with dynamic mesh         │
   │                                                                      │
   │  multiphaseInterFoam                                                 │
   │  ├── More than 2 immiscible phases                                  │
   │  └── Each phase pair has its own surface tension                    │
   │                                                                      │
   │  interPhaseChangeFoam                                                │
-  │  ├── VOF + phase change (cavitation, boiling, condensation)         │
+  │  ├── VOF + phase-change model (e.g. cavitation)         │
   │  └── Mass transfer between phases                                   │
   │                                                                      │
   │  reactingMultiphaseEulerFoam                                         │
@@ -299,16 +369,17 @@ choose the right tool for your problem.
 
 | Solver                        | Phases | Mesh    | Phase Change | Compressible | Typical Use Case                     |
 |-------------------------------|--------|---------|--------------|--------------|--------------------------------------|
-| `interFoam`                   | 2      | Static  | No           | No           | Dam break, sloshing, waves           |
-| `interDyMFoam`                | 2      | Dynamic | No           | No           | Floating bodies, wave-structure      |
+| `interFoam`                   | 2      | Static/dynamic in v6 | No           | No           | Dam break, sloshing, waves           |
+| `interDyMFoam` (older name)   | 2      | Dynamic | No           | No           | Floating bodies, wave-structure      |
 | `multiphaseInterFoam`         | N      | Static  | No           | No           | Oil-water-gas separation             |
-| `interPhaseChangeFoam`        | 2      | Static  | Yes          | No           | Cavitation, boiling                  |
+| `interPhaseChangeFoam`        | 2      | Static  | Yes          | No           | Cavitation with a matching mass-transfer model |
 | `compressibleInterFoam`       | 2      | Static  | No           | Yes          | High-speed gas-liquid                |
 | `reactingMultiphaseEulerFoam` | N      | Static  | Yes          | Yes          | Bubble columns, fluidized beds       |
 
 > **💡 Tip:** Start with `interFoam`. It handles the vast majority of
 > incompressible free-surface problems. Only move to more complex solvers when
-> you need a feature that `interFoam` lacks (dynamic mesh, phase change, etc.).
+> you need physics that your installed `interFoam` lacks, such as phase change.
+> Dynamic mesh alone does not require a different executable in Foundation 6.
 
 ---
 
@@ -355,8 +426,8 @@ sigma           sigma [ 1 0 -2 0 0 0 0 ] 0.07;      // Surface tension [N/m]
 
 **File:** `constant/g`
 
-Multiphase flows need gravity — it drives buoyancy and determines which phase
-floats and which sinks.
+Gravity drives buoyancy and free-surface motion in the dam-break and hull cases.
+Zero gravity is valid for other multiphase problems, such as a capillary droplet.
 
 ```c
 // From: projects/08_dam_break/constant/g
@@ -367,8 +438,9 @@ value           (0 -9.81 0);         // Gravity pointing downward (-y)
 
 > **⚠️ Warning:** Forgetting to set gravity (or setting it to zero) in a
 > multiphase simulation is a common mistake. Without gravity, the phases
-> have no reason to separate, and a dam break becomes a pressure-driven
-> expansion with no falling water.
+> lose the buoyancy mechanism; a zero-gravity dam-break setup will not model
+> falling water. Surface tension, imposed flow, and other forces can still move
+> or separate phases. Dam break uses downward `-y`; the hull cases use `-z`.
 
 ### 5.3 Initializing the α Field with setFieldsDict
 
@@ -429,19 +501,20 @@ The workflow:
 
 ### 5.4 Boundary Conditions for alpha.water
 
-**File:** `0/alpha.water`
+**Runtime file:** `0/alpha.water` (project 08 restores it from
+[`0.orig/alpha.water`](../projects/08_dam_break/0.orig/alpha.water) in `Allrun`)
 
 ```c
-// From: projects/08_dam_break/0/alpha.water
+// Annotated project 08 excerpt; stored template: 0.orig/alpha.water
 
 dimensions      [0 0 0 0 0 0 0];    // Dimensionless (volume fraction)
 internalField   uniform 0;           // Will be overwritten by setFields
 
 boundaryField
 {
-    walls
+    "(leftWall|rightWall|lowerWall)"
     {
-        type            zeroGradient;  // No flux of α through walls
+        type            zeroGradient;  // Zero normal alpha gradient
     }
     atmosphere
     {
@@ -449,7 +522,7 @@ boundaryField
         inletValue      uniform 0;     // If flow enters, it brings air (α = 0)
         value           uniform 0;
     }
-    defaultFaces
+    frontAndBack
     {
         type            empty;         // 2D case — front/back faces
     }
@@ -460,13 +533,17 @@ Common boundary condition choices for `alpha.water`:
 
 | Boundary Type     | BC for α                   | Explanation                              |
 |-------------------|----------------------------|------------------------------------------|
-| Solid wall        | `zeroGradient`             | No phase flux through walls              |
+| Solid wall        | `zeroGradient`             | Zero alpha gradient; no penetration comes from U/phi |
 | Open atmosphere   | `inletOutlet` (value = 0)  | Air can enter; water can leave           |
 | Inlet (water)     | `fixedValue` (value = 1)   | Pure water enters                        |
 | Inlet (air)       | `fixedValue` (value = 0)   | Pure air enters                          |
 | Outlet            | `inletOutlet` (value = 0)  | Default to air if backflow occurs        |
 | 2D front/back     | `empty`                    | Standard for 2D cases                    |
 | Symmetry plane    | `symmetryPlane`            | Mirror condition                         |
+
+For impermeable walls, zero velocity flux prevents advective phase transport;
+`zeroGradient` on alpha alone does not enforce that. Wetting/contact-angle
+problems need the appropriate alpha contact-angle condition and wall model.
 
 ### 5.5 controlDict Settings for Multiphase
 
@@ -476,7 +553,7 @@ Multiphase simulations almost always use **adaptive time stepping** to keep the
 interface CFL number under control:
 
 ```c
-// From: projects/08_dam_break/system/controlDict
+// Annotated project 08 settings (optional function objects omitted)
 
 application     interFoam;
 
@@ -514,7 +591,7 @@ The divergence schemes for the α transport equation are critical for interface
 sharpness:
 
 ```c
-// From: projects/08_dam_break/system/fvSchemes
+// Annotated project 08 schemes, with optional turbulence entries
 
 ddtSchemes
 {
@@ -533,7 +610,7 @@ divSchemes
 
     // Alpha transport — THIS IS THE CRITICAL PART
     div(phi,alpha)  Gauss vanLeer;                    // Bounded, TVD scheme
-    div(phirb,alpha) Gauss interfaceCompression;      // Compression term
+    div(phirb,alpha) Gauss linear;                    // Current v6 case compression flux
 
     // Turbulence (if used)
     div(phi,k)      Gauss upwind;
@@ -562,18 +639,21 @@ The two key divergence entries for VOF:
 | Entry                     | Scheme                     | Purpose                        |
 |---------------------------|----------------------------|--------------------------------|
 | `div(phi,alpha)`          | `Gauss vanLeer`            | Advection of α (bounded, TVD) |
-| `div(phirb,alpha)`        | `Gauss interfaceCompression`| Interface compression term    |
+| `div(phirb,alpha)`        | `Gauss linear` in this v6 case | Discretizes the separately constructed compression flux |
 
-> **⚠️ Warning — Interface Smearing:** Using `Gauss upwind` or `Gauss linear`
-> for `div(phi,alpha)` will smear the interface over many cells. Always use a
-> bounded scheme like `vanLeer`, `vanAlbada`, or `MUSCL` for the alpha transport.
+> **Scheme choice:** First-order upwind is diffusive; unlimited linear
+> advection can oscillate. Limited schemes such as `vanLeer`, combined with
+> MULES and the compression flux, control these effects. Some releases/tutorials
+> use `Gauss interfaceCompression` for `div(phirb,alpha)`; keep that alternative
+> tied to its solver version rather than assuming it is the current v6 case.
+> A scheme name alone does not guarantee bounds on a general mesh.
 
 ### 5.7 Solver Settings (fvSolution)
 
 **File:** `system/fvSolution`
 
 ```c
-// From: projects/08_dam_break/system/fvSolution
+// Annotated project 08 excerpt (additional final-solver entries omitted)
 
 solvers
 {
@@ -583,7 +663,13 @@ solvers
         nAlphaCorr      2;          // Number of alpha correction loops
         nAlphaSubCycles 1;          // Sub-cycling: solve α multiple times per Δt
                                      // Increase to 2-4 if interface is unstable
-        cAlpha          1;          // Compression factor (0=none, 1=standard, 2=aggressive)
+        cAlpha          1;          // Compression strength
+        MULESCorr       yes;        // Implicit predictor + limited corrections
+        nLimiterIter    3;
+        solver          smoothSolver;
+        smoother        symGaussSeidel;
+        tolerance       1e-8;
+        relTol          0;
     }
 
     pcorr
@@ -599,7 +685,7 @@ solvers
         solver          PCG;
         preconditioner  DIC;
         tolerance       1e-7;
-        relTol          0.01;
+        relTol          0.05;
     }
 
     p_rghFinal
@@ -622,13 +708,16 @@ PIMPLE
     momentumPredictor   no;         // Often "no" for multiphase
     nOuterCorrectors    1;          // 1 = PISO mode (standard for interFoam)
     nCorrectors         3;          // Pressure-velocity corrections
-    nNonOrthogonalCorrectors 1;     // For non-orthogonal meshes
+    nNonOrthogonalCorrectors 0;     // Current orthogonal dam-break mesh
 }
 ```
 
-> **📌 Note:** In multiphase VOF, the pressure variable is `p_rgh` (pressure
-> minus the hydrostatic component ρgh), not plain `p`. This removes the large
-> hydrostatic gradient from the pressure equation, improving numerical accuracy.
+> In these `interFoam` cases, the solved pressure variable is
+> $p_{rgh}=p-\rho gh$ (with the solver’s height reference). Both pressure
+> quantities have physical pressure dimensions `[1 -1 -2 0 0 0 0]`, unlike
+> the kinematic `p` used by `icoFoam`. The solver reconstructs `p`; both
+> fields can therefore appear in results. Initialize alpha, density, gravity,
+> and pressure consistently and use the solver’s pressure boundary conditions.
 
 Key parameters for the α solver:
 
@@ -748,12 +837,19 @@ numbers every time step:
 
 ### 7.2 Why the Interface Needs Tighter Control
 
-The α transport equation is **explicit** — solved with MULES outside the
-pressure-velocity coupling. Explicit methods are conditionally stable: if
-information travels farther than one cell per time step, the solution becomes
-unstable and the interface breaks apart.
+Foundation 6 supports an explicit MULES path and, with `MULESCorr yes`, an
+implicit upwind predictor followed by limited flux corrections. The dam-break
+case selects the latter. Sub-cycling reduces the alpha equation’s substep;
+neither semi-implicit transport nor boundedness guarantees an accurate
+interface at large time steps. See the [v6 alpha-equation source](https://cpp.openfoam.org/v6/VoF_2alphaEqn_8H_source.html).
 
-Recommended settings:
+The diagram’s velocity/spacing formulas are estimates. Reported interface
+Courant numbers use face fluxes in interface cells, with definitions depending
+on release. Adaptive updates also limit step growth and can use previous-step
+fluxes; `maxCo` is a target, not a guarantee that the next reported Co is lower.
+
+Illustrative starting settings (all `maxDeltaT` entries below are in seconds
+and must be rescaled to the problem’s physical time scales):
 
 | Setting        | Conservative | Standard | Aggressive (risky) |
 |----------------|--------------|----------|--------------------|
@@ -766,6 +862,12 @@ Recommended settings:
 > interface starts looking ragged or the solver diverges, tighten them.
 
 ---
+
+For surface-tension-dominated flow, a capillary time scale also matters,
+$\Delta t_\sigma\sim\sqrt{\rho_{eff}\Delta x^3/\sigma}$, with a
+method-dependent coefficient. A small advective Co in nearly stationary fluid
+does not control fast capillary waves. Check this scale, mesh-motion limits,
+phase-volume conservation, alpha bounds, and time-step convergence.
 
 ## 8. Real Case Studies from This Repository
 
@@ -783,12 +885,15 @@ Recommended settings:
   │  │  ┌──────────┐                                         │  │
   │  │  │ WATER    │                                         │  │
   │  │  │ (α = 1)  │              ┌──┐                       │  │
-  │  │  │          │              │  │ ← Obstacle             │  │
+  │  │  │          │              │  │ ← Optional obstacle    │  │
   │  │  │          │              │  │                        │  │
   │  └──┴──────────┴──────────────┴──┴───────────────────────┘  │
   │           walls (bottom + sides)                            │
   └─────────────────────────────────────────────────────────────┘
 ```
+
+The diagram retains a classic dam-break illustration with an optional
+obstacle; project 08’s checked-in `blockMeshDict` is a simple box without it.
 
 **What it demonstrates:**
 - Basic VOF setup with `interFoam`
@@ -821,7 +926,7 @@ evolution in ParaView.
 - Geometry: imported from `boat_hull.stl` via snappyHexMesh
 - Mesh: snappyHexMesh with surface refinement near hull and waterline
 - Phases: water and air (same properties as dam break)
-- Turbulence: likely k-ω SST (see [06 — Turbulence Models](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_turbulence_models.md))
+- Turbulence: `simulationType laminar` in the current case (see [06 — Turbulence Models](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_turbulence_models.md))
 
 **What the student learns:** How to combine VOF multiphase with complex geometry
 meshing — the realistic workflow for naval CFD. The interaction between mesh
@@ -830,16 +935,18 @@ refinement at the free surface and VOF accuracy is a key lesson.
 ### 8.3 Boat Hull (Floating) — `projects/12_boat_hull_floating/`
 
 **What it demonstrates:**
-- Dynamic mesh with VOF: `interDyMFoam`
+- Dynamic mesh with VOF: `interFoam` in Foundation 6 (`interDyMFoam` in older releases)
 - 6 degrees of freedom (6-DoF) rigid body motion
-- The hull moves in response to hydrodynamic forces (heave, pitch, etc.)
+- The hull responds to hydrodynamic forces through the configured motion constraints
 - Mesh deforms to follow the body motion
 
 **Key settings:**
-- Solver: `interDyMFoam` (interFoam + dynamic mesh)
+- Solver: `interFoam`, with `dynamicMotionSolverFvMesh` and `sixDoFRigidBodyMotion`
 - 6-DoF motion: `dynamicMeshDict` specifies the rigid body solver
-- Motion constraints: may restrict to heave + pitch only
-- Mesh motion: typically `displacementLaplacian` or similar
+- Current constraints: translation along z (heave) and rotation about z (yaw); pitch/roll are constrained
+- Mesh motion: distance-based rigid-body displacement scaling (`innerDistance`, `outerDistance`); no displacement-Laplacian equation in this setup
+- Rigid-body integration: `Newmark`; inspect [dynamicMeshDict](../projects/12_boat_hull_floating/constant/dynamicMeshDict) for mass, inertia, damping, and constraints
+- Turbulence: `simulationType laminar`; this is a teaching case, not a general full-scale ship model
 
 **What the student learns:** The most advanced case in the series — how to
 couple fluid forces with body motion in a multiphase context. This is the
@@ -851,7 +958,7 @@ basis for seakeeping, wave energy, and offshore engineering simulations.
 > |-------------------------|----------------|------------|------------|---------|
 > | `08_dam_break`          | `interFoam`    | Simple box | blockMesh  | None    |
 > | `11_boat_hull_fixed`    | `interFoam`    | STL hull   | snappyHex  | None    |
-> | `12_boat_hull_floating` | `interDyMFoam` | STL hull   | snappyHex  | 6-DoF   |
+> | `12_boat_hull_floating` | `interFoam`    | STL hull   | snappyHex  | 6-DoF   |
 
 ---
 
@@ -913,7 +1020,7 @@ basis for seakeeping, wave energy, and offshore engineering simulations.
 >
 > **Fix:** Tighten time stepping (`maxCo` = 0.3), increase `nAlphaSubCycles`,
 > ensure under-relaxation is appropriate. For extreme density ratios, consider
-> using the `GAMG` preconditioner for the pressure equation.
+> using the `GAMG` solver for the pressure equation, if suitable.
 
 ### Pitfall 6: Parasitic Currents from Surface Tension
 
@@ -973,7 +1080,7 @@ basis for seakeeping, wave energy, and offshore engineering simulations.
   ║  DEFAULT SOLVER:  interFoam                                          ║
   ║    Two incompressible, immiscible fluids with VOF                    ║
   ║                                                                      ║
-  ║  NEED DYNAMIC MESH?  →  interDyMFoam                                ║
+  ║  NEED DYNAMIC MESH?  →  interFoam (Foundation 6)                     ║
   ║  NEED PHASE CHANGE?  →  interPhaseChangeFoam                        ║
   ║  NEED > 2 PHASES?    →  multiphaseInterFoam                         ║
   ║                                                                      ║
@@ -1020,9 +1127,9 @@ basis for seakeeping, wave energy, and offshore engineering simulations.
               │     ├── Incompressible, no phase change?
               │     │     │
               │     │     ├── Static mesh  →  interFoam  ★
-              │     │     └── Moving body  →  interDyMFoam
+              │     │     └── Moving body  →  interFoam (dynamic in v6)
               │     │
-              │     ├── Phase change (cavitation/boiling)?
+              │     ├── Phase change (e.g. cavitation)?
               │     │     └── interPhaseChangeFoam
               │     │
               │     └── Compressible?

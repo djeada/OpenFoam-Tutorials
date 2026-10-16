@@ -1,5 +1,74 @@
 # OpenFOAM Dictionaries — The Complete Reference
 
+[All notes](../README.md#-notes-overview) · [Previous: Note 02](02_openfoam_cases.md) · [Next: Note 04](04_meshing.md)
+
+> **Version scope:** Classic OpenFOAM Foundation 6, matching the project launchers.
+> Other releases/forks may need different dictionaries or executables; see
+> [version guidance](../README.md#version-and-example-scope) and the
+> [current reference cases](02_openfoam_cases.md#current-reference-cases).
+
+<details>
+<summary>Contents</summary>
+
+- [1 — Case Directory Structure](#1--case-directory-structure)
+- [2 — The FoamFile Header](#2--the-foamfile-header)
+  - [Header Field Reference](#header-field-reference)
+  - [Common `class` Values](#common-class-values)
+- [3 — Dictionary Syntax](#3--dictionary-syntax)
+  - [3.1 — Key-Value Pairs](#31--key-value-pairs)
+  - [3.2 — Sub-Dictionaries (Nested Braces)](#32--sub-dictionaries-nested-braces)
+  - [3.3 — Lists and Arrays](#33--lists-and-arrays)
+  - [3.4 — Regex Matching for Boundary Names](#34--regex-matching-for-boundary-names)
+  - [3.5 — Include Directives and Macros](#35--include-directives-and-macros)
+  - [3.6 — Dimensional Units](#36--dimensional-units)
+- [4 — The Dimensions System](#4--the-dimensions-system)
+  - [Common Dimension Sets](#common-dimension-sets)
+  - [Reading Dimensions from Project Files](#reading-dimensions-from-project-files)
+- [5 — `controlDict` — Master Simulation Control](#5--controldict--master-simulation-control)
+  - [5.1 — Lid-Driven Cavity (Transient / icoFoam)](#51--lid-driven-cavity-transient--icofoam)
+  - [5.2 — NACA Airfoil (Steady-State / simpleFoam)](#52--naca-airfoil-steady-state--simplefoam)
+  - [5.3 — Transient vs Steady-State Comparison](#53--transient-vs-steady-state-comparison)
+  - [5.4 — controlDict Keyword Reference](#54--controldict-keyword-reference)
+  - [5.5 — How controlDict Drives the Solver](#55--how-controldict-drives-the-solver)
+- [6 — `fvSchemes` — Discretization Schemes](#6--fvschemes--discretization-schemes)
+  - [6.1 — What Each Scheme Category Represents](#61--what-each-scheme-category-represents)
+  - [6.2 — Lid-Driven Cavity fvSchemes (Transient)](#62--lid-driven-cavity-fvschemes-transient)
+  - [6.3 — NACA Airfoil fvSchemes (Steady-State + Turbulence)](#63--naca-airfoil-fvschemes-steady-state--turbulence)
+  - [6.4 — ddtSchemes (Time Derivative $\partial/\partial t$)](#64--ddtschemes-time-derivative-partialpartial-t)
+  - [6.5 — gradSchemes (Gradient $\nabla$)](#65--gradschemes-gradient-nabla)
+  - [6.6 — divSchemes (Divergence $\nabla \cdot$)](#66--divschemes-divergence-nabla-cdot)
+  - [6.7 — laplacianSchemes (Laplacian $\nabla^{2}$)](#67--laplacianschemes-laplacian-nabla2)
+  - [6.8 — interpolationSchemes and snGradSchemes](#68--interpolationschemes-and-sngradschemes)
+  - [6.9 — Accuracy vs Stability Trade-Off](#69--accuracy-vs-stability-trade-off)
+- [7 — `fvSolution` — Solvers and Algorithms](#7--fvsolution--solvers-and-algorithms)
+  - [7.1 — Lid-Driven Cavity fvSolution](#71--lid-driven-cavity-fvsolution)
+  - [7.2 — NACA Airfoil fvSolution](#72--naca-airfoil-fvsolution)
+  - [7.3 — Linear Solver Selection Guide](#73--linear-solver-selection-guide)
+  - [7.4 — Linear Solver Reference](#74--linear-solver-reference)
+  - [7.5 — Preconditioner Reference](#75--preconditioner-reference)
+  - [7.6 — Tolerance Settings](#76--tolerance-settings)
+  - [7.7 — Pressure-Velocity Coupling Algorithms](#77--pressure-velocity-coupling-algorithms)
+  - [7.8 — Algorithm Keywords](#78--algorithm-keywords)
+  - [7.9 — Relaxation Factors](#79--relaxation-factors)
+- [8 — `transportProperties` — Fluid Properties](#8--transportproperties--fluid-properties)
+  - [Lid-Driven Cavity (Laminar)](#lid-driven-cavity-laminar)
+  - [NACA Airfoil (Turbulent)](#naca-airfoil-turbulent)
+  - [Transport Model Reference](#transport-model-reference)
+- [9 — `turbulenceProperties` — Turbulence Model Selection](#9--turbulenceproperties--turbulence-model-selection)
+  - [Airfoil Alternative (k-epsilon)](#airfoil-alternative-k-epsilon)
+  - [Simulation Type Reference](#simulation-type-reference)
+  - [Common RAS Models](#common-ras-models)
+- [10 — Boundary Condition Dictionaries (`0/` Directory)](#10--boundary-condition-dictionaries-0-directory)
+  - [10.1 — Laminar Case: Lid-Driven Cavity](#101--laminar-case-lid-driven-cavity)
+  - [10.2 — Turbulent Case: NACA Airfoil](#102--turbulent-case-naca-airfoil)
+  - [10.3 — Common Boundary Condition Types](#103--common-boundary-condition-types)
+- [11 — `blockMeshDict` — Mesh Generation](#11--blockmeshdict--mesh-generation)
+- [12 — `decomposeParDict` — Parallel Decomposition](#12--decomposepardict--parallel-decomposition)
+- [13 — Master Dictionary Reference Table](#13--master-dictionary-reference-table)
+- [Quick-Reference: How All Dictionaries Connect](#quick-reference-how-all-dictionaries-connect)
+
+</details>
+
 Everything in OpenFOAM is controlled by plain-text **dictionary** files. There is no GUI, no
 binary project file, and no database — just human-readable text organized into directories.
 This design makes OpenFOAM cases easy to version-control, script, and reproduce.
@@ -56,8 +125,8 @@ Every OpenFOAM case follows a strict three-directory layout:
 | `system/`   | Numerical controls: solvers, schemes, time stepping, I/O | `controlDict`, `fvSchemes`, `fvSolution`, `decomposeParDict` |
 
 > **Tip:** The laminar lid-driven cavity (`projects/01_lid_driven_cavity`) only has `U` and `p`
-> in `0/`, while the turbulent NACA airfoil (`projects/04_naca_airfoil_analysis`) also has `k`,
-> `epsilon`, and `nut`. The files you need in `0/` depend on which solver and turbulence model
+> in `0/`, while the current turbulent NACA airfoil (`projects/04_naca_airfoil_analysis`) also has
+> `nuTilda` and `nut` (Spalart–Allmaras). The files you need in `0/` depend on which solver and turbulence model
 > you are running.
 
 ---
@@ -269,7 +338,8 @@ nu              [0 2 -1 0 0 0 0] 0.001;
 //               └───── kg^0 ──────┘
 ```
 
-From `projects/04_naca_airfoil_analysis/0/epsilon`:
+Illustrative `0/epsilon` dimensions for a k-epsilon alternative (the current
+NACA SA case has no epsilon field):
 
 ```c
 dimensions      [0 2 -3 0 0 0 0];
@@ -281,14 +351,17 @@ dimensions      [0 2 -3 0 0 0 0];
 
 > **Tip:** A quick sanity check — kinematic quantities (used by incompressible solvers like
 > `icoFoam` and `simpleFoam`) always have `kg` exponent = 0, because density has been divided
-> out. If you see `[1 ...]` as the first element, you are in absolute (compressible) units.
+> out. A leading mass exponent of 1 means a mass-dependent physical quantity,
+> not necessarily a compressible flow: incompressible variable-density
+> `interFoam` also uses physical-pressure `p_rgh` and density.
 
 ---
 
 ## 5 — `controlDict` — Master Simulation Control
 
-The `controlDict` is the **first file the solver reads**. It determines which application runs,
-how time advances, and what gets written to disk.
+The runtime reads `controlDict` during startup to control iteration/time advancement and output.
+Its `application` entry is used by helpers such as `getApplication`; typing `icoFoam`
+runs that executable even if `application` names something else. Keep both consistent.
 
 ### 5.1 — Lid-Driven Cavity (Transient / icoFoam)
 
@@ -348,12 +421,12 @@ startFrom       startTime;
 startTime       0;
 
 stopAt          endTime;
-endTime         1000;
+endTime         600;
 
-deltaT          0.1;
+deltaT          1;
 
 writeControl    timeStep;
-writeInterval   1;
+writeInterval   10;
 
 purgeWrite      0;
 
@@ -373,12 +446,12 @@ runTimeModifiable true;
  ┌──────────────────────────────────┬──────────────────────────────────────┐
  │      TRANSIENT  (icoFoam)        │      STEADY-STATE  (simpleFoam)      │
  ├──────────────────────────────────┼──────────────────────────────────────┤
- │  deltaT = real physical Δt       │  deltaT = pseudo-time step           │
+ │  deltaT = real physical Δt       │  deltaT = iteration label increment           │
  │  endTime = physical end time     │  endTime = iteration count           │
  │  ddtSchemes → Euler / backward   │  ddtSchemes → steadyState            │
  │  Algorithm: PISO or PIMPLE       │  Algorithm: SIMPLE                   │
  │  CFL condition must be met       │  No CFL constraint                   │
- │  Example: endTime 0.5 (seconds)  │  Example: endTime 1000 (iterations)  │
+ │  Example: endTime 0.5 (seconds)  │  Example: endTime 600 (deltaT = 1)  │
  └──────────────────────────────────┴──────────────────────────────────────┘
 ```
 
@@ -509,7 +582,7 @@ snGradSchemes
 
 ### 6.3 — NACA Airfoil fvSchemes (Steady-State + Turbulence)
 
-From `projects/04_naca_airfoil_analysis/system/fvSchemes`:
+**Illustrative k-epsilon alternative**, not the current NACA `fvSchemes`. The current case uses `bounded Gauss upwind` for `U` and `nuTilda`; see [the reference case table](02_openfoam_cases.md#current-reference-cases).
 
 ```c
 ddtSchemes
@@ -555,7 +628,7 @@ fluxRequired
 ```
 
 > **Key difference:** The transient case uses `Euler` for `ddtSchemes`, while the steady-state
-> case uses `steadyState`. The NACA case also needs extra `divSchemes` entries for the turbulence
+> case uses `steadyState`. The illustrated k-epsilon case also needs extra `divSchemes` entries for the turbulence
 > transport equations (`div(phi,k)`, `div(phi,epsilon)`) and the effective viscosity stress
 > tensor terms.
 
@@ -677,7 +750,7 @@ PISO
 
 ### 7.2 — NACA Airfoil fvSolution
 
-From `projects/04_naca_airfoil_analysis/system/fvSolution`:
+**Illustrative k-epsilon alternative**, including optional `residualControl` and SIMPLEC. The current NACA case instead uses GAMG for pressure, solves `nuTilda`, and has no `residualControl`; see [the reference table](02_openfoam_cases.md#current-reference-cases).
 
 ```c
 solvers
@@ -781,16 +854,16 @@ relaxationFactors
 | `smoothSolver` | Iterative smoother | Any | U, k, $\varepsilon$ — simple and robust |
 | `GAMG` | Geometric-Algebraic Multi-Grid | Any | Large cases; fastest for pressure |
 | `diagonal` | Diagonal solver | Diagonal | Trivial systems only |
-| `PBiCG` | Preconditioned Bi-Conjugate Gradient (legacy) | Asymmetric | Older synonym; prefer PBiCGStab |
+| `PBiCG` | Preconditioned Bi-Conjugate Gradient | Asymmetric | Distinct from the stabilized `PBiCGStab` algorithm |
 
 ### 7.5 — Preconditioner Reference
 
 | Preconditioner | Full Name | Use with | Notes |
 |----------------|-----------|----------|-------|
 | `DIC` | Diagonal Incomplete Cholesky | `PCG` (symmetric) | Default for pressure |
-| `FDIC` | Faster DIC | `PCG` (symmetric) | Less memory, similar performance |
-| `DILU` | Diagonal Incomplete LU | `PBiCGStab` (asymmetric) | Default for velocity, turbulence |
-| `GAMG` | Multigrid as preconditioner | Any | Heavyweight but powerful |
+| `FDIC` | Cached DIC | `PCG` (symmetric) | Caches coefficients to speed repeated application; storage/performance trade-off |
+| `DILU` | Diagonal Incomplete LU | `PBiCGStab` (asymmetric) | Common choice for asymmetric transport equations |
+| `GAMG` | Multigrid as preconditioner | Compatible Krylov solvers | More setup/work per application; assess total convergence cost |
 | `none` | No preconditioning | Any | Only for testing |
 
 ### 7.6 — Tolerance Settings
@@ -798,12 +871,13 @@ relaxationFactors
 | Keyword | Description | Typical value |
 |---------|-------------|---------------|
 | `tolerance` | Absolute residual to stop iterating | `1e-06` (p), `1e-05` (U, k, $\varepsilon$) |
-| `relTol` | Relative drop from initial residual | `0.05`–`0.1` (SIMPLE), `0` (final corrector in PISO) |
+| `relTol` | Final/initial normalized residual ratio | `0.05`–`0.1` (SIMPLE), `0` (final corrector in PISO) |
 | `minIter` | Minimum iterations before checking convergence | `1` |
-| `maxIter` | Maximum iterations per time step | `1000` (default) |
+| `maxIter` | Maximum iterations per linear solve | `1000` (default) |
 
 > **Tip:** In PISO/PIMPLE, the final corrector step should use `relTol 0;` so the solver
-> iterates until the absolute `tolerance` is met. This is why the cavity case defines `pFinal`
+> disables the relative stopping criterion; `maxIter` can still stop a solve
+> before the absolute `tolerance` is met. Check the reported final residual. This is why the cavity case defines `pFinal`
 > with `$p;` (inherits all settings from `p`) but overrides `relTol 0;`.
 
 ### 7.7 — Pressure-Velocity Coupling Algorithms
@@ -811,7 +885,7 @@ relaxationFactors
 | Algorithm | Full Name | Solver type | How it works |
 |-----------|-----------|-------------|--------------|
 | `SIMPLE` | Semi-Implicit Method for Pressure-Linked Equations | Steady-state | One pressure correction per iteration; needs relaxation |
-| `PISO` | Pressure-Implicit with Splitting of Operators | Transient | Multiple pressure correctors per time step; no relaxation needed |
+| `PISO` | Pressure-Implicit with Splitting of Operators | Transient | Multiple pressure correctors per step; often used without relaxation at sufficiently small time steps |
 | `PIMPLE` | Merged PISO-SIMPLE | Both | Outer SIMPLE loops + inner PISO correctors; most flexible |
 
 ### 7.8 — Algorithm Keywords
@@ -828,30 +902,29 @@ relaxationFactors
 
 ### 7.9 — Relaxation Factors
 
-Relaxation is essential for **SIMPLE** to prevent divergence. Values between 0 and 1 control
+Under-relaxation is commonly used with **SIMPLE** to improve convergence. Positive factors up to 1 control
 how aggressively the solution updates each iteration.
 
 | Factor range | Behaviour |
 |-------------|-----------|
-| 0.0–0.3 | Very conservative, slow convergence, high stability |
+| >0–0.3 | Very conservative, slow convergence, high stability |
 | 0.3–0.5 | Typical for pressure |
 | 0.5–0.8 | Typical for velocity and turbulence |
 | 0.8–1.0 | Aggressive; faster but may diverge |
 
-The NACA airfoil case uses:
+The current NACA airfoil case uses (the factors do not have to sum to 1):
 
 ```c
 relaxationFactors
 {
     fields
     {
-        p       0.3;       // conservative for pressure
+        p       0.2;       // conservative for pressure
     }
     equations
     {
-        U       0.7;       // moderate for velocity
-        k       0.7;       // moderate for turbulence
-        epsilon 0.7;       // moderate for turbulence
+        U       0.3;       // moderate for velocity
+        nuTilda 0.2;       // transported SA variable
     }
 }
 ```
@@ -901,7 +974,7 @@ FoamFile
 
 transportModel  Newtonian;
 
-nu              nu [ 0 2 -1 0 0 0 0 ] 1e-05;
+nu              nu [ 0 2 -1 0 0 0 0 ] 8.333333333e-06;
 ```
 
 ### Transport Model Reference
@@ -916,18 +989,23 @@ nu              nu [ 0 2 -1 0 0 0 0 ] 1e-05;
 
 > **Note:** The viscosity value differs greatly between the two projects:
 > - Cavity: $\nu = 0.001$ $m^{2}/s$ $\rightarrow$ $Re = UL/\nu = 1 \cdot 0.1/0.001 = 100$ (laminar)
-> - Airfoil: $\nu = 1 \times 10^{-5}$ $m^{2}/s$ $\rightarrow$ $Re \approx 1 \cdot 1/10^{-5} = 100{,}000$ (turbulent — needs $k$-$\varepsilon$ model)
+> - Current airfoil: $\nu=8.333333333\times10^{-6}\ \mathrm{m}^2/\mathrm{s}$,
+>   $U=50\ \mathrm{m/s}$, $L=1\ \mathrm{m}$ give $Re\approx6\times10^6$; the selected RANS model is SA.
 
 ---
 
 ## 9 — `turbulenceProperties` — Turbulence Model Selection
 
-This dictionary selects the turbulence modelling approach. It is **always required**, even for
-laminar cases (where you set `simulationType laminar;`).
+This dictionary is read by solvers that construct a turbulence model, including their
+`simulationType laminar;` mode. It is not universal: stock `icoFoam` 6 reads `nu`
+directly and does not require it.
 
-### NACA Airfoil (k-epsilon)
+<a id="naca-airfoil-k-epsilon"></a>
 
-From `projects/04_naca_airfoil_analysis/constant/turbulenceProperties`:
+### Airfoil Alternative (k-epsilon)
+
+This retained teaching example is an alternative to the current NACA SA setup,
+shown in [Current Reference Cases](02_openfoam_cases.md#current-reference-cases):
 
 ```c
 FoamFile
@@ -964,9 +1042,9 @@ RAS
 | `simulationType` | Description | Required extra files |
 |-------------------|-------------|---------------------|
 | `laminar` | No turbulence model | None |
-| `RAS` | Reynolds-Averaged Simulation (RANS) | `k`, `epsilon` or `k`, `omega`, `nut` in `0/` |
+| `RAS` | Reynolds-Averaged Simulation (RANS) | Model-dependent: `k`, `epsilon`, `nut`; `k`, `omega`, `nut`; or SA `nuTilda`, `nut` |
 | `LES` | Large Eddy Simulation | Sub-grid scale fields in `0/` |
-| `DES` | Detached Eddy Simulation | Hybrid RANS/LES fields |
+| DES model under `LES` | Detached Eddy Simulation | Model-specific hybrid RANS/LES fields; `DES` is not a `simulationType` in Foundation 6 |
 
 ### Common RAS Models
 
@@ -980,7 +1058,7 @@ RAS
 | `LRR` | R, epsilon, nut | Reynolds Stress Model; anisotropic flows |
 
 > **Tip:** For most external aerodynamics cases, `kOmegaSST` is the recommended starting point.
-> The NACA project uses `kEpsilon` for simplicity, but for production work you would switch.
+> The current NACA project uses `SpalartAllmaras`. Choose and validate a model for the flow, near-wall mesh, and quantities of interest; no model is universally best.
 > See [06_turbulence_models.md](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_turbulence_models.md) for detailed theory.
 
 ---
@@ -1089,9 +1167,11 @@ boundaryField
 
 ### 10.2 — Turbulent Case: NACA Airfoil
 
-The turbulent case needs five field files. Here are the key entries:
+This retained k-epsilon alternative needs five field files. These are not excerpts
+from the current four-field SA project. Use its actual patch names (`top`, `bottom`,
+`airfoil`, etc.) if adapting these examples; see [the current setup](02_openfoam_cases.md#current-reference-cases).
 
-**Velocity (U)** — from `projects/04_naca_airfoil_analysis/0/U`:
+**Velocity (U)** — illustrative alternative `0/U`:
 
 ```c
 dimensions      [0 1 -1 0 0 0 0];
@@ -1107,7 +1187,7 @@ boundaryField
 }
 ```
 
-**Turbulent kinetic energy (k)** — from `projects/04_naca_airfoil_analysis/0/k`:
+**Turbulent kinetic energy (k)** — illustrative alternative `0/k`:
 
 ```c
 dimensions      [0 2 -2 0 0 0 0];
@@ -1123,7 +1203,7 @@ boundaryField
 }
 ```
 
-**Turbulent dissipation (epsilon)** — from `projects/04_naca_airfoil_analysis/0/epsilon`:
+**Turbulent dissipation (epsilon)** — illustrative alternative `0/epsilon`:
 
 ```c
 dimensions      [0 2 -3 0 0 0 0];
@@ -1139,7 +1219,7 @@ boundaryField
 }
 ```
 
-**Turbulent viscosity (nut)** — from `projects/04_naca_airfoil_analysis/0/nut`:
+**Turbulent viscosity (nut)** — illustrative alternative `0/nut`:
 
 ```c
 dimensions      [0 2 -1 0 0 0 0];
@@ -1164,7 +1244,7 @@ boundaryField
 | `noSlip` | Dirichlet | Velocity = 0 at walls (shorthand for fixedValue (0 0 0)) |
 | `empty` | Constraint | 2D cases — no solution on front/back faces |
 | `symmetry` | Constraint | Symmetry plane — zero normal component |
-| `totalPressure` | Mixed | $p_0 = p + \frac{1}{2}\rho|U|^{2}$ — adjusts with velocity |
+| `totalPressure` | Mixed | $p_0 = p + \frac{1}{2}\rho\lvert U\rvert^{2}$ for physical incompressible pressure; omit density for kinematic pressure. Compressible modes differ. |
 | `fixedGradient` | Neumann | Specified normal gradient (e.g., heat flux) |
 | `inletOutlet` | Mixed | Switches between fixedValue (inflow) and zeroGradient (outflow) |
 | `calculated` | Derived | Value computed from other fields (e.g., nut from k, $\varepsilon$) |
@@ -1246,16 +1326,16 @@ method              scotch;  // decomposition method
 | `fvSolution` | `system/` | `dictionary` | Linear solvers, algorithms, relaxation | ✓ | ✓ |
 | `decomposeParDict` | `system/` | `dictionary` | Parallel domain decomposition | — | — |
 | `snappyHexMeshDict` | `system/` | `dictionary` | Complex mesh generation | — | — |
-| `blockMeshDict` | `constant/polyMesh/` | `dictionary` | Simple structured mesh | ✓ | — |
+| `blockMeshDict` | `system/` (legacy `constant/polyMesh/` also supported in this version) | `dictionary` | Simple structured mesh | ✓ | — |
 | `transportProperties` | `constant/` | `dictionary` | Fluid transport model and viscosity | ✓ | ✓ |
 | `turbulenceProperties` | `constant/` | `dictionary` | Turbulence model selection | — | ✓ |
 | `U` | `0/` | `volVectorField` | Velocity initial & boundary conditions | ✓ | ✓ |
 | `p` | `0/` | `volScalarField` | Pressure initial & boundary conditions | ✓ | ✓ |
-| `k` | `0/` | `volScalarField` | Turbulent kinetic energy IC/BC | — | ✓ |
-| `epsilon` | `0/` | `volScalarField` | Turbulent dissipation rate IC/BC | — | ✓ |
+| `k` | `0/` | `volScalarField` | Turbulent kinetic energy IC/BC | — | — |
+| `epsilon` | `0/` | `volScalarField` | Turbulent dissipation rate IC/BC | — | — |
 | `nut` | `0/` | `volScalarField` | Turbulent viscosity IC/BC | — | ✓ |
 | `omega` | `0/` | `volScalarField` | Specific dissipation rate IC/BC (k-ω models) | — | — |
-| `nuTilda` | `0/` | `volScalarField` | Modified viscosity IC/BC (Spalart-Allmaras) | — | — |
+| `nuTilda` | `0/` | `volScalarField` | Modified viscosity IC/BC (Spalart-Allmaras) | — | ✓ |
 
 ---
 
@@ -1289,5 +1369,6 @@ method              scotch;  // decomposition method
 
 ---
 
-*All code examples in this document are taken directly from the project files in this
-repository. Cavity = `projects/01_lid_driven_cavity`, NACA = `projects/04_naca_airfoil_analysis`.*
+*Examples include annotated project excerpts and clearly labeled alternative configurations.
+The current runnable cases are `projects/01_lid_driven_cavity` and
+`projects/04_naca_airfoil_analysis`; compare with their files before copying an example.*

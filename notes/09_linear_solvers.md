@@ -1,23 +1,74 @@
 # Linear Solvers, Preconditioners, and Solution Control in OpenFOAM
 
+[All notes](../README.md#-notes-overview) · [Previous: Note 08](08_cfl_number.md) · [Next: Note 10](10_icofoam_solver_analysis.md)
+
+> **Version scope:** Classic OpenFOAM Foundation 6, matching the project launchers.
+> Other releases/forks may need different dictionaries or executables; see
+> [version guidance](../README.md#version-and-example-scope) and the
+> [current reference cases](02_openfoam_cases.md#current-reference-cases).
+
 ## Table of Contents
 
-1. [Introduction: Why Linear Solvers Matter](#1-introduction-why-linear-solvers-matter)
-2. [From PDEs to Linear Systems](#2-from-pdes-to-linear-systems)
-3. [Solver Categories Overview](#3-solver-categories-overview)
-4. [OpenFOAM Solvers in Detail](#4-openfoam-solvers-in-detail)
-5. [Preconditioners](#5-preconditioners)
-6. [Smoothers](#6-smoothers)
-7. [Convergence Control](#7-convergence-control)
-8. [Solver Decision Tree](#8-solver-decision-tree)
-9. [Real Project Examples](#9-real-project-examples)
-10. [Relaxation Factors](#10-relaxation-factors)
-11. [Pressure-Velocity Coupling Algorithms](#11-pressure-velocity-coupling-algorithms)
-12. [Monitoring Convergence](#12-monitoring-convergence)
-13. [Troubleshooting](#13-troubleshooting)
-14. [Quick Reference Tables](#14-quick-reference-tables)
+<details>
+<summary>Contents</summary>
 
----
+- [1. Introduction: Why Linear Solvers Matter](#1-introduction-why-linear-solvers-matter)
+- [2. From PDEs to Linear Systems](#2-from-pdes-to-linear-systems)
+  - [The Discretization Process](#the-discretization-process)
+  - [Matrix Properties in CFD](#matrix-properties-in-cfd)
+  - [Why Not Direct Solvers?](#why-not-direct-solvers)
+- [3. Solver Categories Overview](#3-solver-categories-overview)
+  - [Solver Comparison Summary](#solver-comparison-summary)
+- [4. OpenFOAM Solvers in Detail](#4-openfoam-solvers-in-detail)
+  - [4.1 PCG — Preconditioned Conjugate Gradient](#41-pcg--preconditioned-conjugate-gradient)
+  - [4.2 PBiCGStab — Preconditioned Bi-Conjugate Gradient Stabilized](#42-pbicgstab--preconditioned-bi-conjugate-gradient-stabilized)
+  - [4.3 smoothSolver](#43-smoothsolver)
+  - [4.4 GAMG — Geometric-Algebraic Multi-Grid](#44-gamg--geometric-algebraic-multi-grid)
+- [5. Preconditioners](#5-preconditioners)
+  - [What Preconditioners Do](#what-preconditioners-do)
+  - [OpenFOAM Preconditioners](#openfoam-preconditioners)
+  - [DIC — Diagonal Incomplete Cholesky](#dic--diagonal-incomplete-cholesky)
+  - [DILU — Diagonal Incomplete LU](#dilu--diagonal-incomplete-lu)
+  - [FDIC — Faster Diagonal Incomplete Cholesky](#fdic--faster-diagonal-incomplete-cholesky)
+  - [diagonal — Diagonal (Jacobi) Preconditioner](#diagonal--diagonal-jacobi-preconditioner)
+  - [GAMG as Preconditioner](#gamg-as-preconditioner)
+- [6. Smoothers](#6-smoothers)
+  - [How Gauss-Seidel Smoothing Works](#how-gauss-seidel-smoothing-works)
+- [7. Convergence Control](#7-convergence-control)
+  - [tolerance vs relTol](#tolerance-vs-reltol)
+  - [Steady-State vs Transient Convergence Strategy](#steady-state-vs-transient-convergence-strategy)
+  - [Reading Solver Output](#reading-solver-output)
+- [8. Solver Decision Tree](#8-solver-decision-tree)
+- [9. Real Project Examples](#9-real-project-examples)
+  - [9.1 Lid-Driven Cavity — Transient (PISO)](#91-lid-driven-cavity--transient-piso)
+  - [9.2 NACA Airfoil — Steady-State (SIMPLE)](#92-naca-airfoil--steady-state-simple)
+- [10. Relaxation Factors](#10-relaxation-factors)
+  - [What Under-Relaxation Does](#what-under-relaxation-does)
+  - [Recommended Starting Values](#recommended-starting-values)
+  - [Fields vs Equations](#fields-vs-equations)
+  - [Choose Pressure and Velocity Relaxation Independently](#choose-pressure-and-velocity-relaxation-independently)
+- [11. Pressure-Velocity Coupling Algorithms](#11-pressure-velocity-coupling-algorithms)
+  - [SIMPLE — Semi-Implicit Method for Pressure-Linked Equations](#simple--semi-implicit-method-for-pressure-linked-equations)
+  - [PISO — Pressure-Implicit with Splitting of Operators](#piso--pressure-implicit-with-splitting-of-operators)
+  - [PIMPLE — Merged PISO-SIMPLE](#pimple--merged-piso-simple)
+  - [Algorithm Comparison](#algorithm-comparison)
+- [12. Monitoring Convergence](#12-monitoring-convergence)
+  - [What Good Convergence Looks Like](#what-good-convergence-looks-like)
+  - [Reading Log Files](#reading-log-files)
+  - [Plotting Residuals](#plotting-residuals)
+  - [Convergence Criteria for Different Problem Types](#convergence-criteria-for-different-problem-types)
+- [13. Troubleshooting](#13-troubleshooting)
+  - [Problem: Solution Not Converging](#problem-solution-not-converging)
+  - [Problem: Oscillating Residuals](#problem-oscillating-residuals)
+  - [Problem: Divergence (Blow-Up)](#problem-divergence-blow-up)
+  - [Problem: Solver Taking Too Many Iterations](#problem-solver-taking-too-many-iterations)
+- [14. Quick Reference Tables](#14-quick-reference-tables)
+  - [Complete Solver Configuration Reference](#complete-solver-configuration-reference)
+  - [Common Solver Recipes](#common-solver-recipes)
+  - [Solver-Preconditioner-Smoother Pairing Rules](#solver-preconditioner-smoother-pairing-rules)
+
+</details>
+
 
 ## 1. Introduction: Why Linear Solvers Matter
 
@@ -89,11 +140,14 @@ The properties of matrix **A** determine which solvers we can use:
 | **Positive-definite** | All eigenvalues > 0 | Pressure (with proper BCs) |
 | **Sparse** | Mostly zeros | ALL CFD matrices (only neighbors are non-zero) |
 | **Banded** | Non-zeros near diagonal | Structured meshes |
-| **Diagonally dominant** | $\lvert a_{ii}\rvert\ge\sum_{j\ne i}\lvert a_{ij}\rvert$ | Well-posed CFD problems |
+| **Diagonally dominant** | $\lvert a_{ii}\rvert\ge\sum_{j\ne i}\lvert a_{ij}\rvert$ | Useful solver property; not guaranteed by physical well-posedness |
 
 ### Why Not Direct Solvers?
 
-Direct solvers (Gaussian elimination, LU decomposition) give the **exact** answer, but:
+Direct solvers (Gaussian elimination, LU decomposition) factor the system and
+solve to floating-point accuracy; roundoff and conditioning still matter. The
+following rough storage illustration assumes a **dense** double-precision matrix,
+not sparse LU factors. Its times are illustrative, not measured benchmarks:
 
 ```
   Problem size (cells)    Memory for direct solve    Time complexity
@@ -104,11 +158,15 @@ Direct solvers (Gaussian elimination, LU decomposition) give the **exact** answe
    1,000,000              ~8 TB  ← impossible!       ~days
   10,000,000              forget about it            ~heat death
 
-  Iterative solvers: memory scales as O(N), time as O(N) to O(N log N)
-  Direct solvers:    memory scales as O(N²), time as O(N³)
+  Iterative: O(N) matrix storage for bounded stencil size; time varies
+  Dense direct: O(N²) storage, O(N³) factorization
 ```
 
-For any realistic CFD problem (100k+ cells), **iterative solvers are the only option**.
+Sparse direct methods exploit the sparsity pattern and can be practical for
+some CFD systems. Their factor fill and cost depend on ordering and geometry.
+OpenFOAM’s usual large CFD workflows favor iterative methods; their runtime
+depends on conditioning, preconditioning, and the number of iterations, so
+near-linear runtime is a goal rather than a universal complexity guarantee.
 
 ---
 
@@ -296,7 +354,8 @@ U
 }
 ```
 
-**From our NACA airfoil project** (turbulence quantities):
+**Illustrative k-epsilon alternative** (turbulence quantities; the current
+NACA project solves SA `nuTilda` instead):
 
 ```c
 k
@@ -588,7 +647,7 @@ These two settings work together to determine when the solver stops iterating:
     ‖residual‖ < r₀ × relTol      (relative convergence)
 
   For FINAL correctors (pFinal), set relTol = 0
-  to force solving to the absolute tolerance.
+  to disable the relative stopping criterion; maxIter still applies.
 ```
 
 **Key parameters**:
@@ -596,7 +655,7 @@ These two settings work together to determine when the solver stops iterating:
 | Parameter | Type | Meaning | Typical Values |
 |-----------|------|---------|---------------|
 | `tolerance` | Absolute | Stop if residual falls below this | 1e-06 (pressure), 1e-05 (velocity) |
-| `relTol` | Relative | Stop if residual drops by this factor | 0.01–0.1 (steady), 0 (final corrector) |
+| `relTol` | Relative | Stop when final/initial residual is below this ratio | 0.01–0.1 (steady), 0 (final corrector) |
 | `minIter` | Integer | Minimum iterations (always do at least this many) | 1 |
 | `maxIter` | Integer | Maximum iterations (give up after this) | 1000 (default) |
 
@@ -694,6 +753,15 @@ Use this flowchart to choose the right solver for each equation:
 
 ## 9. Real Project Examples
 
+Residuals in OpenFOAM are normalized algebraic residuals, not direct error
+estimates for velocity, force, or a physical pressure in Pa. A solve can stop
+on `tolerance`, `relTol`, or `maxIter`; inspect the reported result. With
+`relTol 0`, the relative criterion is disabled, but an iteration cap can still
+stop the solve before the absolute tolerance. Outer convergence additionally
+requires continuity balance and stable quantities of interest. Mesh/time-step
+convergence and comparison with reference data assess accuracy. See the
+[v6 solution-control guide](https://doc.cfd.direct/openfoam/user-guide-v6/fvsolution).
+
 ### 9.1 Lid-Driven Cavity — Transient (PISO)
 
 **Source**: `projects/01_lid_driven_cavity/system/fvSolution`
@@ -716,7 +784,7 @@ solvers
         solver          PCG;            // Conjugate Gradient
         preconditioner  DIC;            // Incomplete Cholesky
         tolerance       1e-06;          // Absolute convergence target
-        relTol          0.05;           // 5% relative drop is enough
+        relTol          0.05;           // Stop when residual is at most 5% of its initial value
     }                                   // (not the final corrector)
 
     // ── PRESSURE (final PISO corrector) ──────────────────────
@@ -724,7 +792,7 @@ solvers
     pFinal
     {
         $p;                             // Copy all settings from p
-        relTol          0;              // Must reach absolute tolerance!
+        relTol          0;              // Relative stopping disabled; still check maxIter/final residual
     }
 
     // ── VELOCITY ──────────────────────────────────────────────
@@ -759,7 +827,9 @@ PISO
 
 ### 9.2 NACA Airfoil — Steady-State (SIMPLE)
 
-**Source**: `projects/04_naca_airfoil_analysis/system/fvSolution`
+**Illustrative k-epsilon alternative**, not the current NACA `fvSolution`.
+The current project uses GAMG pressure, `nuTilda`, relaxation 0.2/0.3/0.2,
+and no `residualControl`; see [the reference table](02_openfoam_cases.md#current-reference-cases).
 
 This is a steady-state, turbulent (RANS) simulation using SIMPLE. The approach is different:
 relaxation factors are critical, and solvers don't need to fully converge each outer iteration.
@@ -789,7 +859,7 @@ solvers
         solver          smoothSolver;
         smoother        symGaussSeidel;
         tolerance       1e-05;
-        relTol          0.1;            // 10% relative drop per iteration
+        relTol          0.1;            // Stop at 10% of initial residual (90% reduction)
     }
 
     // ── TURBULENT KINETIC ENERGY ──────────────────────────────
@@ -836,7 +906,7 @@ PISO
 }
 
 // ── RELAXATION FACTORS ────────────────────────────────────────
-// Critical for SIMPLE stability! Without these, SIMPLE diverges.
+// Common SIMPLE stabilization; factors are case-dependent.
 relaxationFactors
 {
     fields
@@ -894,7 +964,7 @@ can overshoot and cause divergence. Under-relaxation **dampens** the update:
 
 | Variable | Relaxation Factor | Notes |
 |----------|------------------|-------|
-| **p** (pressure) | 0.3 | Most sensitive — always low |
+| **p** (pressure) | 0.3 | Common initial choice; tune to the coupling |
 | **U** (velocity) | 0.7 | Standard starting point |
 | **k** (turb. KE) | 0.7 | Match velocity |
 | $\varepsilon$ (turb. dissipation) | 0.7 | Match velocity |
@@ -926,11 +996,15 @@ relaxationFactors
 - **Equation relaxation** (`equations`): Modifies the diagonal dominance of the matrix.
   More robust than field relaxation for transport equations.
 
-### Important: p + U relaxation factors should sum to ~1.0
+<a id="important-p--u-relaxation-factors-should-sum-to-10"></a>
 
-A common rule of thumb for SIMPLE: `α_p + α_U ≈ 1.0`. So if p=0.3, then U=0.7.
-This is not a strict requirement but is a good guideline. For SIMPLEC (`consistent yes`),
-higher factors may work (e.g., p=0.5, U=0.9).
+### Choose Pressure and Velocity Relaxation Independently
+
+The familiar example `p = 0.3`, `U = 0.7` happens to sum to 1; it does not
+define a SIMPLE constraint or a general selection rule. The current NACA case
+uses `p = 0.2`, `U = 0.3`. Select field and equation factors for convergence
+of the coupled problem. SIMPLEC (`consistent yes`) may allow larger factors,
+but values such as `p = 0.5`, `U = 0.9` still need case-specific assessment.
 
 ---
 
@@ -1315,6 +1389,9 @@ relaxationFactors
 
 ---
 
-*Last updated based on project configurations from `01_lid_driven_cavity` and
-`04_naca_airfoil_analysis`. For more on mesh generation, see `03_meshGeneration.md`.
-For numerical schemes, see `08_numerical_schemes.md`.*
+*Includes annotated cavity excerpts and retained k-epsilon alternatives; compare
+current project settings with [the reference table](02_openfoam_cases.md#current-reference-cases).
+For meshing see [04 — Meshing](04_meshing.md); for discretization see
+[03 — Dictionaries](03_openfoam_dictionaries.md#6--fvschemes--discretization-schemes).
+These replace the older references `03_meshGeneration.md` and
+`08_numerical_schemes.md`, which are not files in this repository.*

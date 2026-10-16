@@ -1,5 +1,55 @@
 # The CFL Number: Stability, Time Stepping, and OpenFOAM Practice
 
+[All notes](../README.md#-notes-overview) · [Previous: Note 07](07_parallelization.md) · [Next: Note 09](09_linear_solvers.md)
+
+> **Version scope:** Classic OpenFOAM Foundation 6, matching the project launchers.
+> Other releases/forks may need different dictionaries or executables; see
+> [version guidance](../README.md#version-and-example-scope) and the
+> [current reference cases](02_openfoam_cases.md#current-reference-cases).
+
+<details>
+<summary>Contents</summary>
+
+- [Physical Intuition — Information Travel on a Grid](#physical-intuition--information-travel-on-a-grid)
+- [The CFL Condition — Derived](#the-cfl-condition--derived)
+  - [One-Dimensional Formula](#one-dimensional-formula)
+  - [Two-Dimensional Extension](#two-dimensional-extension)
+  - [General Three-Dimensional Form](#general-three-dimensional-form)
+  - [Connection to Von Neumann Stability Analysis](#connection-to-von-neumann-stability-analysis)
+- [Visual: What Happens When CFL > 1](#visual-what-happens-when-cfl--1)
+- [Explicit vs Implicit Time Integration Schemes](#explicit-vs-implicit-time-integration-schemes)
+  - [How the Schemes Differ](#how-the-schemes-differ)
+  - [Comparison Table](#comparison-table)
+  - [Why Implicit Schemes Tolerate Higher CFL](#why-implicit-schemes-tolerate-higher-cfl)
+  - [The PIMPLE Algorithm — Best of Both Worlds?](#the-pimple-algorithm--best-of-both-worlds)
+- [CFL in OpenFOAM — Practical Details](#cfl-in-openfoam--practical-details)
+  - [How OpenFOAM Reports the Courant Number](#how-openfoam-reports-the-courant-number)
+  - [The CourantNo.H Include](#the-courantnoh-include)
+  - [Real Code: Lid-Driven Cavity (Transient, Fixed $\Delta t$)](#real-code-lid-driven-cavity-transient-fixed-delta-t)
+  - [Real Code: NACA Airfoil (Steady-State, No CFL Concern)](#real-code-naca-airfoil-steady-state-no-cfl-concern)
+- [Automatic Time Step Adjustment](#automatic-time-step-adjustment)
+  - [Configuration](#configuration)
+  - [How It Works — Adaptive $\Delta t$ Over Time](#how-it-works--adaptive-delta-t-over-time)
+  - [When to Use Fixed vs Adjustable Time Step](#when-to-use-fixed-vs-adjustable-time-step)
+- [CFL Guidelines for Different OpenFOAM Solvers](#cfl-guidelines-for-different-openfoam-solvers)
+- [Acoustic CFL — Compressible Flows](#acoustic-cfl--compressible-flows)
+  - [The Acoustic CFL Condition](#the-acoustic-cfl-condition)
+  - [Why This Matters](#why-this-matters)
+- [Interface CFL for Multiphase Flows](#interface-cfl-for-multiphase-flows)
+  - [Why a Separate Interface CFL?](#why-a-separate-interface-cfl)
+  - [OpenFOAM Configuration for Multiphase CFL](#openfoam-configuration-for-multiphase-cfl)
+- [Practical Guidelines Summary](#practical-guidelines-summary)
+- [Troubleshooting CFL-Related Problems](#troubleshooting-cfl-related-problems)
+  - [Problem: Simulation Diverges](#problem-simulation-diverges)
+  - [Problem: CFL is Too Low (Wasting Compute Time)](#problem-cfl-is-too-low-wasting-compute-time)
+  - [Problem: CFL Varies Wildly Across the Domain](#problem-cfl-varies-wildly-across-the-domain)
+- [Calculating CFL Before Running — Estimate Your Time Step](#calculating-cfl-before-running--estimate-your-time-step)
+  - [The Formula](#the-formula)
+  - [Step-by-Step Estimation](#step-by-step-estimation)
+  - [Quick Reference Calculation](#quick-reference-calculation)
+
+</details>
+
 The Courant-Friedrichs-Lewy (CFL) number answers one critical question in every CFD simulation:
 
 > **"How far does information travel through the grid relative to the cell size
@@ -8,6 +58,8 @@ The Courant-Friedrichs-Lewy (CFL) number answers one critical question in every 
 Named after Richard Courant, Kurt Friedrichs, and Hans Lewy, who published the condition in 1928, the CFL number is a dimensionless ratio that governs whether a numerical simulation will produce meaningful results or blow up spectacularly.
 
 Think of it this way: your simulation marches forward in discrete time steps. At each step, the solver looks at neighboring cells to compute what happens next. If the flow moves information *faster* than the solver can track — skipping over cells entirely — the solver is blind to what actually happened. The result? Instability, divergence, and garbage output.
+
+**Scope of the diagrams below:** the “CFL ≤ 1 stable / CFL > 1 unstable” picture describes forward-Euler, first-order upwind advection on a uniform grid. It is not a universal test for all schemes. CFL is a necessary domain-of-dependence condition for relevant explicit discretizations, not a guarantee of stability, boundedness, convergence, or physical accuracy.
 
 ## Physical Intuition — Information Travel on a Grid
 
@@ -55,12 +107,12 @@ The CFL number connects three quantities: the flow velocity, the time step, and 
 For a 1D problem with uniform grid spacing $\Delta x$, velocity $u$, and time step $\Delta t$:
 
 $$
-CFL = \frac{u \cdot \Delta t}{\Delta x}
+CFL = \frac{|u| \cdot \Delta t}{\Delta x}
 $$
 
 Stability requires: $CFL \leq CFL_{max}$
 
-For most explicit schemes: $CFL_{max} = 1$
+For forward Euler with first-order upwind in 1D: $CFL_{max} = 1$. Other space/time schemes have different stability regions; for example, forward Euler with centered advection is unstable even at arbitrarily small nonzero CFL.
 
 Where:
 
@@ -73,7 +125,7 @@ Where:
 In 2D, information can travel in both the x and y directions simultaneously. The CFL condition becomes:
 
 $$
-CFL = \frac{u \cdot \Delta t}{\Delta x} + \frac{v \cdot \Delta t}{\Delta y} \leq CFL_{max}
+CFL = \frac{|u| \cdot \Delta t}{\Delta x} + \frac{|v| \cdot \Delta t}{\Delta y} \leq CFL_{max}
 $$
 
 Where $u$ and $v$ are the velocity components and $\Delta x$, $\Delta y$ are the cell dimensions
@@ -84,7 +136,7 @@ in each direction.
 For 3D flows (what most OpenFOAM cases use):
 
 $$
-CFL = \frac{u \cdot \Delta t}{\Delta x} + \frac{v \cdot \Delta t}{\Delta y} + \frac{w \cdot \Delta t}{\Delta z} \leq CFL_{max}
+CFL = \frac{|u| \cdot \Delta t}{\Delta x} + \frac{|v| \cdot \Delta t}{\Delta y} + \frac{|w| \cdot \Delta t}{\Delta z} \leq CFL_{max}
 $$
 
 In OpenFOAM's finite volume framework, this is computed per-cell using the face fluxes and cell volumes, which naturally handles non-uniform and unstructured meshes:
@@ -99,6 +151,8 @@ Where:
 - $V_{cell}$ = cell volume
 - $\sum_f$ = sum over all faces of the cell
 
+Absolute component speeds prevent cancellation when flow components have different signs. These Cartesian sums correspond to common unsplit advection estimates; dimensional splitting and other schemes can have different limits. The face-flux expression above applies to volumetric flux on a fixed mesh. Compressible mass fluxes and moving meshes need the corresponding solver-specific definitions.
+
 ### Connection to Von Neumann Stability Analysis
 
 The CFL condition can be derived rigorously via von Neumann stability analysis. The idea: decompose the numerical error into Fourier modes and check whether each mode grows or decays over time. For the first-order upwind scheme applied to the linear advection equation:
@@ -109,7 +163,7 @@ For stability: $|g| \leq 1$ for all wavenumbers $k$
 
 This yields: $0 \leq CFL \leq 1$
 
-The CFL limit is not a rule of thumb — it is a **mathematical requirement** for stability of explicit time integration.
+The bound just derived is a mathematical stability result for this particular advection discretization. Explicit diffusion also has its own Fourier-number restriction; satisfying an advective CFL bound alone does not cover it.
 
 ## Visual: What Happens When CFL > 1
 
@@ -153,7 +207,7 @@ The CFL limit is not a rule of thumb — it is a **mathematical requirement** fo
 
 ## Explicit vs Implicit Time Integration Schemes
 
-This is one of the most important practical distinctions in CFD. The CFL condition applies *strictly* only to explicit schemes, but understanding why helps you choose the right approach.
+This is one of the most important practical distinctions in CFD. The domain-of-dependence argument is particularly restrictive for local explicit schemes, but understanding why helps you choose the right approach.
 
 ### How the Schemes Differ
 
@@ -171,8 +225,8 @@ This is one of the most important practical distinctions in CFD. The CFL conditi
 
     Stencil at t only                      Stencil spans t AND t+Δt
     → Limited information reach            → Implicit coupling captures
-    → CFL ≤ 1 required                      distant information
-                                           → No strict CFL limit
+    → CFL limit depends on stencil                      distant information
+                                           → Stability still scheme-dependent
 
     Cheap per step (no system solve)       Expensive per step (matrix solve)
     Many small steps needed                Fewer large steps possible
@@ -182,18 +236,23 @@ This is one of the most important practical distinctions in CFD. The CFL conditi
 
 | Property              | Explicit Schemes          | Implicit Schemes             |
 |-----------------------|---------------------------|------------------------------|
-| **CFL limit**         | Strict: $CFL \leq 1$      | No strict stability limit    |
+| **CFL limit**         | Scheme-dependent; 1 for forward-Euler/upwind in 1D | No universal bound; assess full coupled scheme |
 | **Cost per time step**| Low (direct evaluation)   | High (linear system solve)   |
 | **Time accuracy**     | Depends on scheme order   | Depends on scheme order      |
 | **Memory usage**      | Low                       | Higher (stores matrix)       |
 | **Best for**          | Waves, acoustics, LES     | Steady/slow transients       |
-| **OpenFOAM solvers**  | icoFoam, interFoam        | simpleFoam, pimpleFoam       |
+| **OpenFOAM examples** | Explicit alpha path in some VOF settings | `icoFoam`/`pimpleFoam` momentum; `simpleFoam` is steady |
 | **Parallelization**   | Excellent                 | Requires parallel solvers    |
 | **Robustness**        | Fragile if CFL violated   | More forgiving               |
 
 ### Why Implicit Schemes Tolerate Higher CFL
 
-Implicit schemes include unknown future values in the discretization. This means the solution at $t + \Delta t$ depends on *all* cells simultaneously (through the matrix system), not just immediate neighbors. The domain of dependence of the numerical scheme is effectively the entire domain — it always contains the physical domain of dependence, regardless of CFL.
+Implicit schemes couple unknown future values through a matrix solve, so their
+numerical dependence can extend beyond immediate neighbors within one step.
+This removes the local explicit stencil’s one-cell restriction for suitable
+schemes. It does not prove that every implicit discretization is stable at
+every Co: stability, boundedness, nonlinear convergence, and time accuracy
+still depend on the equations, scheme, and coupling.
 
 > **Trade-off**: Implicit schemes let you take bigger time steps, but each step
 > costs more (you must assemble and solve a large sparse linear system). The
@@ -201,7 +260,7 @@ Implicit schemes include unknown future values in the discretization. This means
 
 ### The PIMPLE Algorithm — Best of Both Worlds?
 
-OpenFOAM's `pimpleFoam` uses the PIMPLE algorithm (PISO + SIMPLE), which performs outer correction loops within each time step. This allows it to run at $CFL > 1$ while maintaining reasonable accuracy:
+OpenFOAM's `pimpleFoam` uses the PIMPLE algorithm (PISO + SIMPLE), which performs outer correction loops within each time step. This can improve coupled convergence at $CFL > 1$, while accuracy still requires a time-step study:
 
 ```
     Standard PISO (CFL ≤ 1):              PIMPLE (CFL can exceed 1):
@@ -223,7 +282,7 @@ OpenFOAM's `pimpleFoam` uses the PIMPLE algorithm (PISO + SIMPLE), which perform
 
 ### How OpenFOAM Reports the Courant Number
 
-Every transient OpenFOAM solver computes and prints the Courant number at each time step. A typical log output looks like:
+Many transient OpenFOAM solvers compute and print a Courant number, but the definition and reporting frequency are solver dependent. A typical log output looks like:
 
 ```
     Time = 0.005
@@ -311,10 +370,10 @@ runTimeModifiable true;
 
 Observations for CFL:
 
-- **`application icoFoam`** — transient, laminar, incompressible (explicit-like PISO)
+- **`application icoFoam`** — transient, laminar, incompressible; `fvm::ddt`, convection, and diffusion form an implicit momentum matrix with PISO coupling
 - **`deltaT 0.001`** — fixed time step of 1 ms
-- **No `adjustTimeStep`** — the user pre-calculated $\Delta t$ to keep CFL safe
-- For a 1 m/s lid velocity and typical cavity mesh (~0.01 m cells): $CFL \approx 1.0 \times 0.001 / 0.01 = 0.1$ ✓
+- **No `adjustTimeStep`** — stock Foundation 6 `icoFoam` does not read the adaptive-step controls used by `pimpleFoam`; adding the keyword alone does not activate adaptation
+- The actual cavity is 0.1 m wide with 20 cells across it: $\Delta x = 0.005$ m. Using the 1 m/s lid speed gives $CFL_{estimate}=1\times0.001/0.005=0.2$. This is an estimate; inspect the solver's reported maximum rather than treating the lid speed as a proven bound on every local velocity.
 
 ### Real Code: NACA Airfoil (Steady-State, No CFL Concern)
 
@@ -329,13 +388,13 @@ startTime       0;
 
 stopAt          endTime;
 
-endTime         1000;
+endTime         600;
 
-deltaT          0.1;
+deltaT          1;
 
 writeControl    timeStep;
 
-writeInterval   1;
+writeInterval   10;
 
 purgeWrite      0;
 
@@ -355,8 +414,8 @@ runTimeModifiable true;
 Observations:
 
 - **`application simpleFoam`** — steady-state RANS solver (SIMPLE algorithm)
-- **`endTime 1000`** — these are *iteration* counts, not physical time
-- **`deltaT 0.1`** — acts as under-relaxation pseudo-time step
+- **`endTime 600` with `deltaT 1`** — normally 600 SIMPLE iterations starting from zero, unless another stop criterion intervenes
+- **`deltaT 1`** — advances the run's iteration/time label; with `ddtSchemes { default steadyState; }` it does not provide physical time integration or under-relaxation
 - **No CFL concern** — SIMPLE iterates toward steady state; there is no physical
   time marching so the Courant number has no stability meaning here
 
@@ -371,7 +430,7 @@ For transient cases where flow conditions change significantly (startup, vortex 
 
 ### Configuration
 
-Add these entries to `controlDict`:
+For a solver that implements adaptive stepping, such as the classic `pimpleFoam` or `interFoam`, add these entries to `controlDict`. Check the solver source and release first; stock Foundation 6 `icoFoam` does not implement this control:
 
 ```c
 adjustTimeStep  yes;       // Enable automatic time step adjustment
@@ -379,7 +438,7 @@ maxCo           0.5;       // Target maximum Courant number
 maxDeltaT       0.01;      // Upper bound on time step (seconds)
 ```
 
-OpenFOAM will compute the Courant number at each step and scale $\Delta t$ so that the maximum Courant number stays at or below `maxCo`.
+Supporting solvers use the measured Courant number to choose a following time step, with growth limits and `maxDeltaT`. Rapid changes in velocity or mesh motion can still produce an overshoot; `maxCo` is a control target rather than a proof that every following step stays below it.
 
 ### How It Works — Adaptive $\Delta t$ Over Time
 
@@ -424,6 +483,8 @@ OpenFOAM will compute the Courant number at each step and scale $\Delta t$ so th
 ## CFL Guidelines for Different OpenFOAM Solvers
 
 Not all solvers have the same CFL requirements. The algorithm used determines how strictly the CFL condition must be enforced:
+
+The ranges below are starting heuristics, not stability guarantees. `icoFoam` is not a forward-Euler explicit solver, and extra PIMPLE outer loops improve coupling convergence without recovering temporal detail lost through a large time step. Check time-step sensitivity for the quantity you need, including shedding frequency or interface motion.
 
 | Solver        | Algorithm | Type                 | Typical CFL | Notes                                       |
 |---------------|-----------|----------------------|-------------|---------------------------------------------|
@@ -543,10 +604,10 @@ Here are recommended CFL values for common simulation scenarios:
 
 | Scenario                             | Recommended CFL | Justification                                     |
 |--------------------------------------|:---------------:|---------------------------------------------------|
-| Laminar pipe flow (icoFoam)          | 0.5 – 1.0      | Well-behaved flow, standard PISO limit             |
+| Laminar pipe flow (icoFoam)          | 0.5 – 1.0      | Common starting target; not a mathematical PISO limit             |
 | Turbulent external flow (pisoFoam)   | 0.5 – 0.8      | Leave margin for velocity fluctuations             |
 | LES / DES simulations                | 0.3 – 0.5      | Accuracy of turbulent structures requires low CFL  |
-| PIMPLE with outer corrections        | 1.0 – 5.0      | Outer loops recover stability; start conservative  |
+| PIMPLE with outer corrections        | 1.0 – 5.0      | Outer loops improve coupling; verify stability and time accuracy  |
 | Steady-state RANS (simpleFoam)       | N/A             | No CFL constraint; use under-relaxation instead    |
 | Free-surface / VOF (interFoam)       | 0.2 – 0.5      | Interface sharpness demands tight CFL              |
 | Compressible subsonic (rhoPimpleFoam)| 0.5 – 1.0      | Account for acoustic CFL                           |
@@ -584,7 +645,9 @@ Here are recommended CFL values for common simulation scenarios:
 ### Problem: CFL is Too Low (Wasting Compute Time)
 
 If your max Courant number is consistently 0.001, you are taking time steps
-that are 1000× smaller than necessary:
+that are 1000 times smaller than a nominal CFL-one estimate. They are not necessarily smaller than needed: diffusion, capillary waves, imposed motion, chemistry, or the required temporal accuracy may set a tighter limit.
+
+Possible adjustments, after checking those other time scales:
 
 ```
     Solution options:

@@ -1,5 +1,55 @@
 # Viscosity and Viscosity Models in OpenFOAM
 
+[All notes](../README.md#-notes-overview) · [Previous: Note 10](10_icofoam_solver_analysis.md) · [Next: Note 12](12_multiphase_flows.md)
+
+> **Version scope:** Classic OpenFOAM Foundation 6, matching the project launchers.
+> Other releases/forks may need different dictionaries or executables; see
+> [version guidance](../README.md#version-and-example-scope) and the
+> [current reference cases](02_openfoam_cases.md#current-reference-cases).
+
+<details>
+<summary>Contents</summary>
+
+  - [Dynamic vs Kinematic Viscosity](#dynamic-vs-kinematic-viscosity)
+  - [Why OpenFOAM Uses Kinematic Viscosity](#why-openfoam-uses-kinematic-viscosity)
+- [Newtonian vs Non-Newtonian Fluids](#newtonian-vs-non-newtonian-fluids)
+  - [Newtonian Fluids](#newtonian-fluids)
+  - [Non-Newtonian Fluids](#non-newtonian-fluids)
+  - [Shear Stress vs Shear Rate — Visual Comparison](#shear-stress-vs-shear-rate--visual-comparison)
+  - [Bingham (Yield-Stress) Fluids](#bingham-yield-stress-fluids)
+- [Viscosity Models Available in OpenFOAM](#viscosity-models-available-in-openfoam)
+  - [Newtonian](#newtonian)
+  - [Solver Support and Coefficient Units](#solver-support-and-coefficient-units)
+  - [3.2 Power Law](#32-power-law)
+  - [Cross Power Law](#cross-power-law)
+  - [Bird-Carreau](#bird-carreau)
+  - [Herschel-Bulkley](#herschel-bulkley)
+  - [Model Comparison Summary](#model-comparison-summary)
+- [Configuring Viscosity in OpenFOAM](#configuring-viscosity-in-openfoam)
+  - [The `transportProperties` Dictionary](#the-transportproperties-dictionary)
+  - [Structure of the Dictionary](#structure-of-the-dictionary)
+  - [Complete Working Examples](#complete-working-examples)
+- [Effective Viscosity in Turbulent Flows](#effective-viscosity-in-turbulent-flows)
+  - [How It Works in OpenFOAM](#how-it-works-in-openfoam)
+  - [Turbulent Viscosity Ratio](#turbulent-viscosity-ratio)
+- [Temperature-Dependent Viscosity](#temperature-dependent-viscosity)
+  - [When Temperature Matters](#when-temperature-matters)
+- [Common Pitfalls & Troubleshooting](#common-pitfalls--troubleshooting)
+  - [Pitfall #1: Dynamic vs Kinematic Viscosity Mix-Up](#pitfall-1-dynamic-vs-kinematic-viscosity-mix-up)
+  - [Pitfall #2: Wrong Dimensions in the Dictionary](#pitfall-2-wrong-dimensions-in-the-dictionary)
+  - [Pitfall #3: Non-Newtonian Models Diverging](#pitfall-3-non-newtonian-models-diverging)
+  - [Pitfall #4: Missing `transportProperties` Keywords](#pitfall-4-missing-transportproperties-keywords)
+  - [Pitfall #5: Non-Newtonian with Turbulence](#pitfall-5-non-newtonian-with-turbulence)
+- [Practical Tips](#practical-tips)
+  - [Checking Available Models](#checking-available-models)
+  - [Inspecting the Viscosity Field](#inspecting-the-viscosity-field)
+  - [Dimensional Consistency Check](#dimensional-consistency-check)
+- [Quick Reference](#quick-reference)
+  - [Model Selection Quick Guide](#model-selection-quick-guide)
+- [Where to Go Next](#where-to-go-next)
+
+</details>
+
 Viscosity is a fluid's **resistance to deformation** under shear stress. Imagine two parallel plates with fluid between them — the top plate moves while the bottom plate stays fixed. The force needed to maintain that motion depends on the fluid's viscosity.
 
 ```
@@ -19,7 +69,8 @@ Viscosity is a fluid's **resistance to deformation** under shear stress. Imagine
   ░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░░
 ```
 
-The velocity profile is linear for a Newtonian fluid — this is **Couette flow**, the simplest example of viscous shear.
+For steady, fully developed flow with constant viscosity and no streamwise
+pressure gradient, the velocity profile is linear for a Newtonian fluid — this is **Couette flow**, the simplest example of viscous shear.
 
 ### Dynamic vs Kinematic Viscosity
 
@@ -46,7 +97,10 @@ $$
 \frac{\partial u}{\partial t} + (u \cdot \nabla)u = -\frac{1}{\rho}\nabla p + \nu \nabla^{2}u
 $$
 
-Here $\nu = \mu/\rho$ controls how fast momentum diffuses through the fluid.
+Here $\nu = \mu/\rho$ controls momentum diffusion. This simplified Laplacian
+form assumes constant viscosity and incompressibility. Variable-viscosity
+generalized Newtonian flow requires the divergence of the viscous stress tensor,
+not simply replacing a constant in $\nu\nabla^2 u$.
 
 ### Why OpenFOAM Uses Kinematic Viscosity
 
@@ -97,9 +151,9 @@ For non-Newtonian fluids, the **apparent viscosity** $\eta$ changes with shear r
 | Thixotropic         | $\eta$ decreases over time at constant $\dot{\gamma}$ | Yogurt, some gels              |
 | Rheopectic          | $\eta$ increases over time at constant $\dot{\gamma}$  | Gypsum paste                   |
 
-> **📌 Note:** OpenFOAM's built-in transport models handle the first three
-> categories (shear-thinning, shear-thickening, yield-stress). Thixotropic
-> and rheopectic behavior requires custom implementations.
+> These examples cover time-independent generalized Newtonian models.
+> Thixotropic/rheopectic fluids need a model that evolves material structure or
+> history; check the available models in your release before choosing or extending one.
 
 ### Shear Stress vs Shear Rate — Visual Comparison
 
@@ -222,6 +276,21 @@ nu              [0 2 -1 0 0 0 0] 1e-06;  // Water at 20°C
 > the units of kinematic viscosity. See [OpenFOAM Dictionaries](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/03_openfoam_dictionaries.md)
 > for details on dimension sets.
 
+### Solver Support and Coefficient Units
+
+These dictionaries describe the classic Foundation 6 incompressible transport
+model interface. Solvers such as `simpleFoam`/`pimpleFoam` construct a transport
+model; stock `icoFoam` 6 reads a constant `nu` and does **not** activate a
+non-Newtonian model merely because `transportModel` is present. Use a solver
+that instantiates and updates the selected model. See the [v6 rheology guide](https://doc.cfd.direct/openfoam/user-guide-v6/transport-rheology).
+
+In dimensional continuum notation, $\nu=k_{phys}\dot\gamma^{n-1}$ requires
+$k_{phys}$ in $\mathrm{m}^2\mathrm{s}^{n-2}$. The v6 dictionaries instead
+assign `k` viscosity dimensions and apply the power to a shear rate normalized
+by a reference of 1 s⁻¹. Keep their `[0 2 -1 0 0 0 0]` dimension set; do not
+replace it with the continuum coefficient’s n-dependent dimensions. `k` in
+Bird–Carreau denotes a time constant and is a different parameter.
+
 ### 3.2 Power Law
 
 Models shear-thinning or shear-thickening behavior with a simple power
@@ -241,7 +310,7 @@ Clamped: $\nu_{\min} \leq \nu \leq \nu_{\max}$
 |-----------|--------|--------------------------------|------------|
 | `nuMax`   | $\nu_{\max}$  | Upper viscosity limit          | $\mathrm{m}^2/\mathrm{s}$       |
 | `nuMin`   | $\nu_{\min}$  | Lower viscosity limit          | $\mathrm{m}^2/\mathrm{s}$       |
-| `k`       | k      | Consistency index              | $\mathrm{m}^2/\mathrm{s}$^n     |
+| `k`       | k      | Consistency index              | $\mathrm{m}^2/\mathrm{s}$ in the v6 dictionary; see coefficient convention above     |
 | `n`       | n      | Power-law index                | dimensionless |
 
 - **$n < 1$** → shear-thinning (pseudoplastic)
@@ -364,7 +433,7 @@ Models **yield-stress fluids** — materials that behave as solids below a thres
 **Equation:**
 
 $$
-\tau = \tau_0 + k \cdot \dot{\gamma}^n \quad (\text{for } \tau > \tau_0)
+\tau = \tau_y + K \cdot \dot{\gamma}^n \quad (\text{yielded material; physical stress in Pa})
 $$
 
 $$
@@ -377,11 +446,15 @@ $$
 |-----------|--------|--------------------------------|---------------|
 | `nu0`     | $\nu_0$     | Limiting viscosity (yield reg.)| $\mathrm{m}^2/\mathrm{s}$          |
 | `tau0`    | $\tau_0$     | Yield stress                   | $\mathrm{m}^2/\mathrm{s}^2$  *      |
-| `k`       | k      | Consistency index              | $\mathrm{m}^2/\mathrm{s}$^n        |
+| `k`       | k      | Consistency index              | $\mathrm{m}^2/\mathrm{s}$ in the v6 dictionary; see coefficient convention above        |
 | `n`       | n      | Power-law index                | dimensionless |
 
 > \* Because OpenFOAM works with kinematic quantities (divided by $\rho$),
-> `tau0` has units of $\mathrm{m}^2/\mathrm{s}^2$ (kinematic stress), not Pa.
+> `tau0` has units of $\mathrm{m}^2/\mathrm{s}^2$ (kinematic stress), not Pa:
+> `tau0 = tau_y / rho`. In the second equation, $\tau_0$ denotes this
+> kinematic value, and `k` follows the normalized-shear-rate convention above.
+> The finite `nu0` cap regularizes the ideal yield law: below yield it permits
+> slow viscous creep rather than an exactly rigid unyielded solid.
 
 **Configuration:**
 
@@ -488,8 +561,8 @@ nu              [0 2 -1 0 0 0 0] <value>;
 
 #### Example 1: Water (Newtonian)
 
-The simplest and most common configuration. Used in
-`projects/01_lid_driven_cavity/` and many tutorial cases.
+A common water-like example. The cavity project uses the same Newtonian syntax
+but sets `nu = 0.001` to obtain `Re = 100`; this `1e-06` example is not its value.
 
 ```c
 FoamFile
@@ -530,9 +603,11 @@ BirdCarreauCoeffs
 }
 ```
 
-> **💡 Tip:** For blood flow at physiological conditions (37 °C, $\rho \approx 1060$ $\mathrm{kg/m}^3$),
-> typical values are $\nu_0 \approx 3.3 \times 10^{-6}$ $\mathrm{m}^2/\mathrm{s}$ and $\nu_\infty \approx 3.0 \times 10^{-6}$ $\mathrm{m}^2/\mathrm{s}$.
-> The shear-thinning effect is moderate compared to polymer melts.
+> **Teaching values:** The Cross/Bird–Carreau coefficients above illustrate
+> dictionary syntax and weak shear thinning. They are not a validated blood
+> rheology fit. Density, temperature, composition, and shear-rate range must
+> match the measured material data; fit both plateaus and the transition range
+> before using a model quantitatively.
 
 #### Example 3: Polymer Melt (Power Law)
 
@@ -778,7 +853,11 @@ List all available transport models in your OpenFOAM installation:
 # In transportProperties:
 #   transportModel  banana;
 # Then run the solver:
-icoFoam 2>&1 | head -30
+simpleFoam -help
+# In a disposable copy of a compatible simpleFoam case, an invalid model
+# selection will report available types at startup; icoFoam 6 ignores it.
+# simpleFoam > log.model-check 2>&1
+# sed -n '1,80p' log.model-check
 # Output will include something like:
 #   Valid transportModel types:
 #       BirdCarreau CrossPowerLaw HerschelBulkley Newtonian powerLaw
@@ -813,7 +892,7 @@ $$
 Re = U \cdot L / \nu
 $$
 
-Example: Lid-driven cavity, $U = 1$ m/s, $L = 0.1$ m, $\nu = 10^{-6}$ $\mathrm{m}^2/\mathrm{s}$
+Hypothetical water-filled cavity (not project 01), $U = 1$ m/s, $L = 0.1$ m, $\nu = 10^{-6}$ $\mathrm{m}^2/\mathrm{s}$
 $Re = 1 \times 0.1 / 10^{-6} = 100{,}000$ (turbulent!)
 
 If that's not what you intended, check your $\nu$ value.
