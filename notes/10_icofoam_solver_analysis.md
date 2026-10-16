@@ -1,5 +1,47 @@
 # `icoFoam` Solver
 
+[All notes](../README.md#-notes-overview) · [Previous: Note 09](09_linear_solvers.md) · [Next: Note 11](11_viscosity_models.md)
+
+> **Version scope:** Classic OpenFOAM Foundation 6, matching the project launchers.
+> Other releases/forks may need different dictionaries or executables; see
+> [version guidance](../README.md#version-and-example-scope) and the
+> [current reference cases](02_openfoam_cases.md#current-reference-cases).
+
+<details>
+<summary>Contents</summary>
+
+- [The Incompressible Navier-Stokes Equations](#the-incompressible-navier-stokes-equations)
+  - [Continuity Equation (mass conservation)](#continuity-equation-mass-conservation)
+  - [Momentum Equation](#momentum-equation)
+  - [Physical Meaning of Each Term](#physical-meaning-of-each-term)
+- [3. The PISO Algorithm — Full Flowchart](#3-the-piso-algorithm--full-flowchart)
+  - [Complete Algorithm Flowchart](#complete-algorithm-flowchart)
+  - [Why PISO Works for Transient Flows](#why-piso-works-for-transient-flows)
+- [4. Source Code Analysis — Deep Dive](#4-source-code-analysis--deep-dive)
+  - [4a. Headers and Includes](#4a-headers-and-includes)
+  - [4b. Initialization](#4b-initialization)
+  - [4c. Time Loop](#4c-time-loop)
+  - [4d. Courant Number Check](#4d-courant-number-check)
+  - [4e. Momentum Predictor — Deep Dive](#4e-momentum-predictor--deep-dive)
+  - [4f. PISO Corrector Loop — Step by Step](#4f-piso-corrector-loop--step-by-step)
+  - [4g. Output Writing](#4g-output-writing)
+- [5. PISO vs SIMPLE vs PIMPLE — Algorithm Comparison](#5-piso-vs-simple-vs-pimple--algorithm-comparison)
+  - [SIMPLE (Semi-Implicit Method for Pressure-Linked Equations)](#simple-semi-implicit-method-for-pressure-linked-equations)
+  - [PIMPLE (merged PISO-SIMPLE)](#pimple-merged-piso-simple)
+  - [Comparison Table](#comparison-table)
+- [6. icoFoam in Practice — Real Project Configuration](#6-icofoam-in-practice--real-project-configuration)
+  - [6.1 Lid-Driven Cavity (`projects/01_lid_driven_cavity/`)](#61-lid-driven-cavity-projects01_lid_driven_cavity)
+  - [6.2 Elbow Case (`projects/02_elbow/`)](#62-elbow-case-projects02_elbow)
+- [7. Key OpenFOAM Programming Concepts](#7-key-openfoam-programming-concepts)
+  - [7.1 fvm:: vs fvc:: — Implicit vs Explicit](#71-fvm-vs-fvc--implicit-vs-explicit)
+  - [7.2 Field Types](#72-field-types)
+  - [7.3 Extending Solvers](#73-extending-solvers)
+- [8. Limitations of icoFoam](#8-limitations-of-icofoam)
+- [9. Related Solvers — Quick Reference](#9-related-solvers--quick-reference)
+- [10. Summary — The Complete icoFoam Picture](#10-summary--the-complete-icofoam-picture)
+
+</details>
+
 `icoFoam` is the simplest transient CFD solver in OpenFOAM. It solves the **incompressible Navier-Stokes equations** for **laminar**, **Newtonian** fluids using the **PISO** (Pressure-Implicit with Splitting of Operators) algorithm.
 
 | **Property**     | **Description**                                                  |
@@ -15,12 +57,12 @@
 **What do these terms mean physically?**
 
 - **Incompressible** — Density does not change with pressure. Valid for liquids and
-  low-speed gas flows (Mach < 0.3). This eliminates the energy equation entirely.
+  low-speed gas flows when density variations are negligible. The often-used Mach < 0.3 guideline concerns compressibility; it does not eliminate heat transfer. `icoFoam` omits the energy equation because this solver is isothermal.
 - **Laminar** — The flow is smooth and orderly. No turbulent eddies. No turbulence
   model is needed or included. See [06 — Turbulence Models](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_turbulence_models.md)
   for what to use when turbulence matters.
 - **Newtonian** — Shear stress is linearly proportional to strain rate. The viscosity
-  $\nu$ is a constant. Water, air, and most common fluids are Newtonian. Blood, polymers,
+  $\nu$ is a constant in this solver. Newtonian means shear-independent viscosity, which can still depend on temperature in other models. Water, air, and many common fluids are approximated as Newtonian. Blood, polymers,
   and ketchup are *not*.
 
 **When to use icoFoam:** Teaching, validation cases, low-Re flows (pipe flow at
@@ -111,7 +153,7 @@ corrections (typically 2).
 ║   │ │                                                        │   │      ║
 ║   │ │  ┌──────────────────────────────────────────────────┐  │   │      ║
 ║   │ │  │  STEP 0: Courant Number Check                    │  │   │      ║
-║   │ │  │  Co = |U| · Δt / Δx   (must be < 1 for PISO)    │  │   │      ║
+║   │ │  │  Co ≈ |U| · Δt / Δx   (monitor; target small Co)    │  │   │      ║
 ║   │ │  │  See: note 08_cfl_number.md                      │  │   │      ║
 ║   │ │  └────────────────────┬─────────────────────────────┘  │   │      ║
 ║   │ │                       ▼                                │   │      ║
@@ -182,7 +224,7 @@ per-time-step than iterative methods like SIMPLE, but it demands small $\Delta t
 ## 4. Source Code Analysis — Deep Dive
 
 The full source lives in `applications/solvers/incompressible/icoFoam/icoFoam.C`.
-Below we analyze every section with line-by-line annotations.
+The walkthrough below uses annotated excerpts and pseudocode, not one compilable source file. Compare it with the [Foundation 6 source](https://cpp.openfoam.org/v6/icoFoam_8C_source.html), especially before extending a different release.
 
 ### 4a. Headers and Includes
 
@@ -281,15 +323,18 @@ dimensionedScalar nu(...);
 
 `CourantNo.H` computes the CFL number (see [08 — CFL Number](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/08_cfl_number.md)):
 
-$$Co = \max_f \frac{|\phi_f|}{|d| \cdot |S_f|} \cdot \Delta t$$
+$$Co_{\max} = \max_{cells}\left(\frac{\Delta t}{2V_{cell}}\sum_{f\in cell}|\phi_f|\right)$$
 
 where:
 - $\phi_f$ = face flux (phi)
-- $d$ = distance between neighboring cell centers
-- $S_f$ = face area
+- $V_{cell}$ = cell volume
+- the sum includes all faces of that cell; the factor $1/2$ gives $|u|\Delta t/\Delta x$ for uniform 1D flow
 
-For PISO to be stable, **Co must be < 1** (typically $\leq 0.5$). This is the main
-restriction of the PISO algorithm — it requires small time steps.
+The face-speed-over-distance expression is a useful local estimate, but it is not the volume-flux calculation printed by the classic `CourantNo.H`. See [the CFL note](08_cfl_number.md) for the corresponding implementation and mean value. Reporting the number does not automatically change `deltaT` in stock Foundation 6 `icoFoam`.
+
+A small Courant number (often starting around 0.5) helps PISO coupling and
+temporal resolution. `Co < 1` is not a universal mathematical stability limit
+for this implicit-momentum solver; verify convergence and time-step sensitivity.
 
 ### 4e. Momentum Predictor — Deep Dive
 
@@ -573,7 +618,7 @@ to use each is critical.
 │              │    PISO      │     SIMPLE       │    PIMPLE        │
 ├──────────────┼──────────────┼──────────────────┼──────────────────┤
 │ Time         │ Transient    │ Steady-state     │ Transient        │
-│ CFL limit    │ Co < 1       │ N/A (no real Δt) │ Co can be >> 1   │
+│ Co guidance  │ Start small  │ N/A (no real Δt) │ Check coupling   │
 │ Outer iters  │ 1 (none)     │ Many (converge)  │ nOuterCorrectors │
 │ P-corrections│ nCorrectors  │ 1                │ nCorrectors      │
 │ Relaxation   │ No           │ Yes (required)   │ Yes (outer loop) │
@@ -658,7 +703,7 @@ solvers
                                    // (symmetric matrix → use CG)
         preconditioner  DIC;       // Diagonal Incomplete Cholesky
         tolerance       1e-06;     // Absolute convergence tolerance
-        relTol          0.05;      // Relative tolerance (5% reduction)
+        relTol          0.05;      // Final residual at most 5% of initial (95% reduction)
     }                              // See: note 09_linear_solvers.md
 
     pFinal                         // Pressure solver for LAST PISO corrector
@@ -810,10 +855,15 @@ boundaryField
 │   Symmetry          │  symmetry            │  symmetry           │
 │   2D (front/back)   │  empty               │  empty              │
 │                                                                  │
-│   RULE: You must fix either U or p on each boundary, not both!   │
-│   (One Dirichlet + one Neumann per boundary)                     │
+│   Typical cavity/inlet/outlet pairs; not a universal BC rule.   │
+│   (Pressure-driven, mixed, and symmetry conditions also exist)                     │
 └──────────────────────────────────────────────────────────────────┘
 ```
+
+This table describes common simple pairings. Pressure-driven inlet/outlet
+conditions are also valid, all-Neumann pressure needs a reference, and forced
+or moving-wall flows may need flux-consistent pressure BCs. See
+[Boundary Conditions](05_boundary_conditions.md).
 
 ### 6.2 Elbow Case (`projects/02_elbow/`)
 
@@ -846,13 +896,13 @@ two inlets, and one outlet.
 Key differences from the cavity case:
 
 ```c
-// From: projects/02_elbow/system/controldict
+// From: projects/02_elbow/system/controlDict
 application     icoFoam;
 endTime         75;        // Much longer simulation (75s vs 0.5s)
 deltaT          0.05;      // Larger time step (non-orthogonal mesh is coarser)
 writeInterval   20;        // Write every 20 time steps
 
-// From: projects/02_elbow/system/fvsolution — PISO settings
+// From: projects/02_elbow/system/fvSolution — PISO settings
 PISO
 {
     nCorrectors     2;
@@ -861,7 +911,7 @@ PISO
 ```
 
 ```c
-// From: projects/02_elbow/system/fvschemes — different convection scheme
+// From: projects/02_elbow/system/fvSchemes — different convection scheme
 divSchemes
 {
     default         none;
@@ -953,7 +1003,10 @@ icoFoam is the starting point for writing custom solvers. Common extensions:
 1. **Add turbulence** → becomes pisoFoam (add `turbulence->correct()`)
 2. **Add energy equation** → add `volScalarField T` + `fvm::ddt(T) + fvm::div(phi,T) - fvm::laplacian(DT,T)`
 3. **Add scalar transport** → same pattern as energy, different field
-4. **Non-Newtonian** → replace constant `nu` with a viscosity model
+4. **Non-Newtonian** → extend the solver to construct/update a viscosity model
+   and assemble the corresponding stress divergence, or use a compatible
+   model-aware solver such as `pimpleFoam`; a dictionary change alone does not
+   enable rheology in stock `icoFoam` 6
 
 The structure is always the same:
 ```

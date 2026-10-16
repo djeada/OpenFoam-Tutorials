@@ -13,8 +13,24 @@ Whether you're a student encountering CFD for the first time, an engineer switch
 
 ---
 
+## Version and Example Scope
+
+The project launchers source **OpenFOAM Foundation 6** (`/opt/openfoam6/etc/bashrc`).
+The notes explain that classic solver/dictionary interface; later Foundation
+releases and OpenCFD releases can use different solver names, model dictionaries,
+and boundary-condition syntax. A larger version number is not a guarantee that
+a case runs unchanged. Use the project launcher’s matching environment or port
+and verify the case explicitly.
+
+The notes preserve illustrative k-epsilon and snappyHexMesh alternatives. The
+current NACA project uses **Spalart–Allmaras with Gmsh**, as documented in the
+[checked reference-case table](notes/02_openfoam_cases.md#current-reference-cases).
+Each guide has a section index and previous/next links. Numerical examples are
+teaching estimates; use the project files and validation scope when running them.
+
 ## Table of Contents
 
+- [Version and Example Scope](#version-and-example-scope)
 - [Why This Repository?](#why-this-repository)
 - [Repository Structure](#repository-structure)
 - [Learning Path](#learning-path)
@@ -159,7 +175,7 @@ Twelve simulation projects arranged by increasing complexity. Each project direc
 | 09 | [**Wind Turbine Blade**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/09_wind_turbine_blade) | Demonstrates the Multiple Reference Frame (MRF) approach with a rotating cell zone (no blades). Introduces `topoSet` and `MRFProperties`. | `simpleFoam` | `blockMesh` | k-epsilon | 🔴 Advanced |
 | 10 | [**Mixing T-Junction**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/10_mixing_t_junction) | Thermal mixing of hot (350 K) and cold (300 K) streams in a T-junction. Multi-block structured mesh with buoyancy coupling. | `buoyantSimpleFoam` | `blockMesh` | k-epsilon | 🔴 Advanced |
 | 11 | [**Boat Hull — Fixed**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/11_boat_hull_fixed) | Fixed toy boat hull in calm water with free surface. Uses your own STL geometry with snappyHexMesh for drag and wave pattern analysis. | `interFoam` | `snappyHexMesh` | Laminar | 🔴 Advanced |
-| 12 | [**Boat Hull — Floating**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/12_boat_hull_floating) | Floating rigid-body boat with 6-DoF motion. Dynamic mesh morphing with heave, pitch, and roll — the capstone project. | `interFoam` | `snappyHexMesh` | Laminar | 🔴 Advanced |
+| 12 | [**Boat Hull — Floating**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/12_boat_hull_floating) | Floating rigid-body boat with 6-DoF motion. Dynamic mesh morphing with constrained heave/yaw motion — the capstone project. | `interFoam` | `snappyHexMesh` | Laminar | 🔴 Advanced |
 
 ### Project Progression Map
 
@@ -167,7 +183,7 @@ Twelve simulation projects arranged by increasing complexity. Each project direc
   FUNDAMENTALS           EXTERNAL AERO          HEAT TRANSFER          ADVANCED PHYSICS
   ┌──────────┐          ┌──────────┐           ┌──────────┐          ┌──────────┐
   │ 01 Cavity│          │03 Cylinder│           │05 Heated│           │08 Dam    │
-  │ icoFoam  │─────────▶│ simpleFoam│──────────▶│   Pipe   │     ┌──▶│  Break   │
+  │ icoFoam  │─────────▶│ pimpleFoam│──────────▶│   Pipe   │     ┌──▶│  Break   │
   │ blockMesh│          │ Gmsh mesh │           │ buoyant  │     │   │ interFoam│
   └──────────┘          └──────────┘           └──────────┘     │   │ VOF      │
        │                     │                      │            │   └──────────┘
@@ -205,7 +221,7 @@ Want to run your first CFD simulation right now? Here's the fastest path.
 
 ### Prerequisites
 
-- **OpenFOAM** installed (v6+ or ESI v2006+) — see [Installation](#installation) below
+- **A matching OpenFOAM environment** (the project launchers target Foundation 6) — see [Installation](#installation) below
 - **ParaView** for visualization (recommended)
 - Basic terminal/command-line familiarity
 
@@ -215,11 +231,14 @@ Run the classic lid-driven cavity case:
 
 ```bash
 # 1. Clone this repository
-git clone https://github.com/your-username/OpenFoam-Tutorials.git
+git clone https://github.com/djeada/OpenFoam-Tutorials.git
 cd OpenFoam-Tutorials/projects/01_lid_driven_cavity
 
 # 2. Generate the mesh
 blockMesh
+
+# Inspect mesh quality before solving
+checkMesh
 
 # 3. Run the solver
 icoFoam
@@ -258,27 +277,32 @@ project README lists its measured time.
 
 There are two recommended ways to get OpenFOAM up and running.
 
-### Option A: Direct Installation (Ubuntu/Debian)
+<a id="option-a-direct-installation-ubuntudebian"></a>
 
-The simplest approach if you're on Ubuntu:
+### Option A: Direct Installation (Release-Specific)
+
+Follow the [Foundation’s official installation instructions](https://openfoam.org/download/)
+for your release and supported operating system. The former example installed
+OpenFOAM 11; that is a different interface from these Foundation 6 cases (modern
+Foundation releases use [modular solver workflows](https://doc.cfd.direct/openfoam/user-guide-v11/solvers-modules)). Do not assume `simpleFoam`
+exists in every release, or combine one release’s package instructions with
+another release’s dictionaries.
+
+For an **existing Foundation 6 installation** at the path used by the launchers:
 
 ```bash
-# Add the OpenFOAM repository
-sudo sh -c "wget -O - https://dl.openfoam.org/gpg.key | apt-key add -"
-sudo add-apt-repository http://dl.openfoam.org/ubuntu
-
-# Update and install (example: OpenFOAM 11)
-sudo apt-get update
-sudo apt-get install -y openfoam11
-
-# Source the environment (add to ~/.bashrc for persistence)
-source /opt/openfoam11/etc/bashrc
-
-# Verify installation
+source /opt/openfoam6/etc/bashrc
+echo "$WM_PROJECT_VERSION"
+blockMesh -help
+icoFoam -help
 simpleFoam -help
 ```
 
-> **💡 Tip:** Add the `source` line to your `~/.bashrc` so OpenFOAM is available every time you open a terminal.
+Source the matching environment in each shell that runs a case. You may add that
+line to your shell startup file once you have confirmed the installed path.
+If your host cannot run the required release natively, use the project’s Docker
+workflow. Package availability depends on the OS; there is no universal apt
+command that installs a compatible release on every Ubuntu/Debian version.
 
 ### Option B: Docker (Any Platform — Recommended for Portability)
 
@@ -306,13 +330,20 @@ docker container run -ti --rm \
 
 **3. Handle SELinux restrictions (Fedora/RHEL/CentOS):**
 
-If you encounter permission errors on SELinux-enabled systems:
+For SELinux label denials, relabel a dedicated simulation directory for the
+container using `:Z` (`:z` when deliberately shared by multiple containers):
 
 ```bash
-docker container run --privileged -ti --rm \
-  -v ~/openfoam_data:/home/foam \
+docker container run -ti --rm \
+  -v "$HOME/openfoam_data:/home/foam:Z" \
   cfdengine/openfoam
 ```
+
+`--privileged` grants broad host/device access and is not the usual fix for a
+bind-mount label problem. Limit relabeling to your simulation directory; also
+check normal ownership/permissions. See [Docker’s bind-mount documentation](https://docs.docker.com/engine/storage/bind-mounts/).
+The image name in the launchers is unpinned; record the actual image digest and
+`WM_PROJECT_VERSION` when reproducibility matters.
 
 ### Setting Up the Container Environment
 
@@ -327,13 +358,13 @@ ls /opt
 source /opt/openfoam6/etc/bashrc
 
 # 2. Verify the FOAM_RUN variable
-echo $FOAM_RUN
+echo "$FOAM_RUN"
 
 #    If empty, set it manually:
 export FOAM_RUN=/home/foam
 
 # 3. Create and enter the working directory
-mkdir -p $FOAM_RUN && cd $FOAM_RUN
+mkdir -p "$FOAM_RUN" && cd "$FOAM_RUN"
 
 # 4. Set the OpenFOAM installation directory
 export OPENFOAM_DIR=/opt/openfoam6/
@@ -341,7 +372,8 @@ export OPENFOAM_DIR=/opt/openfoam6/
 
 ### Verify Your Installation
 
-Regardless of installation method, run these checks:
+In the matching Foundation 6 shell, run these checks. Use a fresh destination
+for the tutorial copy to avoid overwriting an existing cavity case:
 
 ```bash
 # Check that OpenFOAM is accessible
@@ -352,8 +384,9 @@ icoFoam -help
 simpleFoam -help
 
 # Run the built-in cavity tutorial as a smoke test
-cp -r $FOAM_TUTORIALS/incompressible/icoFoam/cavity/cavity $FOAM_RUN/
-cd $FOAM_RUN/cavity
+mkdir -p "$FOAM_RUN"
+cp -r "$FOAM_TUTORIALS/incompressible/icoFoam/cavity/cavity" "$FOAM_RUN/"
+cd "$FOAM_RUN/cavity"
 blockMesh && icoFoam
 ```
 
@@ -418,7 +451,7 @@ myCase/
 | `snappyHexMesh` | Generate complex unstructured mesh | Real-world geometries with STL files |
 | `checkMesh` | Validate mesh quality | **Always** run after meshing |
 | `decomposePar` | Split case for parallel runs | Before running on multiple processors |
-| `mpirun -np N solver` | Run solver in parallel | Large cases needing multiple CPUs |
+| `mpirun -np N solver -parallel` | Run solver in parallel | Large cases needing multiple CPUs |
 | `reconstructPar` | Recombine parallel results | After a parallel run, before post-processing |
 | `paraFoam` | Launch ParaView for visualization | Viewing results |
 | `foamToVTK` | Convert results to VTK format | Alternative post-processing path |
@@ -442,8 +475,13 @@ Is the flow laminar?
     │
     └── External (vehicles, airfoils) → k-omega SST (better near-wall)
         │
-        └── Need to capture vortex shedding? → LES (expensive!)
+        └── Need resolved turbulent eddies? → LES (costly)
 ```
+
+Laminar transient solvers can capture shedding at suitable Reynolds numbers
+(e.g. project 03); URANS can capture modeled large-scale unsteadiness. LES is
+a choice for resolving turbulent structures and needs adequate 3D mesh/time
+resolution, not a prerequisite for every shedding calculation.
 
 > **📖 Full details:** [Note 06 — Turbulence Models](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/06_turbulence_models.md)
 

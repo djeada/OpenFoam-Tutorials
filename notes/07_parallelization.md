@@ -1,5 +1,63 @@
 # Parallelization in OpenFOAM
 
+[All notes](../README.md#-notes-overview) · [Previous: Note 06](06_turbulence_models.md) · [Next: Note 08](08_cfl_number.md)
+
+> **Version scope:** Classic OpenFOAM Foundation 6, matching the project launchers.
+> Other releases/forks may need different dictionaries or executables; see
+> [version guidance](../README.md#version-and-example-scope) and the
+> [current reference cases](02_openfoam_cases.md#current-reference-cases).
+
+<details>
+<summary>Contents</summary>
+
+- [Introduction: Why Parallelize?](#introduction-why-parallelize)
+  - [Amdahl's Law — The Fundamental Limit](#amdahls-law--the-fundamental-limit)
+- [Domain Decomposition Concept](#domain-decomposition-concept)
+  - [How Data Is Split](#how-data-is-split)
+  - [Processor Boundaries — Ghost Cells and Halo Exchange](#processor-boundaries--ghost-cells-and-halo-exchange)
+- [Decomposition Methods](#decomposition-methods)
+  - [Simple — Geometric Slicing Along Axes](#simple--geometric-slicing-along-axes)
+  - [Hierarchical — Multi-Level Splitting](#hierarchical--multi-level-splitting)
+  - [Scotch — Graph-Based Optimal Partitioning (Recommended)](#scotch--graph-based-optimal-partitioning-recommended)
+  - [Metis — Similar to Scotch](#metis--similar-to-scotch)
+  - [Comparison Table](#comparison-table)
+- [The `decomposeParDict` — Deep Dive](#the-decomposepardict--deep-dive)
+  - [Complete Example: Scotch Method (Recommended)](#complete-example-scotch-method-recommended)
+  - [Simple Method Configuration](#simple-method-configuration)
+  - [Hierarchical Method Configuration](#hierarchical-method-configuration)
+  - [Keyword Reference](#keyword-reference)
+- [The Complete Parallel Workflow](#the-complete-parallel-workflow)
+  - [Step 1: Mesh Generation](#step-1-mesh-generation)
+  - [Step 2: Domain Decomposition](#step-2-domain-decomposition)
+  - [Step 3: Run Solver in Parallel](#step-3-run-solver-in-parallel)
+  - [Step 4: Reconstruct Results](#step-4-reconstruct-results)
+- [Running in Parallel — Detailed Guide](#running-in-parallel--detailed-guide)
+  - [Basic `mpirun` Syntax](#basic-mpirun-syntax)
+  - [Common `mpirun` Flags](#common-mpirun-flags)
+  - [Running on Multiple Nodes (Cluster Computing)](#running-on-multiple-nodes-cluster-computing)
+  - [Example: Parallel Allrun Script](#example-parallel-allrun-script)
+  - [Monitoring Parallel Runs](#monitoring-parallel-runs)
+- [Reconstruction — Options and Strategies](#reconstruction--options-and-strategies)
+  - [Full Reconstruction](#full-reconstruction)
+  - [Reconstruct Specific Time Steps](#reconstruct-specific-time-steps)
+  - [When NOT to Reconstruct](#when-not-to-reconstruct)
+  - [Reconstruction Reference](#reconstruction-reference)
+- [Performance Optimization](#performance-optimization)
+  - [Optimal Number of Processors](#optimal-number-of-processors)
+  - [Speedup and Scaling](#speedup-and-scaling)
+  - [Amdahl's Law vs Gustafson's Law](#amdahls-law-vs-gustafsons-law)
+  - [Load Balancing Considerations](#load-balancing-considerations)
+  - [Network vs Computation](#network-vs-computation)
+- [Practical Tips](#practical-tips)
+  - [When NOT to Parallelize](#when-not-to-parallelize)
+  - [Debugging Parallel Runs](#debugging-parallel-runs)
+  - [Common Errors and Solutions](#common-errors-and-solutions)
+  - [MPI Environment Setup](#mpi-environment-setup)
+- [Reference: Common Parallel Commands](#reference-common-parallel-commands)
+- [Putting It All Together — Example for the Lid-Driven Cavity](#putting-it-all-together--example-for-the-lid-driven-cavity)
+
+</details>
+
 ## Introduction: Why Parallelize?
 
 Computational fluid dynamics simulations can require enormous amounts of processing time. A mesh with millions of cells solving transient turbulent flow may take days or even weeks on a single processor core. **Parallelization** splits the work across multiple processor cores, dramatically reducing wall-clock time.
@@ -50,7 +108,11 @@ When `decomposePar` runs, it creates **N directories** (`processor0/`, `processo
 
 ### Processor Boundaries — Ghost Cells and Halo Exchange
 
-At the interfaces between subdomains, OpenFOAM creates special **processor patches**. These patches have **ghost cells** (also called halo cells) that store copies of values from the neighboring processor's cells. Before each solver iteration, processors exchange these values via MPI.
+At the interfaces between subdomains, OpenFOAM creates special **processor patches**. They exchange neighboring field values through MPI during coupled operations.
+The **ghost/halo cells** in the following diagram are a conceptual analogy: an
+OpenFOAM processor patch does not duplicate a full layer of mesh cells in the
+local `polyMesh`. Communication occurs as required by field/matrix operations,
+not just once before an entire solver iteration.
 
 ```
          Processor 0                    Processor 1
@@ -69,7 +131,9 @@ At the interfaces between subdomains, OpenFOAM creates special **processor patch
               └─────────────────────────────────┘
 ```
 
-The ghost cells ensure that gradient calculations and flux computations at processor boundaries remain accurate, as if the mesh were still a single domain.
+Processor-patch exchanges supply the coupled data needed for gradients and fluxes.
+Small serial/parallel differences can still arise from floating-point reduction
+order, solver tolerances, and partition-dependent numerical behavior.
 
 ## Decomposition Methods
 
@@ -119,7 +183,7 @@ The **hierarchical** method is similar to simple but applies the splits in a spe
 
 ### Scotch — Graph-Based Optimal Partitioning (Recommended)
 
-The **scotch** method uses the PT-Scotch graph partitioning library to minimize the number of inter-processor cell faces (communication volume) while keeping the cell count balanced across processors. It works well for complex geometries and non-uniform meshes, and is generally the **recommended method** for production runs.
+The **scotch** method uses the Scotch graph partitioning library to minimize the number of inter-processor cell faces (communication volume) while keeping the cell count balanced across processors. It works well for complex geometries and non-uniform meshes, and is generally the **recommended method** for production runs.
 
 ```
   Scotch decomposition of an irregular mesh:
@@ -143,6 +207,10 @@ The **scotch** method uses the PT-Scotch graph partitioning library to minimize 
 ```
 
 ### Metis — Similar to Scotch
+
+`ptscotch` is a separate distributed decomposition method when the build provides
+it. Graph partitioners seek a good balance/cut heuristically; they do not
+guarantee a globally optimal partition. Check methods available in your build.
 
 The **metis** method uses the METIS graph partitioning library. It produces similar results to scotch and can sometimes be faster or produce slightly different partitions. Requires METIS to be installed.
 
@@ -341,6 +409,11 @@ mpirun -np <N> <solver> -parallel
 
 ### Common `mpirun` Flags
 
+The options below follow Open MPI syntax; other MPI implementations differ. On a
+managed cluster, request resources through its scheduler and use the site’s
+launcher/binding policy. Match MPI to the OpenFOAM build and match the process
+count to the decomposed subdomains.
+
 | Flag               | Description                                                        |
 |--------------------|--------------------------------------------------------------------|
 | `-np 4`            | Run on 4 processors                                               |
@@ -374,10 +447,10 @@ Based on the elbow tutorial's `allrun` script structure, here is how you would a
 
 ```bash
 #!/bin/sh
-cd ${0%/*} || exit 1    # Run from this directory
+cd "${0%/*}" || exit 1    # Run from this directory
 
 # Source tutorial run functions
-. $WM_PROJECT_DIR/bin/tools/RunFunctions
+. "${WM_PROJECT_DIR:?}/bin/tools/RunFunctions"
 
 # Get the solver name from system/controlDict
 application=$(getApplication)
@@ -389,7 +462,7 @@ runApplication fluentMeshToFoam elbow.msh
 runApplication decomposePar
 
 # Step 3: Run the solver in parallel
-runParallel $application
+runParallel "$application"
 
 # Step 4: Reconstruct the results
 runApplication reconstructPar
@@ -661,11 +734,20 @@ reconstructPar
 paraFoam
 ```
 
+For a changing mesh, field reconstruction may also need mesh reconstruction
+(`reconstructParMesh`) or solver/version-specific handling. Multi-region cases
+need the corresponding region options. Confirm the expected times, mesh, and
+fields can be opened before deleting decomposed results.
+
 **3. Clean up processor directories (optional):**
 
 ```bash
-# Remove processor directories after reconstruction to save disk space
-rm -rf processor*
+# After verifying the reconstructed times/fields, preview the exact directories
+printf '%s\n' processor[0-9]*
+# Optional: remove only those reviewed directories (irreversible)
+# rm -r -- processor[0-9]*
 ```
 
-This workflow applies identically to any OpenFOAM case — just change the solver name and adjust `numberOfSubdomains` based on your mesh size and available cores.
+This is the common single-region, fixed-mesh workflow. Dynamic meshes,
+multi-region solvers, distributed storage, and scheduler-managed jobs need
+additional setup. See the [v6 parallel guide](https://doc.cfd.direct/openfoam/user-guide-v6/running-applications-parallel).

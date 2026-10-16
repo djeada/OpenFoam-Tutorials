@@ -1,5 +1,58 @@
 # Boundary Conditions in OpenFOAM
 
+[All notes](../README.md#-notes-overview) · [Previous: Note 04](04_meshing.md) · [Next: Note 06](06_turbulence_models.md)
+
+> **Version scope:** Classic OpenFOAM Foundation 6, matching the project launchers.
+> Other releases/forks may need different dictionaries or executables; see
+> [version guidance](../README.md#version-and-example-scope) and the
+> [current reference cases](02_openfoam_cases.md#current-reference-cases).
+
+<details>
+<summary>Contents</summary>
+
+- [Initial Conditions — Setting the Starting Point](#initial-conditions--setting-the-starting-point)
+  - [How Initial Conditions Work in OpenFOAM](#how-initial-conditions-work-in-openfoam)
+  - [Why Initial Conditions Matter](#why-initial-conditions-matter)
+  - [Practical Tips for Initial Conditions](#practical-tips-for-initial-conditions)
+- [How Boundary Conditions Work in OpenFOAM](#how-boundary-conditions-work-in-openfoam)
+  - [Dimensional Consistency](#dimensional-consistency)
+- [3. BC Classification — Dirichlet, Neumann, and Mixed](#3-bc-classification--dirichlet-neumann-and-mixed)
+- [Complete BC Reference](#complete-bc-reference)
+  - [fixedValue (Dirichlet)](#fixedvalue-dirichlet)
+  - [zeroGradient (Neumann, Zero Normal Gradient)](#zerogradient-neumann-zero-normal-gradient)
+  - [fixedGradient (Neumann, Specified Normal Gradient)](#fixedgradient-neumann-specified-normal-gradient)
+  - [noSlip (Wall velocity)](#noslip-wall-velocity)
+  - [slip (Frictionless wall)](#slip-frictionless-wall)
+  - [empty (2D Simulations)](#empty-2d-simulations)
+  - [symmetryPlane / symmetry](#symmetryplane--symmetry)
+  - [wedge (Axisymmetric Simulations)](#wedge-axisymmetric-simulations)
+  - [Inlet/Outlet Types](#inletoutlet-types)
+  - [freestream (Far-field)](#freestream-far-field)
+  - [Turbulent Wall Functions](#turbulent-wall-functions)
+  - [calculated (Derived fields)](#calculated-derived-fields)
+  - [cyclic (Periodic Boundaries)](#cyclic-periodic-boundaries)
+- [Boundary Conditions by Variable — Quick Reference](#boundary-conditions-by-variable--quick-reference)
+- [Laminar vs Turbulent Boundary Conditions](#laminar-vs-turbulent-boundary-conditions)
+  - [Laminar Case — Lid-Driven Cavity](#laminar-case--lid-driven-cavity)
+  - [Turbulent Case — NACA Airfoil](#turbulent-case--naca-airfoil)
+  - [Side-by-Side Comparison](#side-by-side-comparison)
+- [Calculating Turbulent BC Values](#calculating-turbulent-bc-values)
+  - [Formulas](#formulas)
+  - [Typical Values](#typical-values)
+  - [Example Calculation](#example-calculation)
+- [Real Case Studies from This Repository](#real-case-studies-from-this-repository)
+  - [Lid-Driven Cavity — The Moving Wall Drives Everything](#lid-driven-cavity--the-moving-wall-drives-everything)
+  - [Elbow — Two Inlets with Different Velocity Directions](#elbow--two-inlets-with-different-velocity-directions)
+  - [NACA Airfoil — Wall Functions on the Airfoil Surface](#naca-airfoil--wall-functions-on-the-airfoil-surface)
+- [Common BC Mistakes and Troubleshooting](#common-bc-mistakes-and-troubleshooting)
+  - [Ill-Posed BC Combinations](#ill-posed-bc-combinations)
+  - [Missing Turbulence BCs](#missing-turbulence-bcs)
+  - [Empty BC Misuse](#empty-bc-misuse)
+  - [Dimensional Mismatch](#dimensional-mismatch)
+- [Choosing the Right BC — Decision Flowchart](#choosing-the-right-bc--decision-flowchart)
+
+</details>
+
 Boundary conditions (BCs) are the **single most important input** to any CFD simulation. They define how the computational domain interacts with the outside world: where fluid enters, where it leaves, what happens at walls, and how the simulation "knows" about physical reality.
 
 ```
@@ -92,7 +145,9 @@ The `internalField` keyword accepts two forms:
 - There is no physical "time zero" — the solver iterates toward a converged state.
 - ICs serve as the **initial guess** for the iterative solver.
 - A good initial guess can dramatically speed up convergence.
-- A bad guess will not change the final answer (if the solver converges), but may cause divergence or require many more iterations.
+- A poor guess may cause divergence or slow convergence. Nonlinear flows may admit
+  multiple steady states, so different guesses can converge to different solutions;
+  some flows have no physically stable steady solution.
 
 ### Practical Tips for Initial Conditions
 
@@ -267,7 +322,9 @@ outlet
 }
 ```
 
-### zeroGradient (Neumann, zero flux)
+<a id="zerogradient-neumann-zero-flux"></a>
+
+### zeroGradient (Neumann, Zero Normal Gradient)
 
 Sets the **normal gradient to zero** at the boundary — the field value at the boundary equals the
 value in the adjacent cell. The field "floats" to whatever value the interior solution produces.
@@ -297,32 +354,46 @@ outlet
 }
 ```
 
-> **💡 Tip**: `zeroGradient` for pressure at walls is almost always correct for incompressible
-> flows. The pressure adjusts itself; you don't need to specify it.
+> **Pressure at walls:** `zeroGradient` is used in the simple unforced cavity,
+> but buoyancy, imposed forces, and moving walls can require a flux-consistent
+> pressure condition such as `fixedFluxPressure`. Follow the solver’s matching
+> tutorial and distinguish `p` from `p_rgh`.
+>
+> **Gradient is not total flux:** zero normal gradient removes the modeled
+> normal diffusive flux for a scalar with a finite diffusion coefficient. It
+> does not stop advection through an outlet; impermeability comes from velocity
+> and the corresponding face flux. See the [v6 BC reference](https://doc.cfd.direct/openfoam/user-guide-v6/boundaries).
 
-### fixedGradient (Neumann, specified flux)
+<a id="fixedgradient-neumann-specified-flux"></a>
 
-Sets a **specific non-zero gradient** at the boundary. Useful when you know the flux (e.g., a known heat flux through a wall) but not the value itself.
+### fixedGradient (Neumann, Specified Normal Gradient)
+
+Sets a **specified normal gradient**, which may also be zero. Converting a known
+diffusive flux to this gradient requires the constitutive coefficient and the
+outward-normal sign convention. For temperature, outward heat flux is
+$q_n = -\kappa\,\partial T/\partial n$, where $\kappa$ is thermal conductivity.
 
 | Property        | Detail                                         |
 |-----------------|-------------------------------------------------|
-| **Type**        | Neumann (non-zero)                              |
+| **Type**        | Neumann (specified, possibly zero)              |
 | **Sets**        | $\partial\phi/\partial n$ = specified gradient    |
-| **Used for**    | Heat flux walls, specified mass flux              |
+| **Used for**    | Scalar gradients; heat flux after conversion through conductivity |
 | **Variables**   | T, scalar fields                                 |
 
 ```cpp
 heatedWall
 {
     type            fixedGradient;
-    gradient        uniform 500;    // e.g., heat flux
+    gradient        uniform 500;    // dT/dn = 500 K/m; not 500 W/m²
 }
 ```
 
 ### noSlip (Wall velocity)
 
-The **no-slip condition** is the fundamental wall BC for viscous flows. It enforces **zero
-velocity** at a solid wall — fluid "sticks" to the surface.
+The physical **no-slip condition** makes fluid velocity equal to wall velocity.
+OpenFOAM’s `noSlip` BC sets **zero velocity** for a stationary wall. For a moving
+wall, use an appropriate specified/moving-wall velocity condition, as on the
+cavity lid; the fluid still satisfies physical no slip relative to that wall.
 
 ```
      Wall (noSlip)
@@ -581,21 +652,21 @@ When using RANS turbulence models, the near-wall region requires special treatme
 | `nutUWallFunction`       | nut     | Calculates nut from velocity (no k needed)       |
 
 ```cpp
-// From projects/04_naca_airfoil_analysis/0/k:
+// Illustrative k-epsilon alternative: 0/k (not the current SA field setup)
 airfoil
 {
     type            kqRWallFunction;
     value           uniform 0.01;
 }
 
-// From projects/04_naca_airfoil_analysis/0/epsilon:
+// Illustrative k-epsilon alternative: 0/epsilon (not the current SA field setup)
 airfoil
 {
     type            epsilonWallFunction;
     value           uniform 0.01;
 }
 
-// From projects/04_naca_airfoil_analysis/0/nut:
+// Illustrative k-epsilon alternative: 0/nut (not the current SA field setup)
 airfoil
 {
     type            nutkWallFunction;
@@ -612,7 +683,7 @@ The `calculated` type means the field is **computed from other fields**, not dir
 solver calculates the value rather than applying a BC.
 
 ```cpp
-// From projects/04_naca_airfoil_analysis/0/nut:
+// Illustrative k-epsilon alternative: 0/nut (not the current SA field setup)
 inlet
 {
     type            calculated;
@@ -682,7 +753,8 @@ This table shows the **typical** BC choice for each variable at each boundary ty
 ## Laminar vs Turbulent Boundary Conditions
 
 The biggest difference in BC setup is between **laminar** and **turbulent** simulations. Turbulent
-cases require additional field variables (k, epsilon or omega, nut) with their own BCs.
+cases require model-specific fields (`k`/`epsilon`/`nut`, `k`/`omega`/`nut`,
+or SA `nuTilda`/`nut`) with their own BCs.
 
 ### Laminar Case — Lid-Driven Cavity
 
@@ -743,9 +815,12 @@ boundaryField
 
 ### Turbulent Case — NACA Airfoil
 
-The turbulent case requires **five** field files. Here are the additional turbulence files:
+The retained k-epsilon alternative requires **five** fields. The current NACA
+project instead has **four** (`U`, `p`, `nuTilda`, `nut`) with SA. These teaching
+examples and the comparison diagram below describe the alternative; see
+[the current reference table](02_openfoam_cases.md#current-reference-cases).
 
-From `projects/04_naca_airfoil_analysis/0/k` (turbulent kinetic energy):
+Illustrative k-epsilon alternative `0/k` (turbulent kinetic energy):
 
 ```cpp
 dimensions      [0 2 -2 0 0 0 0];
@@ -779,7 +854,7 @@ boundaryField
 }
 ```
 
-From `projects/04_naca_airfoil_analysis/0/epsilon` (dissipation rate):
+Illustrative k-epsilon alternative `0/epsilon` (dissipation rate):
 
 ```cpp
 dimensions      [0 2 -3 0 0 0 0];
@@ -813,7 +888,7 @@ boundaryField
 }
 ```
 
-From `projects/04_naca_airfoil_analysis/0/nut` (turbulent viscosity):
+Illustrative k-epsilon alternative `0/nut` (turbulent viscosity):
 
 ```cpp
 dimensions      [0 2 -1 0 0 0 0];
@@ -902,11 +977,12 @@ Where:
 
 ### Example Calculation
 
-For the NACA airfoil case with $U = 1$ m/s, $I = 10\%$, $l = 0.01$ m:
+For an illustrative k-epsilon inlet with $U = 1$ m/s, $I = 10\%$, $l = 0.01$ m
+(these are not the current NACA SA inlet conditions):
 
 $$k = 1.5 \times (1.0 \times 0.1)^{2} = 1.5 \times 0.01 = 0.015 \; m^{2}/s^{2}$$
 
-$$\varepsilon = \frac{0.09^{0.75} \times 0.015^{1.5}}{0.01} \approx 0.028 \; m^{2}/s^{3}$$
+$$\varepsilon = \frac{0.09^{0.75} \times 0.015^{1.5}}{0.01} \approx 0.0302 \; m^{2}/s^{3}$$
 
 > **💡 Tip**: If you are unsure about turbulence intensity, 5% is a reasonable default for
 > most industrial applications. The solution is often not very sensitive to inlet turbulence
@@ -1002,7 +1078,11 @@ boundaryField
 
 The airfoil case shows turbulent wall functions applied to a curved aerodynamic surface.
 
-From `projects/04_naca_airfoil_analysis/0/U`:
+**Retained k-epsilon alternative**, with a wall-bounded outer domain. In the current
+project, inlet velocity is `(50 0 0)`, the outlet uses
+`pressureInletOutletVelocity`, top/bottom are `symmetryPlane`, and the airfoil uses
+`nuTilda fixedValue 0` plus `nutUSpaldingWallFunction`. The diagram below describes
+the alternative, not the current mesh patch map.
 
 ```cpp
 boundaryField
@@ -1064,9 +1144,9 @@ boundaryField
 
 | Mistake                                    | Symptom                              | Fix                          |
 |--------------------------------------------|--------------------------------------|------------------------------|
-| `fixedValue` on U at both inlet AND outlet | Solver diverges or wrong mass flow   | Use `zeroGradient` at outlet |
-| `zeroGradient` on p at ALL boundaries      | Floating pressure (no reference)     | Fix p at one boundary        |
-| `fixedValue` on p at both inlet and outlet | Over-constrained pressure            | Use `zeroGradient` at inlet  |
+| Independently imposed inlet/outlet U with incompatible fluxes | Mass imbalance or failure | Ensure integrated flux compatibility; a pressure outlet is often easier |
+| All-Neumann p without a reference | Singular pressure level | Set a valid `pRefCell`/`pRefValue` (as in the cavity), or use an appropriate fixed-pressure boundary |
+| Prescribed pressure at inlet and outlet with compatible U conditions | Valid pressure-driven flow; overconstraint if U is also prescribed incompatibly | Pair pressure and velocity BCs for the intended driving mechanism |
 | Missing `empty` on front/back (2D)         | Solver crashes immediately           | Add `empty` to both patches  |
 
 ### Missing Turbulence BCs
@@ -1149,7 +1229,7 @@ inlet
     │     │     YES → U: noSlip
     │     │     NO  → U: slip (inviscid/far-field)
     │     │
-    │     ├── p: zeroGradient (almost always)
+    │     ├── p: solver/force-compatible pressure BC
     │     │
     │     └── Turbulent?
     │           YES → k: kqRWallFunction

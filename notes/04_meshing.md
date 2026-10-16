@@ -1,5 +1,52 @@
 # Meshing in OpenFOAM
 
+[All notes](../README.md#-notes-overview) · [Previous: Note 03](03_openfoam_dictionaries.md) · [Next: Note 05](05_boundary_conditions.md)
+
+> **Version scope:** Classic OpenFOAM Foundation 6, matching the project launchers.
+> Other releases/forks may need different dictionaries or executables; see
+> [version guidance](../README.md#version-and-example-scope) and the
+> [current reference cases](02_openfoam_cases.md#current-reference-cases).
+
+<details>
+<summary>Contents</summary>
+
+- [Mesh Fundamentals](#mesh-fundamentals)
+  - [What Is a Mesh?](#what-is-a-mesh)
+  - [Cell Types](#cell-types)
+  - [Structured vs Unstructured vs Hybrid](#structured-vs-unstructured-vs-hybrid)
+  - [Cell Quality Metrics](#cell-quality-metrics)
+- [blockMesh — Structured Meshing](#blockmesh--structured-meshing)
+  - [Overview](#overview)
+  - [blockMeshDict — Field by Field](#blockmeshdict--field-by-field)
+  - [Real Example — Lid-Driven Cavity](#real-example--lid-driven-cavity)
+  - [Real Example — Airfoil Background Mesh](#real-example--airfoil-background-mesh)
+  - [Grading (Cell Size Distribution)](#grading-cell-size-distribution)
+  - [Multi-Block Meshes](#multi-block-meshes)
+- [snappyHexMesh — Complex Geometry Meshing](#snappyhexmesh--complex-geometry-meshing)
+  - [The Three-Step Process](#the-three-step-process)
+  - [snappyHexMeshDict — Structure](#snappyhexmeshdict--structure)
+  - [Illustrative Alternative — Airfoil snappyHexMeshDict](#illustrative-alternative--airfoil-snappyhexmeshdict)
+  - [STL Geometry Handling](#stl-geometry-handling)
+- [Mesh from External Sources](#mesh-from-external-sources)
+  - [Fluent Mesh Import](#fluent-mesh-import)
+  - [Other Converters](#other-converters)
+- [Mesh Quality Assessment](#mesh-quality-assessment)
+  - [The `checkMesh` Utility](#the-checkmesh-utility)
+  - [Quality Thresholds](#quality-thresholds)
+  - [Visualising Non-Orthogonality](#visualising-non-orthogonality)
+  - [Quality Controls in snappyHexMeshDict](#quality-controls-in-snappyhexmeshdict)
+- [Mesh Refinement Strategies](#mesh-refinement-strategies)
+  - [Uniform Refinement](#uniform-refinement)
+  - [Adaptive / Local Refinement](#adaptive--local-refinement)
+  - [Boundary Layer Meshing](#boundary-layer-meshing)
+  - [Grid Independence Study](#grid-independence-study)
+- [Practical Meshing Workflow](#practical-meshing-workflow)
+- [Comparison: blockMesh vs snappyHexMesh](#comparison-blockmesh-vs-snappyhexmesh)
+- [Common Meshing Pitfalls & Tips](#common-meshing-pitfalls--tips)
+- [10  Quick Reference](#10--quick-reference)
+
+</details>
+
 Meshing is arguably the most critical step in any CFD simulation. The mesh — the discrete representation of your physical domain — directly controls solution accuracy, convergence behaviour, and computational cost. A careless mesh can produce results that look plausible but are quantitatively wrong; a well-crafted mesh makes everything downstream easier.
 
 ```
@@ -62,8 +109,8 @@ OpenFOAM is polyhedral-capable, but most meshes use one or more of these types:
 
 | Property        | Hexahedra         | Tetrahedra        | Prisms           | Polyhedra         |
 |-----------------|-------------------|-------------------|------------------|-------------------|
-| Accuracy        | Highest           | Lowest            | Good             | Good              |
-| Cells needed    | Fewest            | Most (~5-10×)     | Moderate         | Moderate          |
+| Accuracy        | Good when aligned | Depends on quality and schemes | Good wall-normal control | Depends on quality and schemes |
+| Cells needed    | Often efficient for aligned flow | Often more cells for comparable resolution | Efficient near walls | Case-dependent |
 | Automation      | Hard (structured) | Easy (auto-mesh)  | Used for layers  | snappyHexMesh     |
 | Typical use     | Simple geometry   | Complex geometry  | Boundary layers  | Adaptive meshes   |
 
@@ -73,7 +120,7 @@ OpenFOAM is polyhedral-capable, but most meshes use one or more of these types:
 |--------------------|-------------------------|--------------------------|------------------------|
 | Cell arrangement   | Regular i,j,k indexing  | Arbitrary connectivity   | Mix of both            |
 | Cell type          | Hexahedra               | Tet / poly / mixed       | Hex core + tet/poly    |
-| Geometry fit       | Simple shapes only      | Any complex shape        | Complex with quality   |
+| Geometry fit       | Simple or multi-block mapped geometry | Complex geometry | Complex geometry |
 | OpenFOAM tool      | `blockMesh`             | `snappyHexMesh`          | `snappyHexMesh`        |
 | Memory efficiency  | Best                    | Moderate                 | Good                   |
 
@@ -98,7 +145,10 @@ Three metrics dominate mesh quality assessment in OpenFOAM:
 
 **Skewness** — how far the intersection of vector d with the face is from the face centre. High skewness degrades gradient calculations.
 
-**Aspect ratio** — ratio of longest to shortest cell dimension. High aspect ratios slow convergence and can cause instability.
+**Aspect ratio** — ratio of longest to shortest cell dimension. Large ratios can harm
+conditioning when poorly aligned with the solution gradients, but thin, wall-aligned
+prism/hex layers deliberately have large ratios. Assess alignment, smooth size
+changes, and wall-normal resolution as well as the maximum value.
 
 ```
   Aspect ratio ≈ 1  (ideal)          Aspect ratio >> 1  (stretched)
@@ -163,8 +213,8 @@ An ordered list of 3D points. **The index in the list IS the vertex label** — 
        /|            /|             Vertices 4-7: top face    (z = zMax)
       / |           / |
      4 ─────────── 5  |             Right-hand rule:
-     |  |          |  |             Bottom face: 0 → 1 → 2 → 3  (CCW from below)
-     |  3 ─────────|── 2            Top face:    4 → 5 → 6 → 7  (CCW from below)
+     |  |          |  |             Bottom outward face: 0 → 3 → 2 → 1
+     |  3 ─────────|── 2            Top outward face:    4 → 5 → 6 → 7
      | /           | /
      |/            |/               Each top vertex is directly above
      0 ─────────── 1                its corresponding bottom vertex:
@@ -274,7 +324,9 @@ boundary
 
 ###  Real Example — Airfoil Background Mesh
 
-From `projects/04_naca_airfoil_analysis/system/blockMeshDict` — used as the background mesh for `snappyHexMesh`:
+**Illustrative airfoil background mesh** for a snappyHexMesh workflow. This is
+not a file in the current NACA project, which imports a Gmsh mesh. The example
+is retained to explain an alternative workflow; see [the current cases](02_openfoam_cases.md#current-reference-cases).
 
 ```c
 convertToMeters 1;
@@ -346,7 +398,9 @@ boundary
 
 ### Grading (Cell Size Distribution)
 
-Grading controls how cell sizes vary across a block. `simpleGrading (1 1 1)` means uniform cells. Non-unity values create expansion ratios.
+Grading controls how cell sizes vary across a block. The expansion ratio is
+last-cell width divided by first-cell width, not the ratio of adjacent widths.
+For N equally graded cells, the adjacent-width ratio is R**(1/(N-1)). `simpleGrading (1 1 1)` means uniform cells. Non-unity values create expansion ratios.
 
 ```
   simpleGrading (1 1 1)            simpleGrading (4 1 1)
@@ -364,7 +418,7 @@ Grading controls how cell sizes vary across a block. `simpleGrading (1 1 1)` mea
   |  |  |   |    |    |   |  |  |
   +--+--+---+----+----+---+--+--+
   ◄─── expand ───►◄── compress ──►
-  Fine at centre, coarse at edges
+  Coarse at centre, fine at edges
 ```
 
 > **Tip:** Use grading to cluster cells near walls, inlets, or regions of high
@@ -389,8 +443,12 @@ Complex geometries can be built from **multiple blocks** that share vertices:
        +----------+
 
   Blocks share vertices along common edges.
-  Use mergePatchPairs to stitch non-conforming blocks.
+  Use mergePatchPairs for compatible patch merging.
 ```
+
+Shared block faces normally need matching subdivisions. `mergePatchPairs` can
+merge compatible patch pairs subject to blockMesh restrictions; it is not a
+general non-conformal coupling method. Consult the [v6 blockMesh guide](https://doc.cfd.direct/openfoam/user-guide-v6/blockmesh).
 
 ## snappyHexMesh — Complex Geometry Meshing
 
@@ -451,9 +509,14 @@ The dictionary has five major sections:
   └──────────────────────────────────┘
 ```
 
-###  Real Example — NACA Airfoil snappyHexMeshDict
+<a id="real-example--naca-airfoil-snappyhexmeshdict"></a>
 
-From `projects/04_naca_airfoil_analysis/system/snappyHexMeshDict`:
+### Illustrative Alternative — Airfoil snappyHexMeshDict
+
+This retained alternative demonstrates snappyHexMesh around an airfoil STL; it
+is not the current NACA meshing pipeline. Projects [06](../projects/06_ahmed_body_aerodynamics/),
+[11](../projects/11_boat_hull_fixed/), and [12](../projects/12_boat_hull_floating/)
+provide actual snappyHexMesh workflows.
 
 ```c
 castellatedMesh true;
@@ -585,7 +648,9 @@ meshQualityControls
 
 ###  STL Geometry Handling
 
-snappyHexMesh reads surface geometry from **STL files** (ASCII or binary) placed in `constant/triSurface/`. The NACA airfoil project uses a binary STL file (`airfoil.stl`, ~40 KB) exported from a CAD tool.
+snappyHexMesh reads surface geometry from **STL files** (ASCII or binary) placed in `constant/triSurface/`. The illustrative workflow assumes an `airfoil.stl` surface exported from CAD
+(binary or ASCII; file size depends on tessellation). The current NACA project
+uses Gmsh geometry instead, so this is not a required file for project 04.
 
 > **Tip:** Ensure your STL surface is **watertight** (no gaps or overlaps).
 > Non-watertight surfaces cause snappyHexMesh to fail at the castellated mesh
@@ -694,9 +759,14 @@ Typical output sections:
   Large non-orthogonality requires correctors (increasing cost).
 ```
 
+These quality ranges are diagnostic starting points, not universal pass/fail
+criteria. Internal and boundary skewness use different limits, and high aspect
+ratio can be appropriate in aligned boundary layers. `checkMesh` passing is a
+geometry check; it does not establish solution accuracy or grid independence.
+
 ### Quality Controls in snappyHexMeshDict
 
-The `meshQualityControls` section in the NACA airfoil case (§ 3.4) enforces
+The `meshQualityControls` section in the illustrative snappyHexMesh setup enforces
 quality during mesh generation. Key settings from that file:
 
 ```

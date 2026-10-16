@@ -1,5 +1,54 @@
 # OpenFOAM Cases — The Complete Guide
 
+[All notes](../README.md#-notes-overview) · [Previous: Note 01](01_short_intro_to_cfd.md) · [Next: Note 03](03_openfoam_dictionaries.md)
+
+> **Version scope:** Classic OpenFOAM Foundation 6, matching the project launchers.
+> Other releases/forks may need different dictionaries or executables; see
+> [version guidance](../README.md#version-and-example-scope) and the
+> [current reference cases](02_openfoam_cases.md#current-reference-cases).
+
+<details>
+<summary>Contents</summary>
+
+- [Current Reference Cases](#current-reference-cases)
+- [Case Directory Structure](#case-directory-structure)
+  - [How the Three Directories Relate](#how-the-three-directories-relate)
+- [The `0/` Directory — Initial & Boundary Conditions](#the-0-directory--initial--boundary-conditions)
+  - [The FoamFile Header](#the-foamfile-header)
+  - [The Dimensions Array](#the-dimensions-array)
+  - [internalField vs boundaryField](#internalfield-vs-boundaryfield)
+  - [Real Example — Laminar Case: Lid-Driven Cavity `0/U`](#real-example--laminar-case-lid-driven-cavity-0u)
+  - [Illustrative Alternative — Turbulent Airfoil Fields](#illustrative-alternative--turbulent-airfoil-fields)
+  - [Common Boundary Condition Types](#common-boundary-condition-types)
+- [The `constant/` Directory — Physical Properties & Mesh](#the-constant-directory--physical-properties--mesh)
+  - [transportProperties](#transportproperties)
+  - [turbulenceProperties](#turbulenceproperties)
+  - [The polyMesh/ Subdirectory — Mesh Data](#the-polymesh-subdirectory--mesh-data)
+- [The `system/` Directory — Simulation Controls](#the-system-directory--simulation-controls)
+  - [controlDict — Time & I/O Control](#controldict--time--io-control)
+  - [fvSchemes — Discretization Schemes](#fvschemes--discretization-schemes)
+  - [fvSolution — Linear Solvers & Algorithms](#fvsolution--linear-solvers--algorithms)
+- [Allrun & Allclean Scripts — Automation](#allrun--allclean-scripts--automation)
+  - [Allrun — Running the Case](#allrun--running-the-case)
+  - [Allclean — Resetting the Case](#allclean--resetting-the-case)
+- [Case Setup Workflow](#case-setup-workflow)
+  - [Step-by-Step Summary](#step-by-step-summary)
+- [Comparing Two Real Cases](#comparing-two-real-cases)
+  - [What Changes When You Go Turbulent?](#what-changes-when-you-go-turbulent)
+- [Time Directory Structure — Output During Simulation](#time-directory-structure--output-during-simulation)
+- [blockMeshDict — Structured Mesh Generation](#blockmeshdict--structured-mesh-generation)
+- [Common Pitfalls & Tips](#common-pitfalls--tips)
+  - [Pitfall #1: Patch Name Mismatch](#pitfall-1-patch-name-mismatch)
+  - [Pitfall #2: Missing Divergence Schemes](#pitfall-2-missing-divergence-schemes)
+  - [Pitfall #3: Wrong Dimensions](#pitfall-3-wrong-dimensions)
+  - [Pitfall #4: Steady-State Without Relaxation](#pitfall-4-steady-state-without-relaxation)
+  - [Pitfall #5: Not Running checkMesh](#pitfall-5-not-running-checkmesh)
+  - [Pitfall #6: Deleting `0/` By Accident](#pitfall-6-deleting-0-by-accident)
+  - [General Tips](#general-tips)
+- [Summary](#summary)
+
+</details>
+
 Everything in OpenFOAM revolves around the **case directory**. Unlike GUI-based CFD tools where
 settings hide behind menus and dialogs, OpenFOAM uses a fully file-based approach: every single
 parameter — from the velocity at an inlet to the linear solver tolerance — lives in a plain-text
@@ -10,6 +59,51 @@ This philosophy has profound implications:
 - **Reproducibility** — copy a directory and you have an exact clone of your simulation.
 - **Automation** — shell scripts can set up, modify, and launch thousands of parametric runs.
 - **Transparency** — nothing is hidden; if the solver uses it, you can find it in a file.
+
+## Current Reference Cases
+
+The project files are the runnable source of truth. The notes also retain teaching
+examples of other configurations; those are labeled **illustrative alternatives**.
+In particular, the current NACA project uses Spalart–Allmaras and a Gmsh import,
+not the alternative k-epsilon/snappyHexMesh setup discussed later.
+
+| Setting | [Cavity project 01](../projects/01_lid_driven_cavity/) | [NACA project 04](../projects/04_naca_airfoil_analysis/) |
+|---|---|---|
+| Flow / solver | Laminar, transient `icoFoam` | RANS, steady `simpleFoam` |
+| Mesh generation | `blockMesh`, 20 × 20 × 1 cells | `make_mesh.sh`, `gmshToFoam`, `changeDictionary`, `renumberMesh` |
+| Initial fields | `U`, `p` | `U`, `p`, `nuTilda`, `nut` |
+| Reference speed / length | 1 m/s / 0.1 m | 50 m/s / 1 m chord |
+| Kinematic viscosity | 0.001 m²/s | 8.333333333e-06 m²/s |
+| Reynolds number | 100 | Approximately 6,000,000 |
+| Turbulence model | None | `SpalartAllmaras` |
+| Time derivative / coupling | `Euler` / PISO | `steadyState` / SIMPLE |
+| Relaxation | No factors configured | `p = 0.2`, `U = 0.3`, `nuTilda = 0.2` |
+| End / step / output interval | 0.5 s / 0.001 s / every step | Label 600 / increment 1 / every 10 iterations |
+| Velocity wall treatment | Fixed moving lid; `noSlip` fixed walls | `noSlip` airfoil; `symmetryPlane` top/bottom |
+| Turbulent viscosity at airfoil | Not applicable | `nutUSpaldingWallFunction` |
+| Stopping assessment | Physical end time; inspect transient behavior | No `residualControl` configured; inspect residuals, continuity, and stationary forces |
+
+The NACA `deltaT = 1` advances iteration labels; with `steadyState` it does not
+represent a physical second or set SIMPLE under-relaxation. Its present coarse
+mesh is a teaching/regression setup, not evidence of mesh-independent lift or drag.
+See each project's `verify.py` and README for its validation scope.
+
+Current NACA model selection, omitting the standard `FoamFile` header:
+
+```c++
+simulationType RAS;
+RAS
+{
+    RASModel SpalartAllmaras;
+    turbulence on;
+    printCoeffs on;
+}
+```
+
+For complete current dictionaries, open [NACA `constant/`](../projects/04_naca_airfoil_analysis/constant/),
+[`0/`](../projects/04_naca_airfoil_analysis/0/), and [`system/`](../projects/04_naca_airfoil_analysis/system/).
+Keep the model, fields, patch names, schemes, and solver entries consistent when
+adapting an alternative example.
 
 ## Case Directory Structure
 
@@ -267,9 +361,11 @@ boundaryField
 > **Note:** For incompressible solvers like `icoFoam`, pressure has dimensions `[0 2 -2 ...]`
 > (kinematic pressure, p/ρ). For compressible solvers, it would be `[1 -1 -2 ...]` (Pascals).
 
-### Real Example — Turbulent Case: NACA Airfoil `0/U`
+<a id="real-example--turbulent-case-naca-airfoil-0u"></a>
 
-*Source: `projects/04_naca_airfoil_analysis/0/U`*
+### Illustrative Alternative — Turbulent Airfoil Fields
+
+*Illustrative k-epsilon alternative: `0/U`; not a current project-file excerpt.*
 
 ```c++
 FoamFile
@@ -314,9 +410,9 @@ boundaryField
 }
 ```
 
-A turbulent case also requires **additional field files**. Here is `0/k` (turbulent kinetic energy):
+A k-epsilon case also requires **additional field files**; SA instead uses `nuTilda` and `nut`. Here is `0/k` (turbulent kinetic energy):
 
-*Source: `projects/04_naca_airfoil_analysis/0/k`*
+*Illustrative k-epsilon alternative: `0/k`; not a current project-file excerpt.*
 
 ```c++
 dimensions      [0 2 -2 0 0 0 0];
@@ -352,7 +448,7 @@ boundaryField
 
 And `0/nut` (turbulent eddy viscosity):
 
-*Source: `projects/04_naca_airfoil_analysis/0/nut`*
+*Illustrative k-epsilon alternative: `0/nut`; not a current project-file excerpt.*
 
 ```c++
 dimensions      [0 2 -1 0 0 0 0];
@@ -433,18 +529,19 @@ Compare with the NACA airfoil case (`projects/04_naca_airfoil_analysis/constant/
 ```c++
 transportModel  Newtonian;
 
-nu              nu [ 0 2 -1 0 0 0 0 ] 1e-05;
+nu              nu [ 0 2 -1 0 0 0 0 ] 8.333333333e-06;
 ```
 
 > **Tip:** The viscosity value determines the Reynolds number: `Re = U·L / ν`.
 > - Cavity: `ν = 0.001` → with `U=1`, `L=0.1` → Re = 100 (laminar)
-> - Airfoil: `ν = 1e-05` → with `U=1`, `L=1` → Re = 100,000 (turbulent)
+> - Current airfoil: `ν = 8.333333333e-06`, `U=50`, `L=1` → Re ≈ 6,000,000 (RANS setup).
 
 ### turbulenceProperties
 
-This file selects the turbulence modeling approach. It is only needed for turbulent cases.
+This file selects the turbulence approach in solvers that instantiate a turbulence model,
+including their `laminar` mode. Stock `icoFoam` 6 does not read it.
 
-*Source: `projects/04_naca_airfoil_analysis/constant/turbulenceProperties`*
+*Illustrative k-epsilon alternative. The current SA selection is shown in [Current Reference Cases](#current-reference-cases).*
 
 ```c++
 FoamFile
@@ -603,12 +700,12 @@ startFrom       startTime;
 startTime       0;
 
 stopAt          endTime;
-endTime         1000;
+endTime         600;
 
-deltaT          0.1;
+deltaT          1;
 
 writeControl    timeStep;
-writeInterval   1;
+writeInterval   10;
 
 purgeWrite      0;
 
@@ -631,7 +728,7 @@ runTimeModifiable true;
 | `startTime`          | Numeric start time (used when `startFrom` is `startTime`)                 |
 | `stopAt`             | `endTime`, `writeNow`, `noWriteNow`, `nextWrite`                         |
 | `endTime`            | Numeric end time                                                          |
-| `deltaT`             | Time step size (or pseudo-time step for steady-state)                     |
+| `deltaT`             | Physical time step, or iteration-label increment for steadyState                     |
 | `writeControl`       | `timeStep`, `runTime`, `adjustableRunTime`, `cpuTime`, `clockTime`       |
 | `writeInterval`      | How often to write (units depend on `writeControl`)                       |
 | `purgeWrite`         | Keep only the last N time directories (0 = keep all)                      |
@@ -681,7 +778,7 @@ snGradSchemes
 }
 ```
 
-**Turbulent (steady-state) case** — `projects/04_naca_airfoil_analysis/system/fvSchemes`:
+**Illustrative k-epsilon alternative — `fvSchemes`** (not the current NACA dictionary):
 
 ```c++
 ddtSchemes
@@ -762,7 +859,7 @@ solvers
     pFinal
     {
         $p;                                    // Inherits all settings from p
-        relTol          0;                     // But converges fully
+        relTol          0;                     // Requires absolute tolerance (or maxIter)
     }
 
     U
@@ -783,7 +880,7 @@ PISO
 }
 ```
 
-**Turbulent (steady-state) case** — `projects/04_naca_airfoil_analysis/system/fvSolution`:
+**Illustrative k-epsilon alternative — `fvSolution`** (not the current NACA dictionary):
 
 ```c++
 solvers
@@ -865,14 +962,15 @@ These shell scripts are the standard way to automate case execution and cleanup 
 
 ### Allrun — Running the Case
 
-*Source: `projects/02_elbow/allrun`*
+*Annotated automation example based on the elbow workflow; inspect
+[`Allrun`](../projects/02_elbow/Allrun) before running the current case.*
 
 ```bash
 #!/bin/sh
-cd ${0%/*} || exit 1    # Run from this directory
+cd "${0%/*}" || exit 1    # Run from this directory
 
 # Source tutorial run functions
-. $WM_PROJECT_DIR/bin/tools/RunFunctions
+. "${WM_PROJECT_DIR:?}/bin/tools/RunFunctions"
 
 # Get application directory
 application=$(getApplication)
@@ -895,14 +993,15 @@ runApplication foamDataToFluent
 
 ### Allclean — Resetting the Case
 
-*Source: `projects/02_elbow/allclean`*
+*Illustrative cleanup example; it deletes generated results. Inspect the
+current [`Allclean`](../projects/02_elbow/Allclean) and preserve any results you need.*
 
 ```bash
 #!/bin/sh
-cd ${0%/*} || exit 1    # Run from this directory
+cd "${0%/*}" || exit 1    # Run from this directory
 
 # Source tutorial clean functions
-. $WM_PROJECT_DIR/bin/tools/CleanFunctions
+. "${WM_PROJECT_DIR:?}/bin/tools/CleanFunctions"
 
 rm -f constant/polyMesh/boundary > /dev/null 2>&1
 rm -rf fluentInterface
@@ -957,54 +1056,21 @@ Setting up a new OpenFOAM case follows a well-defined sequence. Here is the comp
 
 ## Comparing Two Real Cases
 
-The following table compares two projects from this repository to show how cases differ based
-on the physics being simulated:
-
-```
-╔══════════════════════════════════════════════════════════════════════════╗
-║              LAMINAR vs. TURBULENT CASE COMPARISON                       ║
-╠════════════════════╦════════════════════════╦════════════════════════════╣
-║                    ║ 01_lid_driven_cavity   ║ 04_naca_airfoil_analysis   ║
-╠════════════════════╬════════════════════════╬════════════════════════════╣
-║ Flow type          ║ Laminar                ║ Turbulent (RANS)           ║
-╠════════════════════╬════════════════════════╬════════════════════════════╣
-║ Solver             ║ icoFoam                ║ simpleFoam                 ║
-╠════════════════════╬════════════════════════╬════════════════════════════╣
-║ Time treatment     ║ Transient              ║ Steady-state               ║
-╠════════════════════╬════════════════════════╬════════════════════════════╣
-║ Meshing tool       ║ blockMesh              ║ snappyHexMesh              ║
-╠════════════════════╬════════════════════════╬════════════════════════════╣
-║ Fields in 0/       ║ U, p                   ║ U, p, k, epsilon, nut      ║
-╠════════════════════╬════════════════════════╬════════════════════════════╣
-║ Viscosity (nu)     ║ 0.001 m²/s             ║ 1e-05 m²/s                 ║
-╠════════════════════╬════════════════════════╬════════════════════════════╣
-║ Reynolds number    ║ ~100                   ║ ~100,000                   ║
-╠════════════════════╬════════════════════════╬════════════════════════════╣
-║ Turbulence model   ║ None (laminar)         ║ k-epsilon                  ║
-╠════════════════════╬════════════════════════╬════════════════════════════╣
-║ ddtScheme          ║ Euler                  ║ steadyState                ║
-╠════════════════════╬════════════════════════╬════════════════════════════╣
-║ P-V coupling       ║ PISO                   ║ SIMPLE                     ║
-╠════════════════════╬════════════════════════╬════════════════════════════╣
-║ Relaxation factors ║ Not needed             ║ p=0.3, U/k/ε=0.7           ║
-╠════════════════════╬════════════════════════╬════════════════════════════╣
-║ End time           ║ 0.5 s                  ║ 1000 iterations            ║
-╠════════════════════╬════════════════════════╬════════════════════════════╣
-║ deltaT             ║ 0.001 s                ║ 0.1 (pseudo-time)          ║
-╠════════════════════╬════════════════════════╬════════════════════════════╣
-║ Wall BCs for U     ║ noSlip / fixedValue    ║ noSlip + wall functions    ║
-╚════════════════════╩════════════════════════╩════════════════════════════╝
-```
+The [current reference table](#current-reference-cases) compares every setting from
+the original laminar-versus-turbulent overview: flow type, solver, time treatment,
+mesh, fields, viscosity, Reynolds number, model, discretization, coupling,
+relaxation, run length, time step, and wall conditions. It reflects the checked-in
+projects rather than the illustrative k-epsilon alternative.
 
 ### What Changes When You Go Turbulent?
 
 Going from a laminar to a turbulent simulation adds several layers of complexity:
 
-1. **More field files** — You need `k`, `epsilon` (or `omega`), and `nut` in the `0/` directory.
-2. **Wall functions** — Wall boundaries need special BC types (`kqRWallFunction`, `epsilonWallFunction`, `nutkWallFunction`) instead of simple `noSlip`.
+1. **More field files** — Use the selected model’s fields: `k`, `epsilon`, `nut` for k-epsilon; `k`, `omega`, `nut` for SST; `nuTilda`, `nut` for SA.
+2. **Wall treatment** — Keep `noSlip` for stationary-wall velocity. Apply model- and mesh-appropriate wall conditions to turbulence fields (for example `kqRWallFunction`, `epsilonWallFunction`, `nutkWallFunction`).
 3. **turbulenceProperties** — A new file in `constant/` selecting the RANS model.
-4. **Extra divergence schemes** — `fvSchemes` needs entries for `div(phi,k)` and `div(phi,epsilon)` plus the Reynolds stress divergence terms.
-5. **Extra linear solvers** — `fvSolution` needs solver entries for `k` and `epsilon`.
+4. **Extra divergence schemes** — Add convection entries for the selected model’s transported fields, e.g. `div(phi,k)` and `div(phi,epsilon)` or `div(phi,nuTilda)`, plus the stress term requested by the solver.
+5. **Extra linear solvers** — Add entries for the selected model’s transported fields; the current airfoil solves `nuTilda`.
 6. **Relaxation factors** — Steady-state SIMPLE requires under-relaxation to stabilize.
 
 ## Time Directory Structure — Output During Simulation
@@ -1141,7 +1207,7 @@ If `divSchemes { default none; }`, you must list every divergence term explicitl
 The dimensions array is checked at runtime. A velocity field with `[0 2 -1 ...]` instead of `[0 1 -1 ...]` will give a cryptic dimensions mismatch error.
 
 ### Pitfall #4: Steady-State Without Relaxation
-Running SIMPLE without relaxation factors almost always diverges. Always set them in `fvSolution`.
+SIMPLE often needs under-relaxation for robust convergence. Choose factors in `fvSolution` based on the coupled problem; convergence without relaxation is possible, and no factor guarantees convergence.
 
 ### Pitfall #5: Not Running checkMesh
 Skipping `checkMesh` after meshing is like skipping tests after coding. Non-orthogonality, skewness, and negative cell volumes will silently degrade your results or crash the solver.
