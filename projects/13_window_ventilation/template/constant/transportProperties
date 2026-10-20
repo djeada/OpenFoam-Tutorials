@@ -1,0 +1,14 @@
+FoamFile
+{
+    version 2.0;
+    format ascii;
+    class dictionary;
+    object transportProperties;
+}
+transportModel Newtonian;
+nu      [0 2 -1 0 0 0 0] 1.5e-5;
+beta    [0 0 0 -1 0 0 0] 0.0035;
+// Match the outdoor temperature so rhok=1 in the cold reservoir.
+TRef    [0 0 0 1 0 0 0] @OUTDOOR_T@;
+Pr      [0 0 0 0 0 0 0] 0.71;
+Prt     [0 0 0 0 0 0 0] 0.85;

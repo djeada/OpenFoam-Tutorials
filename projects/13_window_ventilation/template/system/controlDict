@@ -1,0 +1,65 @@
+FoamFile
+{
+    version 2.0;
+    format ascii;
+    class dictionary;
+    object controlDict;
+}
+application buoyantBoussinesqPimpleFoam;
+startFrom startTime;
+startTime 0;
+stopAt endTime;
+endTime @END_TIME@;
+deltaT 0.001;
+writeControl adjustableRunTime;
+writeInterval @WRITE_INTERVAL@;
+purgeWrite 0;
+writeFormat ascii;
+writePrecision 10;
+writeCompression off;
+timeFormat general;
+timePrecision 10;
+runTimeModifiable true;
+adjustTimeStep yes;
+// Headroom for velocity growth between adaptive time-step estimates.
+maxCo 0.4;
+maxDeltaT 0.05;
+functions
+{
+    // Order matters: evolve the tracer before computing the room statistics.
+    originalAir
+    {
+        type scalarTransport;
+        libs ("libsolverFunctionObjects.so");
+        field c;
+        D 2e-5;
+        nCorr 0;
+        executeControl timeStep;
+        executeInterval 1;
+        writeControl writeTime;
+    }
+    roomStats
+    {
+        type volFieldValue;
+        libs ("libfieldFunctionObjects.so");
+        regionType cellZone;
+        name room;
+        operation volAverage;
+        fields (c T);
+        writeFields false;
+        writeControl writeTime;
+        log true;
+    }
+    windowFlux
+    {
+        type surfaceFieldValue;
+        libs ("libfieldFunctionObjects.so");
+        regionType faceZone;
+        name window;
+        operation sumMag;
+        fields (phi);
+        writeFields false;
+        writeControl writeTime;
+        log true;
+    }
+}

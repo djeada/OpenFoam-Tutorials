@@ -1,0 +1,9 @@
+FoamFile
+{
+    version 2.0;
+    format ascii;
+    class dictionary;
+    object turbulenceProperties;
+}
+// Deliberate 2D teaching model; this is not a room-scale turbulence prediction.
+simulationType laminar;
