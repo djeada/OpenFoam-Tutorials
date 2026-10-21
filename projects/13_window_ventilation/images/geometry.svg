@@ -1,0 +1,27 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="740" viewBox="0 0 960 740">
+<rect width="960" height="740" fill="#f7fafc"/>
+<style>text{font-family:Arial,sans-serif;fill:#1e3445}.title{font-size:23px;font-weight:bold}.label{font-size:16px}.small{font-size:14px}</style>
+<text x="45" y="38" class="title">Window ventilation — geometry of the two cases</text>
+<text x="45" y="70" class="title">Wide-open window</text>
+<rect x="30" y="87.5" width="840" height="237.5" fill="#475866"/>
+<polygon points="30.000,325.000 296.000,325.000 296.000,230.000 310.000,230.000 310.000,249.000 310.000,306.000 310.000,325.000 870.000,325.000 870.000,87.500 310.000,87.500 310.000,116.000 296.000,116.000 296.000,87.500 30.000,87.500" fill="#dcecf2" stroke="#364e5b" stroke-width="1.5"/>
+<path d="M 310.000,306.000 L 310.000,249.000" stroke="#dd663d" stroke-width="7"/>
+<path d="M 310.000,230.000 L 310.000,116.000" stroke="#258c86" stroke-width="2" stroke-dasharray="6 4"/>
+<text x="60" y="130" class="label">Exterior · initially 0 °C</text>
+<text x="535" y="130" class="label">Room · initially 20 °C</text>
+<text x="65" y="350" class="small">Exterior extent: 2 m</text>
+<text x="480" y="350" class="small">Room: 4 m × 2.5 m · slice depth: 0.1 m</text>
+<text x="45" y="395" class="title">Pane tilted inward 10°</text>
+<rect x="30" y="412.5" width="840" height="237.5" fill="#475866"/>
+<polygon points="30.000,650.000 296.000,650.000 296.000,555.000 310.000,555.000 339.173,442.732 344.773,442.732 315.600,555.000 310.000,558.800 310.000,574.000 310.000,631.000 310.000,650.000 870.000,650.000 870.000,412.500 310.000,412.500 310.000,441.000 296.000,441.000 296.000,412.500 30.000,412.500" fill="#dcecf2" stroke="#364e5b" stroke-width="1.5"/>
+<path d="M 310.000,631.000 L 310.000,574.000" stroke="#dd663d" stroke-width="7"/>
+<path d="M 310.000,555.000 L 310.000,441.000" stroke="#258c86" stroke-width="2" stroke-dasharray="6 4"/>
+<text x="60" y="455" class="label">Exterior · initially 0 °C</text>
+<text x="535" y="455" class="label">Room · initially 20 °C</text>
+<text x="65" y="675" class="small">Exterior extent: 2 m</text>
+<text x="480" y="675" class="small">Room: 4 m × 2.5 m · slice depth: 0.1 m</text>
+<path d="M 45 711 H 77" stroke="#dd663d" stroke-width="6"/>
+<text x="90" y="716" class="small">40 °C radiator</text>
+<path d="M 310 711 H 345" stroke="#258c86" stroke-width="2" stroke-dasharray="6 4"/>
+<text x="360" y="716" class="small">Window measurement plane (x = 0, y = 1–2.2 m)</text>
+</svg>

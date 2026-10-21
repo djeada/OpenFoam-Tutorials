@@ -9,7 +9,7 @@
 
 > **A complete, self-study curriculum for learning Computational Fluid Dynamics (CFD) with OpenFOAM — from first principles to production-grade simulations.**
 
-Whether you're a student encountering CFD for the first time, an engineer switching from commercial solvers, or a researcher looking for a structured OpenFOAM reference — this repository has you covered. It combines **12 in-depth theory notes** with **12 progressively challenging simulation projects** so you can learn by *reading* and *doing*.
+Whether you're a student encountering CFD for the first time, an engineer switching from commercial solvers, or a researcher looking for a structured OpenFOAM reference — this repository has you covered. It combines **12 in-depth theory notes** with **13 progressively challenging simulation projects** so you can learn by *reading* and *doing*.
 
 ---
 
@@ -52,7 +52,7 @@ Most OpenFOAM resources fall into one of two traps: they're either *too theoreti
 | What You Get | Why It Matters |
 |---|---|
 | 📚 **12 Theory Notes** | Understand the *why* behind every setting and parameter |
-| 🔬 **12 Simulation Projects** | Build real muscle memory by running actual CFD cases |
+| 🔬 **13 Simulation Projects** | Build real muscle memory by running actual CFD cases |
 | 📈 **Progressive Difficulty** | Start with laminar cavity flow, finish with multiphase & rotating machinery |
 | 🧩 **Cross-Referenced** | Notes link to projects; projects reference the theory they rely on |
 | 🐳 **Docker-Ready** | Get running in minutes without dependency headaches |
@@ -78,7 +78,7 @@ OpenFoam-Tutorials/
 │   ├── 11_viscosity_models.md             Newtonian & non-Newtonian viscosity models
 │   └── 12_multiphase_flows.md             VOF method, interFoam & multiphase setup
 │
-├── projects/                           ← 🔬 Hands-On Simulations (12 projects)
+├── projects/                           ← 🔬 Hands-On Simulations (13 projects)
 │   ├── 01_lid_driven_cavity/              Classic benchmark — icoFoam, blockMesh
 │   ├── 02_elbow/                          Curved pipe flow — Fluent mesh import
 │   ├── 03_flow_around_cylinder/           External flow — Gmsh mesh, pimpleFoam
@@ -90,7 +90,8 @@ OpenFoam-Tutorials/
 │   ├── 09_wind_turbine_blade/             Rotating machinery — MRF + simpleFoam
 │   ├── 10_mixing_t_junction/              Thermal mixing — buoyantSimpleFoam
 │   ├── 11_boat_hull_fixed/                Fixed hull in water — interFoam + snappyHexMesh
-│   └── 12_boat_hull_floating/             Floating body dynamics — interFoam + 6-DoF
+│   ├── 12_boat_hull_floating/             Floating body dynamics — interFoam + 6-DoF
+│   └── 13_window_ventilation/             Open versus tilted window — buoyancy + air replacement
 │
 ├── document.pdf                        ← 📄 Supplementary reference document
 ├── LICENSE                             ← ⚖️  MIT License
@@ -160,7 +161,7 @@ Twelve self-contained guides covering every major concept you'll need. Read them
 
 ## 🔬 Projects Overview
 
-Twelve simulation projects arranged by increasing complexity. Each project directory contains the complete OpenFOAM case structure ready to run.
+Thirteen simulation projects arranged by increasing complexity. Each project directory contains the complete OpenFOAM case structure ready to run.
 
 | # | Project | Description | Solver | Mesh | Turbulence | Level |
 |---|---------|-------------|--------|------|------------|-------|
@@ -176,6 +177,7 @@ Twelve simulation projects arranged by increasing complexity. Each project direc
 | 10 | [**Mixing T-Junction**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/10_mixing_t_junction) | Thermal mixing of hot (350 K) and cold (300 K) streams in a T-junction. Multi-block structured mesh with buoyancy coupling. | `buoyantSimpleFoam` | `blockMesh` | k-epsilon | 🔴 Advanced |
 | 11 | [**Boat Hull — Fixed**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/11_boat_hull_fixed) | Fixed toy boat hull in calm water with free surface. Uses your own STL geometry with snappyHexMesh for drag and wave pattern analysis. | `interFoam` | `snappyHexMesh` | Laminar | 🔴 Advanced |
 | 12 | [**Boat Hull — Floating**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/12_boat_hull_floating) | Floating rigid-body boat with 6-DoF motion. Dynamic mesh morphing with constrained heave/yaw motion — the capstone project. | `interFoam` | `snappyHexMesh` | Laminar | 🔴 Advanced |
+| 13 | [**Window Ventilation**](projects/13_window_ventilation) | Transient comparison of a wide-open window and a tilted sash, with a radiator, an outdoor region, and passive-tracer air-replacement measurements. | `buoyantBoussinesqPimpleFoam` | Gmsh import | Laminar (2D teaching model) | 🔴 Advanced |
 
 ### Project Progression Map
 
@@ -212,6 +214,9 @@ Twelve simulation projects arranged by increasing complexity. Each project direc
   Post-processing       Force coefficients     Buoyancy coupling     snappyHexMesh + STL
   Mesh import           Turbulence models      Thermal BCs           Floating body / 6-DoF
 ```
+
+Project [13 — Window Ventilation](projects/13_window_ventilation) extends the heat-transfer
+branch with transient natural convection and passive-scalar measurements.
 
 ---
 
@@ -261,13 +266,14 @@ cd projects/01_lid_driven_cavity
 ./open_paraview.sh     # optional: open the results in ParaView
 ```
 
-Requirements on the host: `docker` and `python3`. Projects **03** and **04** also need `gmsh`
+Requirements on the host: `docker` and `python3`. Projects **03**, **04**, and **13** also need `gmsh`
 (the image has no Gmsh, so their meshes are generated on the host). Gmsh 4.12.x, which is the
 `apt` package on Ubuntu 24.04, crashes on the project 03 geometry. Use 4.11.1, 4.13.1 or 4.15.2,
 for example `python3 -m venv ~/gmsh-venv && ~/gmsh-venv/bin/pip install gmsh==4.15.2`, and put
 `~/gmsh-venv/bin` first in `PATH`. Rough run times: seconds to a few minutes for 01, 02, 04, 05,
 07, 08, 09 and 10; 20 to 30 minutes for 03 and 11; hours for the full runs of 06 and 12. Each
-project README lists its measured time.
+project README lists its measured time where available. Project **13** provides a short smoke-run
+command; its default 300-second ventilation study has no measured full-run baseline yet.
 
 > **📌 Next Steps:** Read through [Note 01 — Intro to CFD](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/01_short_intro_to_cfd.md) to understand what just happened, then explore [Note 02 — Case Structure](https://github.com/djeada/OpenFoam-Tutorials/blob/main/notes/02_openfoam_cases.md) to understand *why* the directories are organized the way they are.
 

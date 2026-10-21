@@ -1,0 +1,28 @@
+FoamFile
+{
+    version 2.0;
+    format ascii;
+    class volScalarField;
+    object T;
+}
+dimensions [0 0 0 1 0 0 0];
+internalField uniform @OUTDOOR_T@;
+boundaryField
+{
+    walls
+    {
+        type zeroGradient;
+    }
+    radiator
+    {
+        type fixedValue; value uniform @RADIATOR_T@;
+    }
+    outdoor
+    {
+        type inletOutlet; inletValue uniform @OUTDOOR_T@; value uniform @OUTDOOR_T@;
+    }
+    frontAndBack
+    {
+        type empty;
+    }
+}

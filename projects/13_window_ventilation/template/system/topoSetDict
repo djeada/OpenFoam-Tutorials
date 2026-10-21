@@ -1,0 +1,38 @@
+FoamFile
+{
+    version 2.0;
+    format ascii;
+    class dictionary;
+    object topoSetDict;
+}
+actions
+(
+    {
+        name roomCells;
+        type cellSet;
+        action new;
+        source boxToCell;
+        sourceInfo { box (0 -0.001 -0.001) (4.001 2.501 0.101); }
+    }
+    {
+        name room;
+        type cellZoneSet;
+        action new;
+        source setToCellZone;
+        sourceInfo { set roomCells; }
+    }
+    {
+        name windowFaces;
+        type faceSet;
+        action new;
+        source boxToFace;
+        sourceInfo { box (-1e-7 1.000001 -0.001) (1e-7 2.199999 0.101); }
+    }
+    {
+        name window;
+        type faceZoneSet;
+        action new;
+        source setToFaceZone;
+        sourceInfo { faceSet windowFaces; }
+    }
+);

@@ -1,0 +1,28 @@
+FoamFile
+{
+    version 2.0;
+    format ascii;
+    class volScalarField;
+    object alphat;
+}
+dimensions [0 2 -1 0 0 0 0];
+internalField uniform 0;
+boundaryField
+{
+    walls
+    {
+        type calculated; value uniform 0;
+    }
+    radiator
+    {
+        type calculated; value uniform 0;
+    }
+    outdoor
+    {
+        type calculated; value uniform 0;
+    }
+    frontAndBack
+    {
+        type empty;
+    }
+}

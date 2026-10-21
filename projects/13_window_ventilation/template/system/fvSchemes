@@ -1,0 +1,25 @@
+FoamFile
+{
+    version 2.0;
+    format ascii;
+    class dictionary;
+    object fvSchemes;
+}
+ddtSchemes { default Euler; }
+gradSchemes { default Gauss linear; }
+divSchemes
+{
+    default none;
+    div(phi,U) Gauss upwind;
+    div(phi,T) Gauss upwind;
+    div(phi,c) Gauss upwind;
+    div((nuEff*dev2(T(grad(U))))) Gauss linear;
+}
+laplacianSchemes
+{
+    default Gauss linear corrected;
+    // Avoid explicit non-orthogonal corrections creating negative tracer values.
+    laplacian(Dc,c) Gauss linear uncorrected;
+}
+interpolationSchemes { default linear; }
+snGradSchemes { default corrected; }

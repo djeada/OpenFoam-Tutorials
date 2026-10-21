@@ -1,0 +1,6 @@
+#!/usr/bin/env bash
+# Only generated output under this project is removed; templates are preserved.
+set -euo pipefail
+cd "$(dirname "$0")"
+rm -rf -- cases
+rm -f -- comparison.csv

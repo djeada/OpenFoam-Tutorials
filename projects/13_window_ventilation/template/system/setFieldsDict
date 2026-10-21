@@ -1,0 +1,24 @@
+FoamFile
+{
+    version 2.0;
+    format ascii;
+    class dictionary;
+    object setFieldsDict;
+}
+defaultFieldValues
+(
+    volScalarFieldValue T @OUTDOOR_T@
+    volScalarFieldValue c 0
+);
+regions
+(
+    boxToCell
+    {
+        box (0 -0.001 -0.001) (4.001 2.501 0.101);
+        fieldValues
+        (
+            volScalarFieldValue T @ROOM_T@
+            volScalarFieldValue c 1
+        );
+    }
+);

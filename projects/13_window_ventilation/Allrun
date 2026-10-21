@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")"
+[[ "${WM_PROJECT_VERSION:-}" == 6 ]] || { echo "Source OpenFOAM Foundation 6 first." >&2; exit 1; }
+./mesh_cases.sh "$@"
+./run_cases.sh
+python3 verify.py
+python3 analyze.py
