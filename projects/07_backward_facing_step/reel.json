@@ -1,0 +1,11 @@
+{
+  "title": "Backward-facing step",
+  "intro": {
+    "seconds": 5,
+    "text": "Air flows over a sudden step down in a channel.\n\nThe solver iterates towards a steady flow."
+  },
+  "outro": {
+    "seconds": 5,
+    "text": "The flow separates at the step edge and traps a recirculation bubble before it reattaches downstream.\n\nOpenFOAM simpleFoam · k-ω SST"
+  }
+}

@@ -1,0 +1,11 @@
+{
+  "title": "Floating boat hull",
+  "intro": {
+    "seconds": 5,
+    "text": "This hull is free to move: the water forces decide how it heaves and pitches.\n\nThis is a side slice: blue is water, dark is air."
+  },
+  "outro": {
+    "seconds": 5,
+    "text": "The fluid and the rigid body are solved together, and the mesh deforms as the hull moves.\n\nOpenFOAM interFoam · 6-DoF motion"
+  }
+}

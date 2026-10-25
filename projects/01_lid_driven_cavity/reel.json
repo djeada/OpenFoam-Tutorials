@@ -1,0 +1,11 @@
+{
+  "title": "Lid-driven cavity",
+  "intro": {
+    "seconds": 5,
+    "text": "The classic first CFD test: a box of fluid whose lid slides to the right at 1 m/s.\n\nWatch one big vortex spin up (Re = 100)."
+  },
+  "outro": {
+    "seconds": 5,
+    "text": "One moving wall is enough to set the whole box turning.\n\nOpenFOAM icoFoam · 2D laminar flow"
+  }
+}

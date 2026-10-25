@@ -1,0 +1,11 @@
+{
+  "title": "Hot and cold T-junction",
+  "intro": {
+    "seconds": 5,
+    "text": "Hot and cold water meet in a T-junction.\n\nThe solver iterates towards a steady temperature field."
+  },
+  "outro": {
+    "seconds": 5,
+    "text": "The two streams mix downstream of the junction, with weak thermal layering.\n\nOpenFOAM buoyantSimpleFoam · k-ε"
+  }
+}

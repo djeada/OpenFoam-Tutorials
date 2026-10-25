@@ -1,0 +1,11 @@
+{
+  "title": "Heated channel flow",
+  "intro": {
+    "seconds": 5,
+    "text": "Air flows through a channel with heated walls.\n\nThe solver iterates towards a steady temperature field."
+  },
+  "outro": {
+    "seconds": 5,
+    "text": "Heat diffuses from the hot walls into a thin thermal boundary layer that thickens downstream.\n\nOpenFOAM buoyantSimpleFoam · k-ε"
+  }
+}

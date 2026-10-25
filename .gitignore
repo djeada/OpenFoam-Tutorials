@@ -39,3 +39,6 @@ projects/11_boat_hull_fixed/[1-9][0-9].[0-9]*/
 projects/11_boat_hull_fixed/[1-9][0-9][0-9].[0-9]*/
 projects/11_boat_hull_fixed/constant/triSurface/boat_hull.stl
 projects/11_boat_hull_fixed/constant/triSurface/boat_hull.eMesh
+
+# Rendered reels and stills (tools/make_reel.py)
+/output/

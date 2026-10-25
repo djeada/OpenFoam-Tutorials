@@ -1,0 +1,11 @@
+{
+  "title": "Boat hull in calm water",
+  "intro": {
+    "seconds": 5,
+    "text": "Water flows past a boat hull that is held in place.\n\nThis is a side slice through the hull: blue is water, dark is air."
+  },
+  "outro": {
+    "seconds": 5,
+    "text": "The bow pushes up a wave and the hull leaves a wake behind it.\n\nOpenFOAM interFoam · VOF · snappyHexMesh"
+  }
+}

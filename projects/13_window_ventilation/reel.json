@@ -1,0 +1,67 @@
+{
+  "title": "Window: wide open vs tilted",
+  "subtitle": "20 °C room · 0 °C outside · 40 °C radiator",
+  "include_zero": true,
+  "cases": [
+    {
+      "path": "cases/wide_open",
+      "label": "Wide open",
+      "overlay": {"file": "postProcessing/roomStats/*/volFieldValue.dat", "column": 1,
+                  "scale": -100, "offset": 100, "initial": 0, "format": "{:.0f}% fresh air"}
+    },
+    {
+      "path": "cases/tilted",
+      "label": "Tilted 10°",
+      "overlay": {"file": "postProcessing/roomStats/*/volFieldValue.dat", "column": 1,
+                  "scale": -100, "offset": 100, "initial": 0, "format": "{:.0f}% fresh air"}
+    }
+  ],
+  "outro": {
+    "seconds": 8,
+    "text": "After 5 minutes\nWide open: {0:.0f}% fresh air\nTilted: {1:.0f}% fresh air\n\nAir out briefly with the window wide open instead of leaving it on tilt.\n\n2D OpenFOAM teaching model, not a building design tool"
+  },
+  "reels": [
+    {
+      "name": "temperature",
+      "field": "T",
+      "offset": -273.15,
+      "range": [0, 24],
+      "bar_title": "Air temperature (°C)",
+      "colormap": "Turbo",
+      "duration": 42,
+      "intro": {
+        "seconds": 5,
+        "text": "Airing a room in winter: is a wide-open window really better than a tilted one?\n\nSame room, same cold day. Only the window differs."
+      },
+      "captions": [
+        {"from": 0, "to": 40, "text": "Colours show air temperature: blue is cold, red is warm. Watch the window."},
+        {"from": 40, "to": 85, "text": "Wide open: heavy cold air pours in along the floor while warm air escapes above it."},
+        {"from": 85, "to": 130, "text": "Tilted: cold air sinks into the pocket behind the pane, and the exchange almost stops."},
+        {"from": 130, "to": 180, "text": "The radiator keeps the tilted room warm, but it is heating the same old air."},
+        {"from": 180, "to": 235, "text": "The wide-open room cools quickly because most of its air is being replaced."},
+        {"from": 235, "to": 300, "text": "The counters show how much of each room's air now comes from outside."}
+      ]
+    },
+    {
+      "name": "fresh_air",
+      "field": "c",
+      "scale": -100,
+      "offset": 100,
+      "range": [0, 100],
+      "bar_title": "Air that came from outside (%)",
+      "colormap": [0, 0.80, 0.33, 0.20, 0.5, 0.42, 0.36, 0.60, 1, 0.38, 0.86, 1.0],
+      "duration": 42,
+      "intro": {
+        "seconds": 5,
+        "text": "How much of the stale room air actually gets replaced?\n\nWe tagged all of the room's air and watched where it goes."
+      },
+      "captions": [
+        {"from": 0, "to": 40, "text": "Red is the room's original air. Blue is fresh air from outside."},
+        {"from": 40, "to": 90, "text": "Wide open: fresh air floods in low and pushes the old air out at the top."},
+        {"from": 90, "to": 140, "text": "Tilted: very little gets past the pane, so the room keeps its old air."},
+        {"from": 140, "to": 200, "text": "The radiator's warm plume stirs the air, but stirring is not replacing."},
+        {"from": 200, "to": 300, "text": "Mixing spreads the fresh air through the whole wide-open room."}
+      ]
+    }
+  ]
+}

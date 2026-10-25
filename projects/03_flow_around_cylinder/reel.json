@@ -1,0 +1,11 @@
+{
+  "title": "Flow past a cylinder",
+  "intro": {
+    "seconds": 5,
+    "text": "Flow past a cylinder at Reynolds number 200.\n\nWatch the wake start to wobble and then shed alternating vortices."
+  },
+  "outro": {
+    "seconds": 5,
+    "text": "This rhythmic pattern is a von Kármán vortex street. Vortices leave at a Strouhal number of about 0.2.\n\nOpenFOAM pimpleFoam · 2D laminar"
+  }
+}

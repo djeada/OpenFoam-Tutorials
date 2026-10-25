@@ -1,0 +1,11 @@
+{
+  "title": "Wind turbine rotor",
+  "intro": {
+    "seconds": 5,
+    "text": "Wind passes through a spinning rotor, modelled with a rotating reference frame (MRF).\n\nThe solver iterates towards a steady flow."
+  },
+  "outro": {
+    "seconds": 5,
+    "text": "MRF adds the rotation to the equations instead of moving the mesh: fast, steady and approximate.\n\nOpenFOAM simpleFoam · MRF · k-ε"
+  }
+}

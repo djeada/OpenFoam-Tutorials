@@ -33,7 +33,7 @@ def geometry(tilted, mesh_size):
             "Mesh.MshFileVersion = 2.2;", "Mesh.ElementOrder = 1;"]
     for i, (x, y) in enumerate(points, 1):
         if -0.1 <= x <= 0.3:
-            size = min(mesh_size, 0.012 if tilted and y > 2 and x < 0.3 else 0.03)
+            size = min(mesh_size, 0.02)
         else:
             size = mesh_size
         text.append(f"Point({i}) = {{{x:.12g}, {y:.12g}, 0, {size:.12g}}};")

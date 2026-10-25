@@ -1,0 +1,11 @@
+{
+  "title": "NACA 0012 airfoil",
+  "intro": {
+    "seconds": 5,
+    "text": "Air flowing past a NACA 0012 wing section at 4° angle of attack.\n\nThe solver iterates towards a steady flow."
+  },
+  "outro": {
+    "seconds": 5,
+    "text": "The air speeds up over the upper surface, and faster flow means lower pressure. That pressure difference is lift.\n\nOpenFOAM simpleFoam · Spalart-Allmaras"
+  }
+}

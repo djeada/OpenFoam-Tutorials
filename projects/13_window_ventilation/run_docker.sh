@@ -7,3 +7,4 @@ docker run --rm --user "$(id -u):$(id -g)" -v "$PWD":/case -w /case \
     cfdengine/openfoam bash -lc 'source /opt/openfoam6/etc/bashrc && ./run_cases.sh'
 python3 verify.py
 python3 analyze.py
+python3 plot_results.py
