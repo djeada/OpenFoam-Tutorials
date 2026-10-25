@@ -4,7 +4,7 @@ Run with ParaView's batch interpreter; ffmpeg (libx264 + AAC) encodes the video:
 
     pvbatch tools/make_reel.py projects/08_dam_break
     pvbatch tools/make_reel.py projects/13_window_ventilation          # uses its reel.json
-    pvbatch tools/make_reel.py projects/03_flow_around_cylinder --field U --lic
+    pvbatch tools/make_reel.py projects/02_elbow --field vorticity --streamlines 12
     pvbatch tools/make_reel.py --all                                   # every project with results
 
 Videos land in output/artifacts/<project>/<reel>.mp4 (git-ignored).
@@ -35,9 +35,11 @@ import sys
 import tempfile
 from pathlib import Path
 
-from paraview.simple import (Calculator, ColorBy, CreateRenderView, GetColorTransferFunction,
-                             GetScalarBar, OpenFOAMReader, ResetSession, SaveScreenshot,
-                             Show, Slice, TemporalInterpolator, Text, Transform)
+from paraview.simple import (AppendDatasets, Calculator, ColorBy, CreateRenderView,
+                             GetColorTransferFunction, Gradient, GetScalarBar, Line, OpenFOAMReader,
+                             Plane, ResetSession, SaveScreenshot, Show, Slice,
+                             StreamTracerWithCustomSource, TemporalInterpolator, Text,
+                             Transform)
 from vtkmodules.vtkCommonCore import vtkObject
 from vtkmodules.vtkRenderingCore import vtkTextProperty, vtkTextRenderer
 import vtkmodules.vtkRenderingFreeType  # noqa: F401  (registers the FreeType text backend)
@@ -58,11 +60,15 @@ FIELD_PRIORITY = ("alpha.water", "T", "U", "p_rgh", "p")
 # A preset name, or RGB points (value r g b ...) on a 0..1 scale stretched to the range.
 COLORMAPS = {"alpha.water": [0, 0.09, 0.11, 0.17, 0.5, 0.05, 0.42, 0.72, 1, 0.38, 0.86, 1.0],
              "T": "Turbo", "U": "Turbo", "c": "Viridis (matplotlib)",
-             "k": "Plasma (matplotlib)"}
+             "k": "Plasma (matplotlib)",
+             # Dark where the fluid does not spin, so vortices stand out on the background.
+             "vorticity": [0, 0.55, 0.85, 1.0, 0.25, 0.13, 0.38, 0.85, 0.5, 0.06, 0.07, 0.12,
+                           0.75, 0.85, 0.25, 0.12, 1, 1.0, 0.80, 0.45]}
 # Plain-language colour-bar titles; units are appended from the field's dimensions.
 FIELD_NAMES = {"alpha.water": "Water fraction", "T": "Temperature", "U": "Flow speed",
                "p": "Pressure", "p_rgh": "Pressure (hydrostatic part removed)",
-               "k": "Turbulent kinetic energy", "nut": "Turbulent viscosity"}
+               "k": "Turbulent kinetic energy", "nut": "Turbulent viscosity",
+               "vorticity": "Spin (vorticity)"}
 AXES = {"x": 0, "y": 1, "z": 2}
 # OpenFOAM dimension sets [kg m s K mol A cd] -> unit label for the colour bar.
 UNITS = {(0, 1, -1): "m/s", (1, -1, -2): "Pa", (0, 2, -2): "m²/s²", (0, 0, -1): "1/s",
@@ -124,6 +130,8 @@ def gravity_axis(case):
 
 def field_units(case, field):
     """Unit label from the field's `dimensions` entry in the initial conditions."""
+    if field == "vorticity":
+        return "1/s"
     for folder in ("0", "0.orig"):
         path = case / folder / field
         if path.is_file():
@@ -173,7 +181,9 @@ def load_reels(project, args):
     overrides = {key: value for key, value in dict(
         field=args.field, range=args.range, colormap=args.colormap,
         lic=True if args.lic else (False if args.no_lic else None),
+        streamlines=args.streamlines,
         normal=args.normal, up=args.up, duration=args.duration, skip_before=args.skip_before,
+        skip_after=args.skip_after,
         zoom=args.zoom, center=args.center, music=args.music,
     ).items() if value is not None}
     if args.title:
@@ -267,8 +277,10 @@ def build_panel(case_entry, reel, field_hint, interpolate):
     """Reader -> (time interpolation) -> (slice) -> (scaled field) for one case."""
     case = case_entry["path"]
     reader = open_case(case, reel.get("include_zero", True))
-    field = pick_field(reader, field_hint)
-    arrays = [field] + (["U"] if reel.get("lic") and field != "U" else [])
+    vorticity = field_hint == "vorticity"  # derived from U: spin about the view axis
+    field = pick_field(reader, "U" if vorticity else field_hint)
+    needs_u = reel.get("lic") or reel.get("streamlines")
+    arrays = [field] + (["U"] if needs_u and field != "U" else [])
     reader.CellArrays = [a for a in arrays if a in reader.CellArrays.Available]
     times = list(reader.TimestepValues or [])
     if not ((case / "0" / field).is_file() and reel.get("include_zero", True)):
@@ -285,7 +297,13 @@ def build_panel(case_entry, reel, field_hint, interpolate):
         source.SliceType.Origin = origin
         source.SliceType.Normal = [1.0 if i == normal else 0.0 for i in range(3)]
     array, component = field, None
-    if reel.get("scale", 1) != 1 or reel.get("offset", 0) != 0:
+    if vorticity:
+        # Only in-plane derivatives enter the normal component, so a slice is enough.
+        source = Gradient(Input=source)
+        source.ScalarArray = ["POINTS", "U"]
+        source.ComputeGradient, source.ComputeVorticity = 0, 1
+        field, array, component = "vorticity", "Vorticity", "XYZ"[normal]
+    elif reel.get("scale", 1) != 1 or reel.get("offset", 0) != 0:
         source = Calculator(Input=source)
         source.ResultArrayName = "display"
         source.Function = f'{reel.get("scale", 1)}*"{field}"+{reel.get("offset", 0)}'
@@ -295,6 +313,62 @@ def build_panel(case_entry, reel, field_hint, interpolate):
     return dict(entry=case_entry, case=case, reader=reader, source=source, field=field,
                 array=array, component=component, times=times, normal=normal, up=up,
                 is_2d=is_2d, bounds=bounds_of(source, times[0] if times else None))
+
+
+def add_streamlines(view, panel, spec, toward_camera):
+    """Thin white streamlines from fixed seeds, drawn over the coloured field.
+
+    `spec` is a seed-grid size (N seeds across the panel) or a dict with "grid": N, or
+    "lines": [[[x, y, z], [x, y, z], seeds], ...] for seeds along lines (e.g. across an
+    inlet, or from a vortex centre to a wall so each closed loop is drawn once), plus
+    optional "opacity" and "direction" ("BOTH", "FORWARD", "BACKWARD"). Fixed seeds keep
+    the lines continuous from frame to frame. The lines are lifted just in front of the
+    coloured surface so the mesh does not hide them.
+    """
+    spec = spec if isinstance(spec, dict) else {"grid": 14 if spec is True else int(spec)}
+    b, normal, up = list(panel["bounds"]), panel["normal"], panel["up"]
+    stack_shift = panel["top"] - b[2 * up + 1]  # panels below the first are moved down
+    b[2 * up], b[2 * up + 1] = panel["bottom"], panel["top"]
+    right = 3 - normal - up
+    mid = [(b[2 * i] + b[2 * i + 1]) / 2 for i in range(3)]
+    width, height = b[2 * right + 1] - b[2 * right], b[2 * up + 1] - b[2 * up]
+    if spec.get("lines"):
+        seeds = []
+        for start, end, count in spec["lines"]:
+            line = Line(Resolution=max(1, int(count) - 1))
+            line.Point1, line.Point2 = [
+                [mid[i] if i == normal else point[i] + (stack_shift if i == up else 0.0)
+                 for i in range(3)] for point in (start, end)]
+            seeds.append(line)
+        seed = seeds[0] if len(seeds) == 1 else AppendDatasets(Input=seeds)
+    else:
+        spacing = max(width, height) / spec.get("grid", 14)
+        seed = Plane()
+        origin, p_right, p_up = list(mid), list(mid), list(mid)
+        origin[right], origin[up] = b[2 * right] + spacing / 2, b[2 * up] + spacing / 2
+        p_right[right], p_right[up] = b[2 * right + 1] - spacing / 2, origin[up]
+        p_up[right], p_up[up] = origin[right], b[2 * up + 1] - spacing / 2
+        seed.Origin, seed.Point1, seed.Point2 = origin, p_right, p_up
+        seed.XResolution = max(1, int(round(width / spacing)) - 1)
+        seed.YResolution = max(1, int(round(height / spacing)) - 1)
+    lines = StreamTracerWithCustomSource(Input=panel["source"], SeedSource=seed)
+    lines.Vectors = ["POINTS", "U"]
+    lines.IntegrationDirection = spec.get("direction", "BOTH")
+    # Short steps keep the curves smooth on coarse meshes.
+    lines.InitialStepLength, lines.MaximumStepLength = 0.05, 0.1
+    lines.MaximumSteps = 20000
+    lines.MaximumStreamlineLength = spec.get("length", 2 * max(width, height))
+    lifted = Transform(Input=lines)
+    depth = b[2 * normal + 1] - b[2 * normal]
+    shift = depth / 2 + 1e-3 * max(width, height)
+    lifted.Transform.Translate = [shift * toward_camera if i == normal else 0.0 for i in range(3)]
+    display = Show(lifted, view)
+    display.ColorArrayName = ["POINTS", ""]  # solid colour
+    display.AmbientColor = display.DiffuseColor = [1.0, 1.0, 1.0]
+    display.Ambient, display.Diffuse = 1.0, 0.0
+    display.Opacity = spec.get("opacity", 0.45)
+    display.LineWidth = 1.5 * SCALE
+    return lifted
 
 
 def screen_axes(normal, up):
@@ -316,7 +390,7 @@ def sample_range(panels, times):
             info = panel["source"].GetPointDataInformation().GetArray(panel["array"])
             if info is None:
                 continue
-            a, b = info.GetRange(-1 if panel["component"] == "Magnitude" else 0)
+            a, b = info.GetRange({"Magnitude": -1, None: 0, "X": 0, "Y": 1, "Z": 2}[panel["component"]])
             lo, hi = min(lo, a), max(hi, b)
     if not math.isfinite(lo) or lo == hi:
         return [0.0, 1.0] if not math.isfinite(lo) else [lo - 0.5, hi + 0.5]
@@ -620,6 +694,8 @@ def render_reel(project, reel, args):
     times = first["times"]
     if reel.get("skip_before"):
         times = [t for t in times if t >= reel["skip_before"]]
+    if reel.get("skip_after"):
+        times = [t for t in times if t <= reel["skip_after"]]
     value_range = reel.get("range") or sample_range(panels, times)
     lut = GetColorTransferFunction(first["array"])
     lut.AutomaticRescaleRangeMode = "Never"
@@ -649,6 +725,8 @@ def render_reel(project, reel, args):
             ColorBy(display, ("POINTS", panel["array"]))
         display.LookupTable = lut
         display.SetScalarBarVisibility(view, False)
+        if reel.get("streamlines") and not reel.get("lic"):
+            add_streamlines(view, panel, reel["streamlines"], sign)
     lut.RescaleTransferFunction(*value_range)  # after ColorBy, which rescales to the data
 
     # Header, panel labels, captions, cards, clock, colour bar.
@@ -811,6 +889,8 @@ def main(argv):
                         help="texture the field with U (Surface LIC); best for steady or slowly "
                              "changing flow, it shimmers and greys the colours in fast transients")
     parser.add_argument("--no-lic", action="store_true", help="plain colours, no flow texture")
+    parser.add_argument("--streamlines", type=int, metavar="N",
+                        help="overlay white streamlines seeded on an N-wide grid (0 = off)")
     parser.add_argument("--normal", choices=AXES, help="view/slice normal axis")
     parser.add_argument("--up", choices=AXES, help="axis pointing up on screen")
     parser.add_argument("--duration", type=float,
@@ -819,6 +899,7 @@ def main(argv):
     parser.add_argument("--center", nargs=3, type=float, metavar=("X", "Y", "Z"),
                         help="world point to centre the view on (useful with --zoom)")
     parser.add_argument("--skip-before", type=float, help="ignore times earlier than this")
+    parser.add_argument("--skip-after", type=float, help="ignore times later than this")
     parser.add_argument("--title", help="headline text")
     parser.add_argument("--name", help="output file name (without .mp4)")
     parser.add_argument("--music", help="audio file to use instead of the generated ambient track")

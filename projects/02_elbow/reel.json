@@ -1,11 +1,72 @@
 {
+  "name": "merging_streams",
   "title": "Flow through a pipe elbow",
   "intro": {
     "seconds": 5,
     "text": "Two inlets feed one curved pipe: a 1 m/s main stream and a 3 m/s side jet.\n\nColours show the flow speed."
   },
   "outro": {
-    "seconds": 5,
-    "text": "The side jet bends and merges with the main flow before it leaves the elbow.\n\nOpenFOAM icoFoam · imported Fluent mesh"
-  }
+    "seconds": 6,
+    "text": "Two inlets, one pipe: the fast jet never fully blends in before the exit.\n\nOpenFOAM icoFoam · imported Fluent mesh"
+  },
+  "streamlines": {
+    "lines": [
+      [
+        [
+          0.4,
+          0.8,
+          0
+        ],
+        [
+          0.4,
+          15.2,
+          0
+        ],
+        10
+      ],
+      [
+        [
+          53.0,
+          -4.2,
+          0
+        ],
+        [
+          56.1,
+          -4.2,
+          0
+        ],
+        4
+      ]
+    ],
+    "direction": "FORWARD",
+    "opacity": 0.6
+  },
+  "duration": 42,
+  "captions": [
+    {
+      "from": 0,
+      "to": 12,
+      "text": "Blue-green is the 1 m/s main stream from the left. Red is the 3 m/s side jet from below."
+    },
+    {
+      "from": 12,
+      "to": 25,
+      "text": "White lines are streamlines. The fast jet hugs the outer wall of the bend."
+    },
+    {
+      "from": 25,
+      "to": 40,
+      "text": "Where the two streams meet, the jet wobbles back and forth."
+    },
+    {
+      "from": 40,
+      "to": 57,
+      "text": "After about 40 seconds the wobble dies out and the flow settles."
+    },
+    {
+      "from": 57,
+      "to": 75,
+      "text": "The streams flow side by side to the exit, with the fast jet along the outer wall."
+    }
+  ]
 }

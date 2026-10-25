@@ -1,11 +1,58 @@
 {
+  "name": "vortex_street",
   "title": "Flow past a cylinder",
   "intro": {
     "seconds": 5,
     "text": "Flow past a cylinder at Reynolds number 200.\n\nWatch the wake start to wobble and then shed alternating vortices."
   },
   "outro": {
-    "seconds": 5,
-    "text": "This rhythmic pattern is a von Kármán vortex street. Vortices leave at a Strouhal number of about 0.2.\n\nOpenFOAM pimpleFoam · 2D laminar"
-  }
+    "seconds": 6,
+    "text": "A new vortex leaves every 2.5 s, alternating sides (Strouhal number 0.20, as in published results).\n\nOpenFOAM pimpleFoam · 2D laminar, Re = 200"
+  },
+  "field": "vorticity",
+  "range": [
+    -2,
+    2
+  ],
+  "bar_title": "Spin: blue clockwise, red anticlockwise",
+  "skip_after": 120,
+  "zoom": 2.2,
+  "center": [
+    6,
+    0,
+    0.05
+  ],
+  "duration": 42,
+  "captions": [
+    {
+      "from": 0,
+      "to": 11,
+      "text": "Fluid flows left to right past a cylinder. Colours show where it spins."
+    },
+    {
+      "from": 11,
+      "to": 24,
+      "text": "At first the wake is calm: two spinning layers trail behind, mirror images of each other."
+    },
+    {
+      "from": 24,
+      "to": 46,
+      "text": "Tiny disturbances grow. The wake starts to wobble, and vortices peel off one side, then the other."
+    },
+    {
+      "from": 46,
+      "to": 72,
+      "text": "Now the pattern repeats like clockwork: a von Kármán vortex street."
+    },
+    {
+      "from": 72,
+      "to": 96,
+      "text": "Each vortex tugs the cylinder sideways, so the side force swings back and forth every 5 s."
+    },
+    {
+      "from": 96,
+      "to": 120,
+      "text": "The same effect makes power lines hum and tall chimneys sway in the wind."
+    }
+  ]
 }
