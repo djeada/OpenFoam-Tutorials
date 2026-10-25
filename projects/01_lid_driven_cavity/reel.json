@@ -1,11 +1,60 @@
 {
+  "name": "vortex_spin_up",
   "title": "Lid-driven cavity",
   "intro": {
     "seconds": 5,
     "text": "The classic first CFD test: a box of fluid whose lid slides to the right at 1 m/s.\n\nWatch one big vortex spin up (Re = 100)."
   },
   "outro": {
-    "seconds": 5,
-    "text": "One moving wall is enough to set the whole box turning.\n\nOpenFOAM icoFoam · 2D laminar flow"
-  }
+    "seconds": 6,
+    "text": "One moving wall is enough to set the whole box turning.\n\nOpenFOAM icoFoam · 2D laminar, Re = 100"
+  },
+  "streamlines": {
+    "lines": [
+      [
+        [
+          0.0615,
+          0.063,
+          0
+        ],
+        [
+          0.0615,
+          0.005,
+          0
+        ],
+        9
+      ]
+    ],
+    "direction": "FORWARD",
+    "length": 0.42,
+    "opacity": 0.7
+  },
+  "duration": 42,
+  "captions": [
+    {
+      "from": 0,
+      "to": 0.08,
+      "text": "The lid slides right at 1 m/s and drags the fluid just beneath it along."
+    },
+    {
+      "from": 0.08,
+      "to": 0.18,
+      "text": "White lines are streamlines, the paths the fluid follows. Colour shows speed."
+    },
+    {
+      "from": 0.18,
+      "to": 0.3,
+      "text": "Blocked by the right wall, the fluid turns down, and the whole box starts turning clockwise."
+    },
+    {
+      "from": 0.3,
+      "to": 0.4,
+      "text": "The dark spot is the eye of the vortex, where the fluid barely moves."
+    },
+    {
+      "from": 0.4,
+      "to": 0.5,
+      "text": "After half a second the pattern has stopped changing: the flow is steady."
+    }
+  ]
 }

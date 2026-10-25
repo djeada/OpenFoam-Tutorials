@@ -289,7 +289,7 @@ downscaled. It runs under ParaView's `pvbatch` and needs `ffmpeg` with libx264:
 
 ```bash
 pvbatch tools/make_reel.py projects/08_dam_break                 # one project
-pvbatch tools/make_reel.py projects/03_flow_around_cylinder --field U --lic
+pvbatch tools/make_reel.py projects/03_flow_around_cylinder --field vorticity --range -2 2
 pvbatch tools/make_reel.py --all                                  # every project with results
 ```
 
@@ -297,14 +297,21 @@ Videos are written to `output/artifacts/<project>/<reel>.mp4`, which git ignores
 configuration the script picks a field (`alpha.water`, `T`, `U`, `p_rgh`, `p`), shows 2D cases
 face-on and slices 3D cases through the centre, and fixes one colour range for the whole clip.
 The intro text defaults to the first sentence of the project README.
-`--field`, `--range`, `--colormap`, `--normal`/`--up`, `--zoom`/`--center`, `--duration` and
-`--lic` override the defaults. `--lic` adds a flow-texture overlay, which suits steady or
-slowly changing flow; in fast transients it shimmers and greys out the colours. `--music track.mp3` uses your own audio
+`--field`, `--range`, `--colormap`, `--normal`/`--up`, `--zoom`/`--center`, `--duration`,
+`--skip-before`/`--skip-after` and `--streamlines N` override the defaults. `--field vorticity`
+colours by how fast the fluid spins about the viewing axis (computed from `U`), which makes
+vortex streets and shear layers stand out. `--streamlines N` draws thin white streamlines from
+an N-wide grid of fixed seeds; in `reel.json`, `"streamlines": {"lines": [[start, end, seeds]]}`
+seeds them along lines instead, for example across an inlet or from a vortex centre to a wall.
+`--lic` adds a flow-texture overlay, which suits steady or slowly changing flow; in fast
+transients it shimmers and greys out the colours. `--music track.mp3` uses your own audio
 and `--no-music` makes the video silent. `--supersample 1` gives a fast draft, and `--still`
 writes a PNG of the final frame. A project can also ship a `reel.json` with stacked comparison
 panels, labels, live numbers from `postProcessing`, captions timed to simulation time, and
 intro/outro text that can quote final values. See
-[project 13](projects/13_window_ventilation/reel.json) for an example. Interpolation
+[project 13](projects/13_window_ventilation/reel.json) for an example, and projects
+[01](projects/01_lid_driven_cavity/reel.json), [02](projects/02_elbow/reel.json) and
+[03](projects/03_flow_around_cylinder/reel.json) for streamlines and vorticity. Interpolation
 cross-fades between written times, so fast events such as splashes look better when results
 are written more often. Use `--no-interpolate` if the mesh topology changes between time
 steps. Add `--force-offscreen-rendering` to `pvbatch` on headless machines.
