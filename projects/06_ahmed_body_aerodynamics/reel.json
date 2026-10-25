@@ -1,0 +1,13 @@
+{
+  "title": "Ahmed body aerodynamics",
+  "intro": {
+    "seconds": 5,
+    "text": "The Ahmed body is a simplified car shape used to study aerodynamic drag.\n\nThis is a slice through its centre plane."
+  },
+  "outro": {
+    "seconds": 5,
+    "text": "Most of the drag comes from the low-pressure wake behind the slanted rear.\n\nOpenFOAM simpleFoam · k-ω SST · snappyHexMesh"
+  },
+  "normal": "y",
+  "up": "z"
+}

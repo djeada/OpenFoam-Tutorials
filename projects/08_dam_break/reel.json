@@ -1,0 +1,11 @@
+{
+  "title": "Dam break",
+  "intro": {
+    "seconds": 5,
+    "text": "A column of water is released and collapses under gravity.\n\nBlue is water, dark is air."
+  },
+  "outro": {
+    "seconds": 5,
+    "text": "The free surface is captured with the Volume of Fluid method.\n\nOpenFOAM interFoam · 2D laminar"
+  }
+}

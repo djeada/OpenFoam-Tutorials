@@ -1,0 +1,11 @@
+{
+  "title": "Flow through a pipe elbow",
+  "intro": {
+    "seconds": 5,
+    "text": "Two inlets feed one curved pipe: a 1 m/s main stream and a 3 m/s side jet.\n\nColours show the flow speed."
+  },
+  "outro": {
+    "seconds": 5,
+    "text": "The side jet bends and merges with the main flow before it leaves the elbow.\n\nOpenFOAM icoFoam · imported Fluent mesh"
+  }
+}

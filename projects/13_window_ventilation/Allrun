@@ -6,3 +6,4 @@ cd "$(dirname "$0")"
 ./run_cases.sh
 python3 verify.py
 python3 analyze.py
+python3 plot_results.py

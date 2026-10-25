@@ -33,7 +33,9 @@ from the temperature colours.
 
 `prepare_cases.py` creates both complete cases from `template/` and writes their
 Gmsh geometries. The mesh resolves the pane itself. It is not a reduced-area
-boundary condition. An embedded line at x = 0 makes the room cell zone and window
+boundary condition. Both cases use the same 0.02 m cell size around the window and
+radiator, so a difference between them comes from the pane rather than from the
+mesh. An embedded line at x = 0 makes the room cell zone and window
 flux plane align with mesh faces. Only the opening connects room and exterior;
 there is no door, second window, imposed inlet velocity, or prescribed ACH.
 
@@ -50,8 +52,8 @@ to exterior extent and these truncation conditions before interpreting flow rate
 
 ## Run
 
-Host requirements: Python 3, Gmsh **4.15.2**, and either a sourced Foundation 6
-installation or Docker. Python analysis uses only the standard library. Gmsh is
+Host requirements: Python 3, Gmsh 4.x (tested with 4.12.1 and 4.15.2), and either a
+sourced Foundation 6 installation or Docker. Python analysis uses only the standard library. Gmsh is
 run on the host, as in projects 03 and 04; the Docker image supplies OpenFOAM.
 
 ```bash
@@ -73,19 +75,23 @@ For an initial **2-second smoke run**, use either launcher with:
 
 This tests the mesh, solver startup, and measurement pipeline. Two seconds is not
 a ventilation study and is not a substitute for the default 300-second run.
-Run time depends on the mesh and machine; no full-run timing baseline is claimed.
+The default 300-second run (about 23,000 cells per case, roughly 46,000 adaptive time
+steps) took about 30 minutes of wall-clock time in Docker, with both cases running
+side by side on one core each.
 
 Change the temperature constants in `prepare_cases.py` to try other conditions.
 Both cases are regenerated from the same templates; Gmsh point sizes in
 `geometry()` control local refinement near the window and radiator.
 
-The launchers stop at the first failure, retain per-case `log.*` files, then run
-`verify.py` and `analyze.py`. They refuse to overwrite `cases/`. To start again,
+The two scenarios are independent, so `run_cases.sh` runs them at the same time,
+using one core each. The launchers stop at the first failure, keep per-case `log.*`
+files, then run `verify.py`, `analyze.py` and `plot_results.py`. They refuse to overwrite `cases/`. To start again,
 archive any results you need, then run `./Allclean`; it deletes generated cases
 and `comparison.csv`, preserving templates and source files.
 
 For separate stages, run `./mesh_cases.sh [options]`, then `./run_cases.sh` in a
-Foundation 6 environment, then `python3 verify.py` and `python3 analyze.py`.
+Foundation 6 environment, then `python3 verify.py`, `python3 analyze.py` and
+`python3 plot_results.py`.
 Use the matching release: later Foundation/OpenCFD versions are not assumed to
 accept these solver names, dictionaries, or function-object interfaces unchanged.
 
@@ -124,6 +130,26 @@ fixed reference values ρ = 1.2 kg/m³ and cp = 1005 J/(kg K). It is an **air en
 inventory change**, not cumulative heat lost outdoors or radiator consumption;
 the radiator supplies heat during the run. A negative decrease means warming.
 
+## Results (default 300-second run)
+
+![Fresh-air share and mean room temperature over time](images/results.svg)
+
+| Elapsed | Wide open: fresh air / mean T | Tilted 10°: fresh air / mean T |
+|---|---|---|
+| 60 s | 45% / 11.4 °C | 1.5% / 19.9 °C |
+| 120 s | 63% / 8.1 °C | 1.8% / 20.1 °C |
+| 300 s | **80%** / 5.4 °C | **2.2%** / 20.6 °C |
+
+With the pane removed, a cold gravity current flows in along the floor while warm
+air leaves through the top of the opening. Within five minutes, four fifths of the
+room air is outside air. With the pane tilted, cold air entering over the top
+collects in the pocket between the pane and the wall. After a brief start-up
+transient the exchange almost stops (0.5 ACH at 300 s versus 11 ACH wide open). The
+radiator then warms the room above its starting temperature while the air stays
+stale. A real tilted window also leaks through its two triangular side gaps, which a
+2D section cannot represent, so this model understates the tilted exchange. Use these
+numbers for the qualitative comparison, not as a measured 70%/7% replication.
+
 ## Visualise
 
 Run `./open_paraview.sh` to open the wide-open case, then add
@@ -139,6 +165,28 @@ and use a shared colour range:
 
 Use the numeric tracer history to label replacement percentages. Compare cases
 at matching times; a temperature contour is not evidence of a particular ACH.
+
+### Reels
+
+[`reel.json`](reel.json) configures the repository's
+[reel renderer](../../tools/make_reel.py) for this project. Each reel is about
+55 seconds long: an intro question, the five minutes of simulation played about 7×
+faster than real time with captions explaining what is happening, and a closing card
+with the computed fresh-air shares. The two cases are stacked in one vertical video,
+each labelled with its live fresh-air percentage from `roomStats`, over a generated
+ambient soundtrack.
+
+- `temperature`: air temperature (0–24 °C).
+- `fresh_air`: the share of air that came from outside, `100 (1 − c)`.
+
+```bash
+./run_docker.sh --write-interval 1     # denser output for the reels (time interpolation fills the gaps)
+cd ../.. && pvbatch tools/make_reel.py projects/13_window_ventilation
+# -> output/artifacts/13_window_ventilation/{temperature,fresh_air}.mp4
+```
+
+The captions describe this run's results. If you change the setup, check that they
+still match before you publish a reel.
 
 ## Verification and limits
 
