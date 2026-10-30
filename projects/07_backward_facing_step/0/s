@@ -10,43 +10,54 @@ FoamFile
     version     2.0;
     format      ascii;
     class       volScalarField;
-    object      k;
+    object      s;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-dimensions      [0 2 -2 0 0 0 0];
+dimensions      [0 0 0 0 0 0 0];
 
-internalField   uniform 0.24;
+// Passive dye (scalarTransport function object in system/controlDict).
+// It enters in the inlet boundary layer, the lowest 0.6h of the inlet, so it
+// marks the fluid that separates at the step lip and rolls up in the shear layer.
+internalField   uniform 0;
 
 boundaryField
 {
     inlet
     {
-        type            fixedValue;
-        value           uniform 0.24;
+        type            fixedProfile;
+        profile         table
+        (
+            (0       1)
+            (0.0059  1)
+            (0.0061  0)
+            (0.05    0)
+        );
+        direction       (0 1 0);
+        origin          0.01;
+        value           uniform 0;
     }
 
     outlet
     {
+        type            inletOutlet;
+        inletValue      uniform 0;
+        value           uniform 0;
+    }
+
+    top
+    {
         type            zeroGradient;
-    }
-
-    topWall
-    {
-        type            kqRWallFunction;
-        value           uniform 0.24;
-    }
-
-    bottomWall
-    {
-        type            kqRWallFunction;
-        value           uniform 0.24;
     }
 
     step
     {
-        type            kqRWallFunction;
-        value           uniform 0.24;
+        type            zeroGradient;
+    }
+
+    floor
+    {
+        type            zeroGradient;
     }
 
     frontAndBack

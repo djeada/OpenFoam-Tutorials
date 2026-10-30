@@ -10,40 +10,45 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    object      topoSetDict;
+    object      changeDictionaryDict;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// Cylindrical cellZone "rotatingZone" used by constant/MRFProperties.
-// Axis along z through (1.0, 0.5), radius 0.3 m, spanning the full domain depth.
-
-actions
-(
-    // 1. Select cells whose centres lie inside the cylinder
+// gmshToFoam makes every patch of type "patch"; set the real types.
+boundary
+{
+    // The two sides of the sliding interface
+    AMI_rotor
     {
-        name    rotatingZone;
-        type    cellSet;
-        action  new;
-        source  cylinderToCell;
-        sourceInfo
-        {
-            p1      (1.0 0.5 -1);   // cylinder start (outside domain)
-            p2      (1.0 0.5  1);   // cylinder end   (outside domain)
-            radius  0.3;
-        }
+        type            cyclicAMI;
+        neighbourPatch  AMI_stator;
+        transform       noOrdering;
+        inGroups        (cyclicAMI);
     }
 
-    // 2. Convert the cellSet to a cellZone (MRF refers to zones)
+    AMI_stator
     {
-        name    rotatingZone;
-        type    cellZoneSet;
-        action  new;
-        source  setToCellZone;
-        sourceInfo
-        {
-            set     rotatingZone;
-        }
+        type            cyclicAMI;
+        neighbourPatch  AMI_rotor;
+        transform       noOrdering;
+        inGroups        (cyclicAMI);
     }
-);
+
+    "blade.*"
+    {
+        type            wall;
+    }
+
+    // Tunnel sides far from the rotor (blockage 1/15)
+    sides
+    {
+        type            symmetry;
+    }
+
+    frontAndBack
+    {
+        type            empty;
+    }
+}
 
 // ************************************************************************* //

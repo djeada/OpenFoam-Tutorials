@@ -1,11 +1,60 @@
 {
-  "title": "NACA 0012 airfoil",
+  "name": "stall_vortices",
+  "title": "Wing at 15°: stall",
   "intro": {
     "seconds": 5,
-    "text": "Air flowing past a NACA 0012 wing section at 4° angle of attack.\n\nThe solver iterates towards a steady flow."
+    "text": "A wing section (NACA 0012) tilted steeply at 15° to the oncoming air.\n\nWhat happens when a wing tilts too far?"
   },
   "outro": {
-    "seconds": 5,
-    "text": "The air speeds up over the upper surface, and faster flow means lower pressure. That pressure difference is lift.\n\nOpenFOAM simpleFoam · Spalart-Allmaras"
-  }
+    "seconds": 6,
+    "text": "That shaking is stall buffet, the warning pilots feel just before a wing stalls.\n\nOpenFOAM pimpleFoam · 2D laminar, Re = 10 000"
+  },
+  "cases": [
+    {
+      "path": "transient_animation",
+      "label": "Lift coefficient",
+      "overlay": {
+        "file": "postProcessing/forceCoeffs/0/forceCoeffs.dat",
+        "column": 3,
+        "format": "{:.2f}",
+        "initial": 0
+      }
+    }
+  ],
+  "field": "vorticity",
+  "range": [-6, 6],
+  "bar_title": "Spin: blue clockwise, red anticlockwise",
+  "duration": 42,
+  "camera": [
+    {"at": 0, "zoom": 16, "center": [0.9, -0.1, 0.01]},
+    {"at": 9, "zoom": 16, "center": [0.9, -0.1, 0.01]},
+    {"at": 20, "zoom": 8, "center": [2.4, -0.4, 0.01]}
+  ],
+  "captions": [
+    {
+      "from": 0,
+      "to": 2.5,
+      "text": "Air flows left to right at 1 m/s. Colours show where it spins."
+    },
+    {
+      "from": 2.5,
+      "to": 5,
+      "text": "A big vortex grows over the top of the wing. The lift peaks at 3.3 s."
+    },
+    {
+      "from": 5,
+      "to": 10,
+      "text": "At 15° the air cannot follow the curved upper surface. It breaks away: the wing has stalled."
+    },
+    {
+      "from": 10,
+      "to": 15,
+      "text": "From about 10 s, vortices peel off in a steady rhythm, a new pair every 1.7 s."
+    },
+    {
+      "from": 15,
+      "to": 20,
+      "text": "With every vortex the lift swings between 0.66 and 1.23, so the wing would shake."
+    }
+  ]
 }

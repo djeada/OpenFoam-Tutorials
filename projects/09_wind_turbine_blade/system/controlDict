@@ -14,25 +14,31 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-application     simpleFoam;
+application     pimpleFoam;     // with constant/dynamicMeshDict: moving mesh
 
-startFrom       startTime;
+startFrom       latestTime;
 
 startTime       0;
 
 stopAt          endTime;
 
-endTime         1000;
+// One revolution takes T = 2 pi / omega = 0.15708 s. Allrun runs two stages:
+//   1. 0 -> 8 T (1.2566 s), written once per revolution: the wake develops
+//      and the torque becomes periodic;
+//   2. 8 T -> 10 T (1.5708 s), written every 4 degrees of rotation: the
+//      revolutions that are analysed (verify.py) and animated (make_reel.py).
+endTime         1.2566371;
 
-deltaT          1;
+// Fixed step: 0.2 degree of rotation, 1800 steps per revolution
+deltaT          8.7266463e-05;
 
 writeControl    timeStep;
 
-writeInterval   100;
+writeInterval   1800;
 
-purgeWrite      3;
+purgeWrite      0;
 
-writeFormat     ascii;
+writeFormat     binary;
 
 writePrecision  8;
 
@@ -40,8 +46,76 @@ writeCompression off;
 
 timeFormat      general;
 
-timePrecision   6;
+timePrecision   8;
 
 runTimeModifiable true;
+
+adjustTimeStep  no;
+
+functions
+{
+    // Moment of the whole rotor (and below, of each blade) about the axis
+    // (0 0 1) through the origin, every degree of rotation. The mesh is 1 m
+    // deep, so the values are per metre of blade span. Power coefficient:
+    //   Cp = M_z omega / (0.5 rho U^3 D) = M_z * 40 / (0.5 * 1.225 * 8^3 * 1)
+    rotor
+    {
+        type            forces;
+        libs            ("libforces.so");
+        writeControl    timeStep;
+        writeInterval   5;
+        log             false;
+        patches         (blade1 blade2 blade3);
+        rho             rhoInf;     // incompressible solver: p is p/rho
+        rhoInf          1.225;
+        CofR            (0 0 0);
+    }
+    blade1
+    {
+        $rotor;
+        patches     (blade1);
+    }
+    blade2
+    {
+        $rotor;
+        patches     (blade2);
+    }
+    blade3
+    {
+        $rotor;
+        patches     (blade3);
+    }
+
+    // Velocity in the wake, one and three rotor diameters behind the axis
+    wakeProbes
+    {
+        type            probes;
+        libs            ("libsampling.so");
+        writeControl    timeStep;
+        writeInterval   5;
+        fields          (U);
+        probeLocations
+        (
+            (1 0 0.5)
+            (3 0 0.5)
+        );
+    }
+
+    // y+ of the first cell on the blades (written to the log and as a field)
+    yPlus
+    {
+        type            yPlus;
+        libs            ("libfieldFunctionObjects.so");
+        writeControl    writeTime;
+    }
+
+    // Courant number field (look for the largest values in the blade layers)
+    courant
+    {
+        type            CourantNo;
+        libs            ("libfieldFunctionObjects.so");
+        writeControl    writeTime;
+    }
+}
 
 // ************************************************************************* //

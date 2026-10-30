@@ -1,8 +1,14 @@
 #!/bin/bash
 #------------------------------------------------------------------------------
-# Allrun - backward-facing step (simpleFoam, steady, k-omega SST)
-#   blockMesh -> checkMesh -> simpleFoam -> near-wall velocity sample
+# Allrun - backward-facing step, transient 2D LES (pimpleFoam, WALE)
+#
+#   blockMesh -> checkMesh -> decomposePar
+#   -> pimpleFoam stage 1: 0 -> 0.08 s, written every 0.25 ms (animation)
+#   -> pimpleFoam stage 2: 0.08 -> 0.40 s, written every 0.08 s (statistics)
+#   -> reconstructPar -> mean velocity on the floor (sampleDict)
+#
 # Each step writes log.<application>; the script stops at the first failure.
+# Set NPROCS to choose the number of cores (default: all, at most 8).
 #------------------------------------------------------------------------------
 cd "${0%/*}" || exit 1
 
@@ -13,12 +19,49 @@ run() {
     runApplication "$@" || { echo "ERROR: $1 failed, see log.$1" >&2; exit 1; }
 }
 
+# Stage settings are edited in system/controlDict with sed (foamDictionary would
+# drop the comments) and put back to the stage-1 values when the script exits.
+stage() {  # stage <endTime> <writeInterval>
+    sed -i -e "s/^endTime .*/endTime         $1;/" \
+           -e "s/^writeInterval .*/writeInterval   $2;/" system/controlDict
+}
+trap 'stage 0.08 0.00025' EXIT
+
+NPROCS=${NPROCS:-$(nproc)}
+[ "$NPROCS" -gt 8 ] && NPROCS=8
+sed -i "s/^numberOfSubdomains .*/numberOfSubdomains $NPROCS;/" system/decomposeParDict
+
 run blockMesh
 run checkMesh
-run simpleFoam
-# Ux along a line in the first cell row above bottomWall (used by verify.py)
-runApplication -s nearWall postProcess -func sampleDict -latestTime \
-    || { echo "ERROR: postProcess failed, see log.postProcess.nearWall" >&2; exit 1; }
+
+if [ "$NPROCS" -gt 1 ]; then
+    run decomposePar
+    stage 0.08 0.00025
+    runParallel -s startup pimpleFoam \
+        || { echo "ERROR: pimpleFoam failed, see log.pimpleFoam.startup" >&2; exit 1; }
+    stage 0.4 0.08
+    runParallel -s statistics pimpleFoam \
+        || { echo "ERROR: pimpleFoam failed, see log.pimpleFoam.statistics" >&2; exit 1; }
+    run reconstructPar
+    rm -rf processor*
+else
+    stage 0.08 0.00025
+    runApplication -s startup pimpleFoam \
+        || { echo "ERROR: pimpleFoam failed, see log.pimpleFoam.startup" >&2; exit 1; }
+    stage 0.4 0.08
+    runApplication -s statistics pimpleFoam \
+        || { echo "ERROR: pimpleFoam failed, see log.pimpleFoam.statistics" >&2; exit 1; }
+fi
+
+# The animation frames only need the fields; old-time fields and face fluxes
+# (kept for restarts) would double the ~1 GB of output.
+for t in 0.0*; do
+    [ "$t" = 0.08 ] || rm -f "$t"/phi "$t"/*_0
+done
+
+# Mean streamwise velocity along the floor (used by verify.py)
+runApplication -s floor postProcess -func sampleDict -latestTime \
+    || { echo "ERROR: postProcess failed, see log.postProcess.floor" >&2; exit 1; }
 
 echo "Case complete. Check results with: python3 verify.py"
 echo "View results with: ./open_paraview.sh"

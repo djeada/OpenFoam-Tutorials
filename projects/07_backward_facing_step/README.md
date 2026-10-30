@@ -1,1219 +1,477 @@
-# Backward-Facing Step Flow
+# Backward-Facing Step: Vortex Shedding
 
-> **Level:** Intermediate · **Solver:** `simpleFoam` · **Flow:** Steady-state, incompressible, turbulent (RANS, k-$\omega$ SST) · **Tested with:** OpenFOAM 6 (`cfdengine/openfoam` image)
+> **Level:** Advanced · **Solver:** `pimpleFoam` (transient, PISO mode) · **Flow:** incompressible, 2D large-eddy simulation (WALE) · **Tested with:** OpenFOAM 6 (`cfdengine/openfoam` image)
+
+![One shedding cycle behind the step: vorticity at four moments](images/vorticity_cycle_1.png)
 
 ---
 
 ## Goal
 
-Simulate the separated flow behind a backward-facing step with a steady RANS
-solver and learn to:
+Air flows along a channel and over a sudden step down. The flow cannot follow the
+sharp corner: it separates, forms a shear layer, and the shear layer rolls up into
+vortices that are shed downstream every few milliseconds. This project simulates
+that unsteady flow in time and teaches you to:
 
-- build a multi-block 2D mesh with `blockMesh` (three blocks, graded towards walls
-  and towards the step edge);
-- set up a k-$\omega$ SST case: inlet values of `k` and `omega`, wall functions for
-  `k`, `omega` and `nut`;
-- run `simpleFoam` to a residual-controlled steady state and judge convergence;
-- locate the **reattachment point** from the sign change of the wall shear stress
-  and read the recirculation bubble from streamlines, `Ux`, `p` and `k`;
-- check `y+` to decide whether the mesh is wall-resolved or in the wall-function range.
+- set up a **transient** incompressible case with `pimpleFoam`: adaptive time step
+  from the Courant number, second-order time and space schemes;
+- run a **large-eddy simulation (LES)** with the WALE subgrid model, and know what a
+  2D LES can and cannot represent;
+- impose a boundary-layer **inlet velocity profile** with `fixedProfile`, and carry a
+  **passive dye** with the `scalarTransport` function object;
+- run in **two stages** (dense output for animation, then sparse output while the
+  statistics accumulate) and in **parallel** with `decomposePar` / `reconstructPar`;
+- separate the **instantaneous** flow (vortices) from the **mean** flow
+  (`fieldAverage`), and measure the mean **reattachment length** and the **shedding
+  frequency** from probes;
+- compare with the DNS of Le, Moin & Kim (1997) and the experiment of Jovic &
+  Driver (1994), which use exactly this geometry and Reynolds number.
 
 ## Target
 
-| Quantity                          | Target for this case                                   |
-|-----------------------------------|--------------------------------------------------------|
-| Run completes without errors      | `checkMesh` reports `Mesh OK`; `simpleFoam` reports `SIMPLE solution converged` before `endTime` |
-| Residuals at convergence          | p < 1e-4, U, k, omega < 1e-5 (the `residualControl` values) |
-| Mass conservation                 | inlet and outlet flux balance to < 1e-3 (relative)     |
-| Wall resolution                   | max y+ < 5 on all walls (mesh is wall-resolved)        |
-| Reattachment length `Xr/H`        | **9.0 $\pm 0.5$** (regression value measured with this setup, see below) |
+| Quantity                       | Target for this case                                                    |
+|--------------------------------|-------------------------------------------------------------------------|
+| Run completes without errors   | `checkMesh` reports `Mesh OK`; both `pimpleFoam` stages reach their end time |
+| Courant number                 | ≤ 0.85 after the first steps (`maxCo 0.8`)                              |
+| Mass conservation              | inlet and outlet flow rates cancel to < 1e-4 at every sample            |
+| Unsteady flow                  | a clear shedding peak in the probe spectrum, one vortex every ~23 ms    |
+| Mean flow                      | a recirculation bubble with a corner eddy; `Xr/h` = **3.48 ± 10 %** (regression value) |
 
-About the reattachment length: there is **no experiment with exactly this geometry
-and inlet** (expansion ratio 2, uniform inlet, `Re_H` = 8,467), so there is no
-experimental reference value to compare against. The classic benchmark values
-(Driver & Seegmiller: `Xr/H` = 6.26 at expansion ratio 1.125, `Re_H` $\approx 37$,400; see
-[references](#the-reattachment-length-xrh)) belong to a different geometry and Reynolds
-number. The target above is therefore the value this case produces with OpenFOAM 6 on
-the supplied mesh (9.0 H); the experiments only provide a plausibility band
-(roughly 5-10 H). Earlier versions of this README stated $X_r/H\approx6$; this was not
-what the case produces.
+About the reattachment length: the DNS of exactly this geometry and Reynolds number
+gives **6.28 h** (experiment: 6.0 ± 0.15 h). This 2D run gives **3.48 h, 45 % shorter**.
+That is not a tuning error but the main limitation of a 2D simulation of a turbulent
+flow, explained in [What a 2D LES misses](#what-a-2d-les-misses). The target is
+therefore the value this setup reproduces, and the DNS is shown next to it everywhere
+so the gap stays visible. [Exercise 1](#12-exercises) describes the 3D LES needed to
+close it.
 
 ## Verification method
 
 After a run, one command checks the results (standard-library Python, reads only
-the logs and written fields, needs no OpenFOAM):
+logs and `postProcessing/`, needs no OpenFOAM):
 
 ```bash
-./run_docker.sh          # clean, run in Docker, then runs verify.py as the last step
+./run_docker.sh          # clean, run in Docker, then run verify.py
 python3 verify.py        # or: re-check an existing run
 ```
 
 `verify.py` prints one `PASS`/`FAIL` line per check and exits with 0 only if all
 checks pass (1 if a check fails, 2 if logs or results are missing). Measured values
-are from a full run of this case (OpenFOAM 6, single core, about 250 s):
+are from a full run (OpenFOAM 6, 8 cores, about 22 minutes):
 
-| Check                     | What it proves                                           | Expected           | Tolerance / justification | Measured |
-|---------------------------|----------------------------------------------------------|--------------------|---------------------------|----------|
-| `no_fatal_error`          | no `FOAM FATAL`, FPE or segfault in any log              | none               | -                         | none |
-| `mesh_cell_count`         | blockMeshDict was meshed as described                    | 27,200             | exact (80·40 + 2·300·40)  | 27,200 |
-| `checkMesh_Mesh_OK`       | mesh passes `checkMesh`                                  | `Mesh OK.`         | -                         | yes |
-| `simple_converged`        | residualControl satisfied before `endTime`               | < 3000 iterations  | converged iteration < `endTime` | 1968 |
-| `final_residual_p`        | pressure converged                                       | < 1e-4             | `residualControl` in `fvSolution` | 8.1e-6 |
-| `final_residual_U`        | momentum converged (max of Ux, Uy)                       | < 1e-5             | same                      | 9.9e-6 |
-| `final_residual_k`        | k converged                                              | < 1e-5             | same                      | 5.5e-6 |
-| `final_residual_omega`    | omega converged                                          | < 1e-5             | same                      | 3.5e-7 |
-| `max_yplus`               | near-wall mesh is in the viscous-sublayer range          | < 5                | usual limit for low-Re near-wall treatment | 1.53 |
-| `inlet_flux`              | inlet flux equals U·H·depth (BC and geometry consistent) | 1.6129e-3 $\mathrm{m}^{3}/\mathrm{s}$    | 1e-6 relative (round-off) | 1.6129e-3 |
-| `mass_balance`            | outlet flux balances inlet flux                          | 0                  | 1e-3 relative (converged steady state) | 7.5e-8 |
-| `reattachment_regression` | `Xr/H` from the sign change of `tau_x` on `bottomWall`   | 9.0                | $\pm 0.5$ H (about 7 cells at x $\approx 9$H). Regression check on this mesh and model, **not** experimental validation | 9.00 |
-| `reattachment_plausible`  | `Xr/H` lies in the range expected for turbulent step flow | 5 .. 10           | experiments with expansion ratio 1.1-2 give about 6-8 H, RANS scatter about $\pm 25$ %. Sanity band only | 9.00 |
-| `reattachment_nearwall_Ux`| independent: `Ux` sign change in the first cell row (`system/sampleDict`) agrees with the `tau_x` result | `Xr/H` from `tau_x` | $\pm 0.2$ H (about 3 cells; face-centre vs cell-centre location) | 9.00 |
+| Check                      | What it proves                                                     | Expected            | Tolerance / justification | Measured |
+|----------------------------|--------------------------------------------------------------------|---------------------|---------------------------|----------|
+| `no_fatal_error`           | no `FOAM FATAL`, FPE or segfault in any log                        | none                | -                         | none |
+| `mesh_cell_count`          | `blockMeshDict` was meshed as described                            | 58,822              | exact (69·70 + 397·70 + 397·66) | 58,822 |
+| `checkMesh_Mesh_OK`        | mesh passes `checkMesh`                                            | `Mesh OK.`          | -                         | yes |
+| `reached_end_startup`      | stage 1 ran to 0.08 s                                              | 0.08 s              | 1e-6                      | 0.0800 s |
+| `reached_end_statistics`   | stage 2 ran to 0.40 s                                              | 0.40 s              | 1e-6                      | 0.4000 s |
+| `max_courant_after_start`  | the adaptive time step held the Courant number                     | ≤ 0.85              | `maxCo 0.8`, plus one step of lag | 0.804 |
+| `mass_balance_max`         | outlet flow rate equals inlet flow rate at every sample            | 0                   | 1e-4 relative (pressure solver tolerance) | 1.6e-8 |
+| `inlet_flow_rate`          | the `fixedProfile` table carries the intended flow rate, U0 (5h − δ/8) · 1h | 3.7103e-3 m³/s | 0.5 % (table is piecewise linear) | 3.7098e-3 m³/s |
+| `reattachment_regression`  | mean bubble length, from the last − → + sign change of `UMean_x` in the first cell row above the floor | 3.48 h | ± 10 % (scatter of a 0.32 s average). Regression value, **not** validation: DNS 6.28 h | 3.48 h |
+| `corner_eddy`              | forward mean flow in the step corner, then the main bubble starts  | 0.2h … `Xr`         | -                         | 0.70 h |
+| `shedding_peak_clear`      | the flow is periodic, not noise: spectral peak / median            | > 20                | -                         | 684 |
+| `shedding_strouhal_h`      | shedding frequency `f h / U0` at x = 4h (regression value)         | 0.056               | ± 0.01                    | 0.057 (43.7 Hz) |
 
-Manual checks (visual, secondary):
+Manual checks (visual):
 
-1. `./open_paraview.sh`: a closed recirculation bubble behind the step, with a small
-   counter-rotating corner eddy next to the step face (see the figures below).
-2. `Ux` is negative only inside the bubble; its zero line reaches the bottom wall at
-   $x/H\approx9$.
-3. `tau_x` on `bottomWall` changes sign three times (see the wall-shear plot).
+1. `./open_paraview.sh`, colour by `U` or `s` and press Play: vortices form at the
+   step lip, grow, and travel downstream along the floor, one every ~23 ms.
+2. At the last time (0.4 s), colour by `UMean`: a closed recirculation bubble
+   behind the step with a small counter-rotating eddy in the corner.
 
 ---
 
 ## Table of Contents
 
-1. [Problem Description](#problem-description)
-2. [Physics & Theory](#physics--theory)
-3. [Case Structure](#case-structure)
-4. [Mesh Generation](#mesh-generation)
-5. [Boundary Conditions](#boundary-conditions)
-6. [Turbulence Setup](#turbulence-setup)
-7. [Solver Configuration](#solver-configuration)
-8. [How to Run](#how-to-run)
-9. [Expected Results](#expected-results)
-10. [Post-Processing Guide](#post-processing-guide)
-11. [Exercises](#exercises)
-12. [Troubleshooting](#troubleshooting)
-13. [References](#references)
+1. [Problem Description](#1-problem-description)
+2. [Physics: Separation, Shear Layers and Shedding](#2-physics-separation-shear-layers-and-shedding)
+3. [Why LES, and Why Only 2D Here](#3-why-les-and-why-only-2d-here)
+4. [Case Structure](#4-case-structure)
+5. [Mesh](#5-mesh)
+6. [Boundary and Initial Conditions](#6-boundary-and-initial-conditions)
+7. [Numerics: pimpleFoam in PISO Mode](#7-numerics-pimplefoam-in-piso-mode)
+8. [Function Objects and the Two Run Stages](#8-function-objects-and-the-two-run-stages)
+9. [How to Run](#9-how-to-run)
+10. [Results](#10-results)
+11. [Making the Reel](#11-making-the-reel)
+12. [Exercises](#12-exercises)
+13. [Troubleshooting](#13-troubleshooting)
+14. [References](#14-references)
 
 ---
 
-## Problem Description
+## 1. Problem Description
 
-This case simulates steady-state turbulent flow over a **backward-facing step**, one of
-the most widely studied validation benchmarks in computational fluid dynamics. A sudden
-expansion in a channel creates a region of separated flow downstream of the step,
-followed by reattachment further along the bottom wall.
-
-```
-                          topWall (y = +H)
-   ┌───────────────┬────────────────────────────────────────────────────┐ y = +H
-   │               │                                                    │
- inlet  →→→→→→→→   │      free shear layer          →→→→→→→→→→→→→→→→→→  outlet
- U = 10 m/s        │   ╭──────────────────────╮                         │
-   │  →→→→→→→→     │   │  recirculation       │  ←← reverse flow        │
-   ├───────────────┤   │  bubble (primary eddy)                         │ y = 0
-   │ step (top)    │   ╰────────┬─────────────╯                         │
-   └───────────────┘ step face  │      Xr ≈ 9H (measured)               │
-                    (vertical)  └──────────────────────────────────────┘ y = -H
-     ← 4H = 50.8 mm →|←──────────── 30H = 381 mm ──────────────────────→
-                                   bottomWall (y = -H)
-
-   Step height H = 12.7 mm. Upstream channel height = H (y from 0 to +H),
-   downstream channel height = 2H (y from -H to +H). Depth in z = H (one cell, empty).
-```
-
-The geometry is simple, but the flow physics is rich. The backward-facing step has
-served as a test case for turbulence model validation for over four decades and
-continues to challenge RANS models, LES approaches and DNS alike.
-
-### Why This Case Matters
-
-- **Separated-flow benchmark** - The reattachment length Xr/H is a widely used
-  metric for model validation. Experimental data from Driver & Seegmiller (1985),
-  Kim et al. (1980) and Armaly et al. (1983) are common comparison sets.
-- **Turbulence model stress test** - Separation and reattachment involve adverse
-  pressure gradients, streamline curvature and anisotropic turbulence that expose
-  weaknesses in common RANS closures.
-- **Mesh sensitivity showcase** - The recirculation zone is sensitive to
-  near-wall resolution, making this a good case for learning about y+
-  requirements, wall functions and grid convergence studies.
-- **Practical relevance** - Sudden expansions appear in combustors, diffusers, HVAC
-  ducts, electronic cooling channels and many other engineering applications.
-
-### Key Parameters
-
-| Parameter              | Symbol     | Value                                      |
-|------------------------|------------|--------------------------------------------|
-| Step height            | H          | 0.0127 m (12.7 mm)                         |
-| Inlet velocity         | $U_\infty$ | 10 m/s (uniform)                           |
-| Kinematic viscosity    | $\nu$      | $1.5 \times 10^{-5}$ $\mathrm{m}^{2}/\mathrm{s}$ (air)      |
-| Reynolds number        | Re_H       | $\approx$ 8,467 (based on H and $U_\infty$) |
-| Expansion ratio        | ER         | 2:1 (downstream height / upstream height)  |
-| Upstream length        | L_up       | 4H = 0.0508 m                              |
-| Downstream length      | L_down     | 30H = 0.381 m                              |
-| Channel height (inlet) | h          | H = 0.0127 m (above step level)            |
-| Channel height (outlet)| 2H         | 0.0254 m                                   |
-| Domain depth (z)       | -          | H (single cell, `empty` patches)           |
-| Reattachment length    | Xr/H       | 9.0 (measured with this case, see [Target](#target)) |
-
-> **Note on Reynolds number:** Different researchers define Re using different
-> reference lengths (step height H, hydraulic diameter, or upstream channel height).
-> Based on step height, $Re_H = U_\infty H / \nu \approx 8{,}467$. Based on the
-> downstream channel height 2H it is $Re \approx 16{,}933$. Values near 36,000-37,400
-> quoted for the Driver & Seegmiller experiment use their reference velocity of
-> about 44 m/s and the same step height; they do not apply to the 10 m/s used here.
-
----
-
-## Physics & Theory
-
-### Governing Equations
-
-For steady-state, incompressible flow, the Reynolds-Averaged Navier-Stokes (RANS)
-equations govern the mean flow:
-
-**Continuity:**
-
-$$\partial \bar{U}_i / \partial x_i = 0$$
-
-**Momentum:**
-
-$$
-\overline{U}_j\frac{\partial\overline{U}_i}{\partial x_j}
-=-\frac{1}{\rho}\frac{\partial\overline p}{\partial x_i}
-+\frac{\partial}{\partial x_j}\left[\nu\left(\frac{\partial\overline U_i}{\partial x_j}+\frac{\partial\overline U_j}{\partial x_i}\right)-\overline{u'_iu'_j}\right]
-$$
-
-The Reynolds stress tensor `u'ᵢu'ⱼ` is modelled using the Boussinesq hypothesis:
-
-$$
--\overline{u'_iu'_j}=\nu_t\left(\frac{\partial\overline U_i}{\partial x_j}+\frac{\partial\overline U_j}{\partial x_i}\right)-\frac23 k\delta_{ij}
-$$
-
-where $\nu_t$ is the turbulent eddy viscosity and k is the turbulent kinetic energy.
-In OpenFOAM the pressure is kinematic ($p/\rho$, units $\mathrm{m}^{2}/\mathrm{s}^{2}$), which is why `0/p` has
-dimensions `[0 2 -2 0 0 0 0]`.
-
-### Flow Separation and Reattachment
-
-When the flow encounters the sudden expansion at the step edge, the following physical
-processes occur:
-
-1. **Separation** - The flow cannot follow the abrupt geometry change. A free shear
-   layer detaches from the step edge, with a strong inflection point in the velocity
-   profile.
-
-2. **Primary recirculation zone** - Below the shear layer and behind the step, a
-   large clockwise (in the standard orientation, flow left to right) vortex forms. This
-   is the primary recirculation bubble, bounded by the step face, the bottom wall and
-   the shear layer. A smaller counter-rotating corner eddy sits in the corner between
-   step face and bottom wall (about 1.7H long in this case).
-
-3. **Shear layer development** - The free shear layer grows through Kelvin-Helmholtz
-   type instability, entraining fluid from both the main flow above and the recirculation
-   zone below. Turbulent mixing in this layer controls the reattachment process. (A RANS
-   model represents this only through the eddy viscosity; the instability itself is not
-   resolved.)
-
-4. **Reattachment** - At a distance Xr downstream of the step, the shear layer
-   impinges on the bottom wall. The reattachment point is defined as the location
-   where the time-averaged wall shear stress changes sign.
-
-5. **Recovery region** - Downstream of reattachment, the flow gradually recovers
-   toward a fully developed channel flow profile. This recovery region extends for
-   approximately 30-50H in general; here the outlet is at 30H, so only about 21H
-   (30H - 9H) are available for recovery.
+The geometry is the one used by **Le, Moin & Kim (1997)** for their direct numerical
+simulation (DNS) and by **Jovic & Driver (1994)** for the matching experiment, so the
+results can be compared with published numbers:
 
 ```
-  Flow structure detail:
-
-                 Free shear layer
-            ╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱
-           ╱  Mixing & entrainment     ╱
-          ╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱╱
-  ┌────┐
-  │    │  ←←←←←←←←←  (reverse flow)
-  │    │  ╭────────────────╮
-  │    │  │   Primary      │
-  │    │  │   recirculation│
-  │    │  │   vortex       │     Reattachment
-  │    ├──╰────────────────╯─────── ★ ────── Recovery →→→→
-  │    │  Step                      Xr
-  │    │
+  y/h
+   6 ┌──────────────────────────────────────────────────────────────┐  top: slip (free stream)
+     │                                                              │
+     │  inlet:              ~~~ shear layer ~~~>  vortices  ~~~>    │
+     │  1/7 power-law  ───►  @@        @@@          @@@             │  outlet:
+     │  boundary layer      @  @     @@  @@                         │  p = 0
+   1 ├─────────────┐ ← step lip     ↺ recirculation bubble          │
+     │   (solid)   │ ↻ corner eddy                                  │
+   0 │             └────────────────────────────────────────────────┘  floor: no-slip
+    -5             0            Xr (mean reattachment)             25    x/h
 ```
 
-### The Reattachment Length (Xr/H)
+| Parameter                     | Value                    | Notes |
+|-------------------------------|--------------------------|-------|
+| Step height `h`               | 10 mm                    | all lengths below in units of `h` |
+| Inlet channel height          | 5h                       | upstream of the step |
+| Channel height after the step | 6h                       | expansion ratio 6/5 = **1.2** |
+| Domain                        | x = -5h … 25h            | step at x = 0 |
+| Free-stream speed `U0`        | 7.65 m/s                 | edge of the inlet boundary layer |
+| Inlet boundary layer          | δ = 1.2h, 1/7 power law  | as in the DNS |
+| Kinematic viscosity `ν`       | 1.5e-5 m²/s              | air |
+| Reynolds number `Re_h = U0 h / ν` | **5100**             | DNS and experiment value |
+| Depth (z)                     | 1h, one cell             | 2D |
 
-The normalised reattachment length Xr/H is the most important validation
-metric for backward-facing step simulations. Literature values are given below as
-listed in the original version of this README; they come from different geometries
-(expansion ratio, inlet boundary layer, definition of Re) and from memory, so
-check the papers before citing them. **They are not a target for this case.**
+Le, Moin & Kim found a mean reattachment length of **6.28 h**; Jovic & Driver
+measured **6.0 ± 0.15 h**.
 
-| Study                       | Re        | Xr/H   | Method          |
-|-----------------------------|-----------|--------|-----------------|
-| Driver & Seegmiller (1985)  | 37,400    | 6.26   | Experiment      |
-| Kim et al. (1980)           | 132,000   | 7.0    | Experiment      |
-| Armaly et al. (1983)        | 8,000     | 6.0    | Experiment      |
-| Adams & Johnston (1988)     | 38,000    | 6.4    | Experiment      |
-| Menter (1994) k-$\omega$ SST      | 37,400    | 6.1    | RANS CFD        |
-| Standard k-$\varepsilon$               | Various   | 4.5-5  | RANS CFD        |
-| **This case** (k-$\omega$ SST, OpenFOAM 6) | 8,467 (Re_H) | **9.0** | RANS CFD, measured |
+## 2. Physics: Separation, Shear Layers and Shedding
 
-> **Key insight (literature):** Standard k-$\varepsilon$ is reported to under-predict the
-> reattachment length by 15-25 %, while k-$\omega$ SST typically predicts Xr/H within
-> 5-10 % of experimental values for the classic Driver & Seegmiller configuration. This
-> is one of the reasons k-$\omega$ SST became widely used for separated flows.
->
-> **Interpretation for this case:** the expansion ratio (2) and the uniform inlet with
-> a thin boundary layer differ strongly from the Driver & Seegmiller configuration, so
-> 9.0 H cannot be called an over- or under-prediction. A grid-convergence study
-> ([Exercise 3](#exercise-3-mesh-refinement-study)) has not been done here.
+**Separation.** Upstream of the step the flow is an ordinary boundary layer. At the
+lip the wall drops away; the fluid has too much momentum to turn the corner, so it
+leaves the wall in a straight line. Below this line, behind the step, the fluid is
+almost at rest.
 
-### Why k-omega SST for This Problem
+**The shear layer.** Fast fluid above and slow fluid below are separated by a thin
+layer with a large velocity jump. Such a layer is unstable (the Kelvin–Helmholtz
+instability): any small wave in it grows, and the layer rolls up into discrete
+vortices. Their rotation is clockwise when the flow goes left to right over a step
+down, so they show up blue in the vorticity pictures (negative z-vorticity).
 
-The k-$\omega$ SST (Shear Stress Transport) model by Menter (1994) was developed
-to handle the weaknesses of existing two-equation models in separated flows:
+**Shedding and reattachment.** Each vortex grows by swallowing fluid from the slow
+region below it, drifts downstream at roughly half the free-stream speed, and hits the
+floor. The fluid it swallowed has to be replaced, so some flow runs *backwards* along
+the floor towards the step: this is the recirculation bubble. Averaged over time, the
+backward and forward flow at the floor meet at the **reattachment point** `Xr`.
 
-1. **Near-wall behaviour** - Uses k-$\omega$ formulation in the inner boundary layer,
-   avoiding the need for damping functions and providing good performance in
-   adverse pressure gradient regions.
+**Instantaneous vs mean.** At any moment there is no clean bubble, only vortices
+passing by. The bubble, its length `Xr` and the small corner eddy exist only in the
+**time average**. That is why a steady RANS solver (as used in an earlier version of
+this project) can only give the mean picture, and why this case keeps both: the
+instantaneous fields every 0.25 ms for the animation, and `UMean` from `fieldAverage`.
 
-2. **Free-stream robustness** - Switches to k-$\varepsilon$ behaviour in the outer region and
-   free shear layers, avoiding the sensitivity of k-$\omega$ to free-stream turbulence
-   levels.
+**Frequency.** The shedding frequency `f` is reported as a Strouhal number. With the
+step height, `St_h = f h / U0`; with the bubble length, `St_Xr = f Xr / U0`.
+For the large vortices shed from a turbulent separation bubble, Kiya & Sasaki (1983)
+measured `f Xr / U0 ≈ 0.6`.
 
-3. **Shear stress limiter** - The SST modification limits the eddy viscosity using
-   Bradshaw's assumption that the principal turbulent shear stress is proportional
-   to the turbulent kinetic energy: $\tau=\rho a_1k$ where $a_1$ = 0.31. This prevents
-   over-prediction of eddy viscosity in adverse pressure gradient flows, which is
-   a main failure mode of standard k-$\varepsilon$ in separated flows.
+## 3. Why LES, and Why Only 2D Here
 
-4. **Blending function** - A smooth blending function $F_1$ transitions between the
-   k-$\omega$ and k-$\varepsilon$ formulations based on wall distance, ensuring the right model is
-   active in each region:
+**LES** computes the large, energy-carrying eddies directly and models only those
+smaller than the mesh. The subgrid model here is **WALE** (Nicoud & Ducros 1999); its
+eddy viscosity goes to zero at walls and in pure shear by itself, so no damping
+functions or wall functions are needed. The filter width is the cell size
+(`delta cubeRootVol`); on a 2D mesh OpenFOAM uses the square root of the cell area
+and prints the warning `Case is 2D, LES is not strictly applicable`.
 
-$$
-\begin{aligned}
-F_1&=\tanh(\mathrm{arg}_1^4),\\
-\mathrm{arg}_1&=\min\left[\max\left(\frac{\sqrt{k}}{\beta^*\omega y},\frac{500\nu}{y^2\omega}\right),\frac{4\rho\sigma_{\omega2}k}{CD_{k\omega}y^2}\right].
-\end{aligned}
-$$
+### What a 2D LES misses
 
-The transport equations for k and $\omega$ in the SST model are:
+Turbulence is three-dimensional: vortices stretch, tilt and break into smaller ones.
+A 2D simulation cannot do that. Its vortices stay large, round and coherent, and they
+pair up into even larger ones instead of breaking down. The consequences:
 
-**Turbulent kinetic energy (k):**
-$$
-\frac{\partial(\rho k)}{\partial t}+\frac{\partial(\rho U_jk)}{\partial x_j}
-=\widetilde P_k-\beta^*\rho k\omega+
-\frac{\partial}{\partial x_j}\left[(\mu+\sigma_k\mu_t)\frac{\partial k}{\partial x_j}\right]
-$$
+- the **qualitative** picture (separation, roll-up, shedding, a recirculation bubble,
+  a corner eddy) is right;
+- the shedding is much more **regular** than in reality: one dominant frequency
+  instead of a broad band;
+- the strong 2D vortices sweep fluid out of the bubble efficiently, which changes the
+  **mean** bubble length: here 3.48h instead of the DNS value 6.28h.
 
-**Specific dissipation rate ($\omega$):**
-$$
-\begin{aligned}
-\frac{\partial(\rho\omega)}{\partial t}+\frac{\partial(\rho U_j\omega)}{\partial x_j}
-&=\alpha S^2-\beta\rho\omega^2+\frac{\partial}{\partial x_j}\left[(\mu+\sigma_\omega\mu_t)\frac{\partial\omega}{\partial x_j}\right]\\
-&\quad+2(1-F_1)\rho\sigma_{\omega2}\frac1\omega\frac{\partial k}{\partial x_j}\frac{\partial\omega}{\partial x_j}.
-\end{aligned}
-$$
+OpenFOAM's own `pisoFoam/LES/pitzDaily` tutorial is also a 2D LES of a step for the
+same reason: it runs in minutes. A real LES of this case needs a spanwise extent of
+about 4h with periodic sides and a few million cells (Le, Moin & Kim used 4h; see
+[Exercise 1](#12-exercises)).
 
-### Turbulent Inlet Conditions
-
-The inlet turbulence quantities are estimated from the turbulence intensity (I) and
-a turbulence length scale (l):
-
-For turbulence intensity $I=4\%$:
-
-$$
-\begin{aligned}
-k&=\tfrac32(U_\infty I)^2=\tfrac32(10\cdot0.04)^2=0.24\ \mathrm{m}^2/\mathrm{s}^2,\\
-\omega&=\frac{k^{0.5}}{C_\mu^{0.25}l}=\frac{0.49}{0.5477\cdot0.0020}\approx440\ \mathrm{s}^{-1}.
-\end{aligned}
-$$
-
-Here $C_\mu=0.09$ and $l\approx0.0020\ \mathrm{m}$ (about 8% of the downstream channel height $2H=0.0254\ \mathrm{m}$, or $0.16H$).
-
-> The exact inlet values influence the reattachment length moderately. Literature
-> studies of varying I from 1 % to 10 % report shifts of about $\pm 0.5$ in Xr/H; this was
-> not re-measured for this case.
-
----
-
-## Case Structure
+## 4. Case Structure
 
 ```
 07_backward_facing_step/
-├── 0/                          ← Initial & boundary conditions
-│   ├── U                       ← Velocity field
-│   ├── p                       ← Pressure field (kinematic)
-│   ├── k                       ← Turbulent kinetic energy
-│   ├── omega                   ← Specific dissipation rate
-│   └── nut                     ← Turbulent viscosity
-├── constant/                   ← Physical properties
-│   ├── transportProperties     ← Fluid properties (ν for air)
-│   ├── turbulenceProperties    ← Turbulence model selection
-│   └── polyMesh/               ← Mesh (generated by blockMesh)
-├── system/                     ← Simulation controls
-│   ├── blockMeshDict           ← Mesh definition
-│   ├── controlDict             ← Time control & function objects
-│   ├── fvSchemes               ← Discretisation schemes
-│   ├── fvSolution              ← Linear solvers & SIMPLE
-│   └── sampleDict              ← Near-wall velocity line (used by Allrun and verify.py)
-├── images/                     ← Figures rendered from a real run (make_images.py)
-├── Allrun                      ← Run script (blockMesh, checkMesh, simpleFoam, sample)
-├── Allclean                    ← Clean script
-├── run_docker.sh               ← Clean + run in Docker + verify
-├── verify.py                   ← PASS/FAIL checks of a finished run
-├── make_images.py              ← pvpython script that renders images/
-├── open_paraview.sh            ← Opens the case in ParaView
-└── README.md                   ← This file
+├── 0/
+│   ├── U            fixedProfile inlet (1/7 power law), slip top, no-slip walls
+│   ├── p            fixed at the outlet, zero gradient elsewhere
+│   ├── nut          subgrid viscosity: 0 at walls (WALE needs no wall functions)
+│   └── s            passive dye: 1 in the lowest 0.6h of the inlet, 0 elsewhere
+├── constant/
+│   ├── transportProperties    ν = 1.5e-5 m²/s
+│   └── turbulenceProperties   LES, WALE, cubeRootVol filter
+├── system/
+│   ├── blockMeshDict          3 blocks, graded towards the step lip and the floor
+│   ├── controlDict            pimpleFoam, adaptive Δt, dye, fieldAverage, probes, flow rates
+│   ├── fvSchemes              backward in time, LUST for momentum
+│   ├── fvSolution             PISO (1 outer, 2 pressure correctors), GAMG for p
+│   ├── decomposeParDict       scotch, number of cores set by Allrun
+│   └── sampleDict             UMean along the floor (used by verify.py)
+├── Allrun / Allclean          run and clean (inside an OpenFOAM environment)
+├── run_docker.sh              clean + Allrun in Docker + verify.py
+├── verify.py                  PASS/FAIL checks (standard-library Python)
+├── make_images.py             figures in images/ (pvpython)
+├── reel.json                  settings for tools/make_reel.py (vertical videos)
+└── open_paraview.sh           open the results in ParaView
 ```
 
-### File Purposes
+## 5. Mesh
 
-| File                   | Purpose                                                    |
-|------------------------|------------------------------------------------------------|
-| `0/U`                  | Velocity: uniform inlet, no-slip walls, empty for 2D      |
-| `0/p`                  | Pressure: zero-gradient inlet, fixed outlet                |
-| `0/k`                  | TKE: inlet value, wall functions on walls                  |
-| `0/omega`              | Omega: inlet value, wall functions on walls                |
-| `0/nut`                | Eddy viscosity: calculated at inlet/outlet, wall functions |
-| `constant/transportProperties` | Newtonian fluid, $\nu$ = 1.5e-5 $\mathrm{m}^{2}/\mathrm{s}$ (air)      |
-| `constant/turbulenceProperties` | RAS → k-omega SST selection                       |
-| `system/blockMeshDict` | Multi-block structured mesh definition                     |
-| `system/controlDict`   | up to 3000 iterations, write every 200, function objects (fieldAverage, wallShearStress, yPlus) |
-| `system/fvSchemes`     | Steady-state, linear upwind for U, upwind for k/omega     |
-| `system/fvSolution`    | SIMPLE (SIMPLEC), GAMG for p, relaxation factors           |
-| `system/sampleDict`    | Line sample of U in the first cell row above `bottomWall`  |
+Three hexahedral blocks, one cell deep:
 
----
+| Block | Region                      | Cells (x × y) | x spacing                    | y spacing |
+|-------|-----------------------------|---------------|------------------------------|-----------|
+| A     | inlet channel, x = -5…0, y = 1…6 | 69 × 70  | 0.20h at the inlet → 0.015h at the step | 0.008h at y = h → 0.25h at the top |
+| C     | above the step line, x = 0…25    | 397 × 70 | 0.015h at the step → 0.05h at x = 8h → 0.3h at the outlet | same as A |
+| B     | behind the step, y = 0…1         | 397 × 66 | same as C                    | 0.006h at the floor and at y = h, 0.03h in the middle |
 
-## Mesh Generation
+Total **58,822 cells**. The finest cells (0.15 mm × 0.08 mm) sit at the step lip,
+where the shear layer is thinnest. Multi-grading in `blockMeshDict` gives the two
+x-zones after the step:
 
-### Geometry Definition
-
-The mesh is created using `blockMesh` with three structured hexahedral blocks. The
-flow plane is x-y; z is the (single-cell) spanwise direction.
-
-```
-  Vertex numbering (back plane, z = -0.5H):
-
-    v3 ─────────────── v4 ─────────────────────────── v5
-    │                  │                               │
-    │                  │                               │
-    │    Block 0       │        Block 1                │
-    │   (upstream)     │    (downstream top)           │
-    │   80 × 40        │       300 × 40                │
-    │                  │                               │
-    v0 ─────────────── v1                              v2
-                       │                               │
-                       │        Block 2                │
-                       │    (downstream bottom)        │
-                       │       300 × 40                │
-                       │                               │
-                       v6 ────────────────────────── v7
-
-  Coordinates (in units of H, convertToMeters = 0.0127):
-    v0 = (-4, 0)    v1 = (0, 0)     v2 = (30, 0)
-    v3 = (-4, 1)    v4 = (0, 1)     v5 = (30, 1)
-    v6 = (0, -1)    v7 = (30, -1)
+```cpp
+xDown   ((8 275 3.333) (17 122 6));   // (length, cells, expansion) per zone
 ```
 
-### Block Details
+![Mesh at the step lip](images/mesh_step.png)
 
-| Block | Region              | Size   | Cells     | Grading                     |
-|-------|---------------------|--------|-----------|-----------------------------|
-| 0     | Upstream channel    | 4H$\times$1H  | 80 $\times$ 40  | x: 0.25 (fine at step)     |
-| 1     | Downstream top      | 30H$\times$1H | 300 $\times$ 40 | x: 4.0 (fine at step, coarser downstream) |
-| 2     | Downstream bottom   | 30H$\times$1H | 300 $\times$ 40 | x: 4.0 (fine at step, coarser downstream) |
+## 6. Boundary and Initial Conditions
 
-**Total cells:** 27,200 (2D, single cell in z-direction; 80·40 + 2·300·40).
+| Patch          | `U`                              | `p`            | `nut`         | `s` (dye) |
+|----------------|----------------------------------|----------------|---------------|-----------|
+| `inlet`        | `fixedProfile` (1/7 power law)   | `zeroGradient` | `zeroGradient`| `fixedProfile`: 1 below 0.6h, 0 above |
+| `outlet`       | `inletOutlet`                    | `fixedValue 0` | `zeroGradient`| `inletOutlet` |
+| `top`          | `slip`                           | `slip`         | `slip`        | `zeroGradient` |
+| `step`, `floor`| `noSlip`                         | `zeroGradient` | `fixedValue 0`| `zeroGradient` |
+| `frontAndBack` | `empty`                          | `empty`        | `empty`       | `empty` |
 
-### Grading Strategy
+**Inlet profile.** `fixedProfile` evaluates a table at the coordinate
+`(direction · face centre) − origin`, here the height above the step top:
 
-The mesh grading is designed to resolve critical flow features:
-
-- **Near the step edge (x-direction):** Cells are compressed toward the step corner
-  where separation occurs. The upstream block uses x-grading ratio 0.25 (cells get
-  smaller toward the step). The downstream blocks use ratio 4.0 (fine near step,
-  expanding downstream).
-
-- **Near walls (y-direction):** Each block is split into two halves with grading
-  ratios 4 and 0.25 (last/first cell size), so cells are finest at both bounding
-  walls or planes of the block and coarsest in the middle.
-
-- **Near the step edge plane (y = 0):** The junction between blocks 1 and 2 at y = 0
-  places the finest y-cells at the shear layer location, exactly where resolution is
-  most critical.
-
-Measured with `checkMesh`: smallest cell height 1.46e-4 m (0.0115 H) at the walls,
-maximum aspect ratio 16.1, non-orthogonality 0 (orthogonal block mesh).
-
-### y+ Considerations
-
-The y+ definition and the wall-function ranges:
-
-$$
-y^+=\frac{yu_\tau}{\nu},\qquad u_\tau=\sqrt{\frac{\tau_w}{\rho}}
-$$
-
-Wall functions typically use $y^+\approx30\text{–}100$ (log layer), whereas low-Reynolds-number wall resolution aims for $y^+\lesssim1$ (viscous sublayer).
-
-**This mesh is wall-resolved, not in the wall-function range.** The first cell
-centre is about 7e-5 m from the wall, and the `yPlus` function object measures
-(final iteration, OpenFOAM 6):
-
-| Patch        | y+ min   | y+ max | y+ average |
-|--------------|----------|--------|------------|
-| topWall      | 0.067    | 0.74   | 0.16       |
-| bottomWall   | 0.00015  | 0.18   | 0.09       |
-| step         | 0.0006   | 1.53   | 0.26       |
-
-The case still uses `kqRWallFunction`, `omegaWallFunction` and `nutkWallFunction`;
-these are valid at low y+ as well: `omegaWallFunction` blends the viscous and
-logarithmic omega values, `nutkWallFunction` gives `nut = 0` where y+ is below the
-laminar limit (about 11), and `kqRWallFunction` is a zero-gradient condition. To use
-wall functions in their intended range, the first cell would need to be about
-50-100 times thicker ([Exercise 4](#exercise-4-wall-treatment-study)). An estimate with
-$u_\tau\approx0.3\text{–}0.5\ \mathrm{m/s}$ (the wall shear stress magnitude in this case is at most
-0.16 $\mathrm{m}^{2}/\mathrm{s}^{2}$, so $u_\tau=\sqrt{\tau}\le0.4\ \mathrm{m/s}$) gives `y+ = 30` at $y=30\nu/u_\tau\approx0.9\text{–}1.5\ \mathrm{mm}$
-from the wall, about 7-12 % of the step height.
-
----
-
-## Boundary Conditions
-
-### Patch Overview
-
-```
-                         topWall
-  ┌──────────────────────────────────────────────────────────┐
-  │                                                          │
-  │                                                          │
-  inlet                                                  outlet
-  │                                                          │
-  │          step (top + vertical)                           │
-  ├──────────┐                                               │
-  │          │                                               │
-  └──────────┘               bottomWall                      ┘
-
-              frontAndBack: both z-planes (empty for 2D)
-```
-
-(Not to scale. The upstream channel is above the step; the `step` patch consists of the
-horizontal face upstream of the step edge, which is the floor of the upstream channel,
-and the vertical step face.)
-
-### Velocity (U)
-
-| Patch        | Type        | Value           | Notes                        |
-|--------------|-------------|-----------------|------------------------------|
-| inlet        | fixedValue  | (10 0 0) m/s    | Uniform inflow               |
-| outlet       | zeroGradient| -               | Convective outflow           |
-| topWall      | noSlip      | (0 0 0) m/s     | No-slip wall                 |
-| bottomWall   | noSlip      | (0 0 0) m/s     | No-slip wall                 |
-| step         | noSlip      | (0 0 0) m/s     | Step top face + vertical     |
-| frontAndBack | empty       | -               | 2D constraint                |
-
-### Pressure (p)
-
-| Patch        | Type        | Value           | Notes                        |
-|--------------|-------------|-----------------|------------------------------|
-| inlet        | zeroGradient| -               | Pressure floats at inlet     |
-| outlet       | fixedValue  | 0 $\mathrm{m}^{2}/\mathrm{s}^{2}$   | Reference pressure           |
-| topWall      | zeroGradient| -               | Zero normal gradient         |
-| bottomWall   | zeroGradient| -               | Zero normal gradient         |
-| step         | zeroGradient| -               | Zero normal gradient         |
-| frontAndBack | empty       | -               | 2D constraint                |
-
-### Turbulent Kinetic Energy (k)
-
-| Patch        | Type              | Value       | Notes                      |
-|--------------|-------------------|-------------|----------------------------|
-| inlet        | fixedValue        | 0.24 $\mathrm{m}^{2}/\mathrm{s}^{2}$  | 4 % turbulence intensity   |
-| outlet       | zeroGradient      | -           | Convective outflow         |
-| topWall      | kqRWallFunction   | 0.24        | Wall function for k        |
-| bottomWall   | kqRWallFunction   | 0.24        | Wall function for k        |
-| step         | kqRWallFunction   | 0.24        | Wall function for k        |
-| frontAndBack | empty             | -           | 2D constraint              |
-
-### Specific Dissipation Rate (omega)
-
-| Patch        | Type                | Value       | Notes                    |
-|--------------|---------------------|-------------|--------------------------|
-| inlet        | fixedValue          | 440 $\mathrm{s}^{-1}$     | From k and length scale (see above) |
-| outlet       | zeroGradient        | -           | Convective outflow       |
-| topWall      | omegaWallFunction   | 440         | Automatic wall treatment |
-| bottomWall   | omegaWallFunction   | 440         | Automatic wall treatment |
-| step         | omegaWallFunction   | 440         | Automatic wall treatment |
-| frontAndBack | empty               | -           | 2D constraint            |
-
-### Turbulent Viscosity (nut)
-
-| Patch        | Type              | Value     | Notes                       |
-|--------------|-------------------|-----------|-----------------------------|
-| inlet        | calculated        | 0         | Computed from k and omega   |
-| outlet       | calculated        | 0         | Computed from k and omega   |
-| topWall      | nutkWallFunction  | 0         | Standard wall function      |
-| bottomWall   | nutkWallFunction  | 0         | Standard wall function      |
-| step         | nutkWallFunction  | 0         | Standard wall function      |
-| frontAndBack | empty             | -         | 2D constraint               |
-
-### Wall Function Summary
-
-The three wall function types work together to provide consistent near-wall modelling:
-
-- **`kqRWallFunction`** - Provides a zero-gradient (Neumann) condition for k at the
-  wall, which is appropriate because k is not set to zero at the wall in
-  wall-function approaches. (In a low-Re approach k would be `fixedValue 0`.)
-
-- **`omegaWallFunction`** - Sets omega in the wall-adjacent cell from the analytical
-  near-wall solution, blending between the viscous and log-layer values. It is
-  the critical wall function for the k-$\omega$ SST model.
-
-- **`nutkWallFunction`** - Computes $\nu_t$ at the wall from `k` using the log-law,
-  and gives zero where the local y+ is in the viscous sublayer. It therefore adapts
-  automatically to the local y+ value.
-
----
-
-## Turbulence Setup
-
-### Model Selection
-
-The turbulence model is configured in `constant/turbulenceProperties`:
-
-```
-simulationType  RAS;
-
-RAS
+```cpp
+inlet
 {
-    RASModel        kOmegaSST;
-    turbulence      on;
-    printCoeffs     on;
+    type            fixedProfile;
+    profile         table
+    (
+        (0        (0.0000 0 0))
+        (0.0012   (5.5056 0 0))     // y' = 0.1 delta
+        ...
+        (0.012    (7.6500 0 0))     // y' = delta: free stream
+        (0.05     (7.6500 0 0))
+    );
+    direction       (0 1 0);
+    origin          0.01;           // the step top is at y = h = 0.01 m
 }
 ```
 
-Setting `printCoeffs on` writes the model coefficients to the log file at startup,
-allowing verification of default values (`grep -A 20 "RASModel" log.simpleFoam`).
-The values below are those printed in the log of this case:
+**Initial state.** The fluid starts at rest (`internalField uniform (0 0 0)`): the
+inflow is switched on at t = 0. The animation therefore begins with the **starting
+vortex**, a single large vortex that rolls up at the lip before the periodic
+shedding sets in after about 0.03 s.
 
-| Coefficient (OpenFOAM name) | Value  | Description                    |
-|-------------|--------|--------------------------------|
-| alphaK1         | 0.85   | $\sigma_k$ in k-$\omega$ region               |
-| alphaK2         | 1.0    | $\sigma_k$ in k-$\varepsilon$ region               |
-| alphaOmega1     | 0.5    | $\sigma_\omega$ in k-$\omega$ region               |
-| alphaOmega2     | 0.856  | $\sigma_\omega$ in k-$\varepsilon$ region               |
-| beta1           | 0.075  | $\beta$ in k-$\omega$ region                |
-| beta2           | 0.0828 | $\beta$ in k-$\varepsilon$ region                |
-| betaStar        | 0.09   | $\beta^*$ (= C$_\mu$)                      |
-| gamma1          | 5/9    | $\gamma$ in k-$\omega$ region                |
-| gamma2          | 0.44   | $\gamma$ in k-$\varepsilon$ region                |
-| a1          | 0.31   | Bradshaw's constant            |
-| b1          | 1.0    | Blending parameter             |
-| c1          | 10.0   | Blending parameter             |
+**Dye.** `s` is not part of the flow solution. It is carried by the velocity field
+(`scalarTransport` function object, diffusivity 1e-9 m²/s) and only colours the fluid
+that comes from the inlet boundary layer, so you can follow it into the vortices and
+the bubble.
 
-### Fluid Properties
+## 7. Numerics: pimpleFoam in PISO Mode
 
-Configured in `constant/transportProperties`:
+`pimpleFoam` with `nOuterCorrectors 1` is the PISO algorithm: one momentum predictor
+and two pressure corrections per time step. Outer (PIMPLE) iterations are not needed
+because the time step keeps the Courant number below one:
 
-```
-transportModel  Newtonian;
-nu              nu [0 2 -1 0 0 0 0] 1.5e-05;
+```cpp
+adjustTimeStep  yes;
+maxCo           0.8;
+maxDeltaT       1e-4;
 ```
 
-This corresponds to air at approximately 20 °C and atmospheric pressure:
+This gives Δt ≈ 7 µs, set by the small cells at the step lip. About 51,000 steps
+cover the 0.4 s of flow time (10 flow-throughs of the 30h channel).
 
-| Property              | Value              |
-|-----------------------|--------------------|
-| Kinematic viscosity $\nu$ | $1.5 \times 10^{-5}$ $\mathrm{m}^{2}/\mathrm{s}$  |
-| Density $\rho$ (implicit)  | ~1.2 $\mathrm{kg}/\mathrm{m}^{3}$ (not used by the solver, which works with kinematic quantities) |
-| Temperature           | ~20 °C             |
-| Fluid                 | Air                |
+| Term            | Scheme                       | Why |
+|-----------------|------------------------------|-----|
+| time            | `backward`                   | second order; vortices keep their strength |
+| `div(phi,U)`    | `Gauss LUST grad(U)`         | 75 % central, 25 % upwind: little numerical damping of the vortices, but stable |
+| `div(phi,s)`    | `Gauss limitedLinear01 1`    | keeps the dye between 0 and 1 |
+| gradients, Laplacians | `Gauss linear (corrected)` | orthogonal hexahedral mesh |
 
----
+## 8. Function Objects and the Two Run Stages
 
-## Solver Configuration
+All analysis happens while the solver runs, in `system/controlDict`:
 
-### SIMPLE Algorithm
+| Function object | Type                | Output |
+|-----------------|---------------------|--------|
+| `dye`           | `scalarTransport`   | field `s` |
+| `fieldAverage`  | `fieldAverage`, from t = 0.08 s | `UMean`, `UPrime2Mean`, `pMean` |
+| `probes`        | `probes`, every step | `postProcessing/probes/*/U, p` at x = 2h, 4h, 6h, 10h |
+| `flowRates`, `outletFlow` | `surfaceFieldValue` (sum of `phi`) | inlet and outlet flow rate |
 
-This case uses the **SIMPLE** (Semi-Implicit Method for Pressure-Linked Equations)
-algorithm for steady-state pressure-velocity coupling. The `consistent yes` option
-enables the SIMPLEC variant:
+`Allrun` runs `pimpleFoam` twice with the same dictionary, editing `endTime` and
+`writeInterval` in between:
 
-```
-SIMPLE
-{
-    nNonOrthogonalCorrectors 0;
-    consistent      yes;
+| Stage        | Time         | Written every | Purpose |
+|--------------|--------------|---------------|---------|
+| `startup`    | 0 → 0.08 s   | 0.25 ms (320 times) | start-up and the first shedding cycles, smooth enough to animate |
+| `statistics` | 0.08 → 0.40 s| 0.08 s        | `fieldAverage` collects the mean over 0.32 s (about 14 shedding cycles) |
 
-    residualControl
-    {
-        p               1e-4;
-        U               1e-5;
-        k               1e-5;
-        omega           1e-5;
-    }
-}
-```
+The animation times are only ever looked at, never restarted from, so `Allrun`
+removes their old-time fields (`U_0`, `s_0`, `phi_0`) and `phi` afterwards; this
+halves the output, to about 1 GB.
 
-When all initial residuals of one iteration fall below these values the run stops
-with `SIMPLE solution converged in N iterations`. `endTime` (3000) is only a safety
-limit; this case converges at iteration 1968. `nNonOrthogonalCorrectors 0` is fine
-because the block mesh is orthogonal.
-
-### Linear Solvers
-
-| Field | Solver       | Smoother       | Tolerance | relTol | Notes                      |
-|-------|-------------|----------------|-----------|--------|----------------------------|
-| p     | GAMG        | GaussSeidel    | 1e-6      | 0.1    | Multigrid for pressure     |
-| U     | smoothSolver| symGaussSeidel | 1e-7      | 0.1    | Symmetric Gauss-Seidel     |
-| k     | smoothSolver| symGaussSeidel | 1e-7      | 0.1    | Same as U                  |
-| omega | smoothSolver| symGaussSeidel | 1e-7      | 0.1    | Same as U                  |
-
-> **GAMG** (Geometric-Algebraic Multi-Grid) is highly efficient for the pressure
-> equation because it handles the elliptic nature of the Poisson-type equation well.
-> For convection-dominated equations (U, k, $\omega$), smoothSolver is more appropriate.
-
-### Relaxation Factors
-
-| Field/Equation | Factor | Notes                                           |
-|----------------|--------|-------------------------------------------------|
-| p              | 0.3    | Conservative for pressure stability             |
-| U              | 0.7    | Standard for momentum                           |
-| k              | 0.7    | Standard for turbulence                         |
-| omega          | 0.7    | Standard for turbulence                         |
-
-Lower relaxation factors improve stability but slow convergence. If the solution
-diverges, try reducing p to 0.2 and U/k/omega to 0.5. With `consistent yes` (SIMPLEC)
-larger factors are usually possible (for example p 1.0, U/k/omega 0.9), which should
-converge in fewer iterations; this has not been tested for this case.
-
-### Discretisation Schemes
-
-| Term           | Scheme                            | Notes                       |
-|----------------|-----------------------------------|-----------------------------|
-| ddt            | steadyState                       | No time derivative          |
-| grad           | Gauss linear                      | Second-order gradients      |
-| grad(U)        | cellLimited Gauss linear 1        | Limited gradient used by linearUpwind |
-| div(phi,U)     | bounded Gauss linearUpwind grad(U)| Second-order, bounded       |
-| div(phi,k)     | bounded Gauss upwind              | First-order for stability   |
-| div(phi,omega) | bounded Gauss upwind              | First-order for stability   |
-| div((nuEff\*dev2(T(grad(U))))) | Gauss linear      | Deviatoric stress term      |
-| laplacian      | Gauss linear corrected            | Second-order with correction|
-| wallDist       | meshWave                          | Wall distance for SST       |
-
-> **Why linearUpwind for U but upwind for k/omega?** The velocity field benefits
-> from second-order accuracy to resolve the separation point and shear layer
-> accurately. The turbulence equations are more prone to unboundedness, so first-order
-> upwind provides the necessary stability. This is a common combination
-> for industrial RANS simulations. The first-order turbulence transport adds numerical
-> diffusion; switching to `bounded Gauss limitedLinear 1` for k and omega is a
-> simple experiment.
-
----
-
-## How to Run
-
-### Prerequisites
-
-- **Docker route (recommended):** Docker with the `cfdengine/openfoam` image
-  (OpenFOAM 6), and `python3` on the host for `verify.py`.
-- **Native route:** OpenFOAM (tested with OpenFOAM 6; the dictionaries use only
-  keywords available in current ESI and Foundation versions) installed and sourced.
-- ParaView (optional, for `open_paraview.sh` and `make_images.py`).
-
-### Running the Case
-
-**Option 1: Docker (recommended)**
-
-```bash
-cd projects/07_backward_facing_step
-./run_docker.sh
-```
-
-This cleans the case, runs `Allrun` inside the container (files are written with
-your user id) and finishes with `python3 verify.py`. Run time was about 250 s
-single-core on a desktop CPU.
-
-**Option 2: Allrun with a local OpenFOAM installation**
-
-```bash
-cd projects/07_backward_facing_step
-./Allrun
-python3 verify.py
-```
-
-`Allrun` will:
-1. Generate the mesh with `blockMesh`
-2. Check mesh quality with `checkMesh`
-3. Run the solver with `simpleFoam`
-4. Sample the near-wall velocity with `postProcess -func sampleDict`
-
-Each step writes `log.<application>`; the script stops at the first failing step.
-
-**Option 3: Step by step**
+## 9. How to Run
 
 ```bash
 cd projects/07_backward_facing_step
 
-# Generate mesh
-blockMesh
+# Docker (recommended): clean, run, verify
+./run_docker.sh                 # all cores, at most 8
+NPROCS=4 ./run_docker.sh        # choose the number of cores
 
-# Verify mesh quality
-checkMesh
-
-# Run solver
-simpleFoam
-
-# Near-wall velocity (optional, used by verify.py)
-postProcess -func sampleDict -latestTime
+# Inside an OpenFOAM 6 environment
+./Allclean && ./Allrun && python3 verify.py
 ```
 
-**Option 4: Parallel execution (for larger meshes)**
-
-This 27,200-cell case does not need it. It requires a `system/decomposeParDict`,
-which is not part of the case; for example `simple` with 4 subdomains:
+Run time: about 22 minutes on 8 cores (4 for the start-up stage, 18 for the
+statistics), 2–3 hours on one core. Progress:
 
 ```bash
-# Decompose
-decomposePar
-
-# Run in parallel (e.g., 4 cores)
-mpirun -np 4 simpleFoam -parallel
-
-# Reconstruct
-reconstructPar
+tail -f log.pimpleFoam.startup      # then log.pimpleFoam.statistics
+grep "^Time" log.pimpleFoam.statistics | tail -1
 ```
 
-### Cleaning Up
+Outputs:
+
+- `0.00025 … 0.08`: instantaneous fields for the animation (`U`, `p`, `nut`, `s`);
+- `0.16 … 0.4`: also `UMean`, `UPrime2Mean`, `pMean`;
+- `postProcessing/probes`, `flowRates`, `outletFlow`, `sampleDict`.
+
+## 10. Results
+
+### One shedding cycle
+
+![t = 56.5 ms](images/vorticity_cycle_1.png)
+![t = 62.5 ms](images/vorticity_cycle_2.png)
+![t = 68.5 ms](images/vorticity_cycle_3.png)
+![t = 74.5 ms](images/vorticity_cycle_4.png)
+
+Four moments 6 ms apart, about a quarter of the shedding period each (vorticity,
+blue = clockwise). The shear layer leaves the lip, rolls up into a vortex that grows
+over the bubble, and the vortex is released and carried along the floor while the
+next one starts at the lip.
+
+### Dye
+
+![Dye at t = 0.08 s](images/dye.png)
+
+Dye from the inlet boundary layer is wound into each vortex and pulled down into the
+recirculation bubble, where it lingers.
+
+### Shedding frequency
+
+![Probe signal and spectrum](images/shedding_spectrum.png)
+
+The vertical velocity at x = 4h on the lip line swings by several m/s with one
+dominant frequency of **43.7 Hz** (`St_h = f h / U0 = 0.057`). The signal is periodic
+but far from a sine wave (each vortex passes as a sharp spike), so the spectrum also
+shows the harmonics 2f, 3f, … The first 20 ms are the start-up: the starting vortex
+reaches x = 4h after 22 ms.
+
+Scaled with the bubble length, `f Xr / U0 = 0.20`, a third of the ≈ 0.6 measured for
+the large vortices of real (3D) separation bubbles (Kiya & Sasaki 1983). In 2D,
+neighbouring vortices merge instead of breaking up, so fewer and bigger vortices
+leave the bubble.
+
+### Mean flow
+
+![Mean streamwise velocity with the zero line and mean streamlines](images/mean_flow.png)
+
+![Mean velocity next to the floor](images/floor_velocity.png)
+
+| Quantity                    | This case (2D LES) | DNS (Le, Moin & Kim 1997) | Experiment (Jovic & Driver 1994) |
+|-----------------------------|--------------------|---------------------------|----------------------------------|
+| Mean reattachment `Xr/h`    | **3.48**           | 6.28                      | 6.0 ± 0.15                       |
+| Corner eddy ends at         | 0.70h              | -                         | -                                |
+| Strongest mean backflow     | −0.31 U0 (x = 1.6h, y = 0.1h) | -              | -                                |
+
+The mean flow has the right structure: a corner eddy, a main bubble with backflow
+along the floor, and a dividing streamline that comes down to the floor. But the
+bubble is 45 % too short. Each 2D vortex is a strong, coherent roller that reaches the
+floor at x ≈ 3–4h and drives fluid forwards there; in the real flow the vortices
+break down into 3D turbulence on the way and the shear layer reattaches further
+downstream. The floor-velocity plot above marks the DNS and experimental values for
+comparison.
+
+## 11. Making the Reel
+
+The repository's reel generator turns the 320 animation times into vertical (9:16)
+videos with captions and music. Two reels are defined in `reel.json`:
 
 ```bash
-./Allclean
+pvbatch tools/make_reel.py projects/07_backward_facing_step                 # both
+pvbatch tools/make_reel.py projects/07_backward_facing_step --reel dye      # one
 ```
 
-Removes the mesh, time directories, logs, `postProcessing/` and
-`backward_step.foam`. `0/`, `constant/*Properties`, `system/`, `images/` and
-`verify.py` are kept.
-
-### Monitoring Convergence
-
-The case has no `residuals` function object, so monitor the log:
-
-```bash
-# Last residuals of the running solver
-grep "Solving for Ux" log.simpleFoam | tail -20
-
-# Extract all residuals into logs/ (Ux_0, p_0, k_0, ...) and plot with gnuplot
-foamLog log.simpleFoam
-gnuplot -e "set logscale y; plot 'logs/p_0' with lines, 'logs/Ux_0' with lines; pause -1"
-```
-
----
-
-## Expected Results
-
-All numbers below are measured from a run of this case (OpenFOAM 6, 27,200 cells).
-
-### Convergence Behaviour
-
-The simulation converges (all initial residuals below the `residualControl` values)
-after **1968 iterations**, about 250 s. The residual history:
-
-| Phase          | Iterations | Behaviour                                       |
-|----------------|------------|-------------------------------------------------|
-| Initial        | 0-50       | Rapid drop of all residuals to about 1e-2 (Ux), p about 0.2 |
-| Plateau        | 50-600     | Ux about 1e-2, Uy about 2e-2, p about 0.1, k about 1e-2: the bubble is still growing |
-| Convergence    | 600-1950   | Steady decay; Ux < 1e-3 after about 1140, < 1e-4 after about 1720 |
-| Converged      | 1968       | Ux, Uy, k < 1e-5, p < 1e-4, omega < 1e-5       |
-
-Only about 1.6 % margin would remain at `endTime` 2000, which is why `endTime` is
-set to 3000; the run stops by itself at convergence.
-
-### Reattachment Length
-
-The primary validation metric is the reattachment length, taken from the sign change
-of `wallShearStress` on `bottomWall`:
-
-**Measured for this case:** $X_r/H=9.0$ (the sign of $\tau_x$ changes between $x/H=8.95$ and $9.04$).
-
-**Corner eddy:** $x/H\approx1.7$ (the sign change occurs between $1.72$ and $1.78$).
-
-Both the wall shear stress and `Ux` in the first cell row give the same positions
-(`verify.py` compares them: 9.00 from both). For comparison with experiments, see
-[The Reattachment Length](#the-reattachment-length-xrh): no reference exists for this
-geometry and the classic benchmark is a different configuration.
-
-OpenFOAM's `wallShearStress` is the stress exerted on the fluid (kinematic, $\mathrm{m}^{2}/\mathrm{s}^{2}$),
-so with the flow in +x it is **negative where the near-wall flow is attached** and
-**positive where it is reversed**. Along `bottomWall`:
-
-| x / H range | tau_x sign | Near-wall flow | Region                          |
-|-------------|------------|----------------|---------------------------------|
-| 0 - 0.07    | +          | reversed       | tiny sliver (about one cell) next to the step face |
-| 0.07 - 1.7  | -          | forward        | counter-rotating corner eddy    |
-| 1.7 - 9.0   | +          | reversed       | primary recirculation bubble    |
-| > 9.0       | -          | forward        | reattached boundary layer       |
-
-### Flow Field Features
-
-After convergence, you should observe:
-
-1. **Recirculation bubble** - A closed streamline pattern behind the step, visible
-   in velocity vectors or streamlines (figure below).
-
-2. **Negative velocity region** - The x-velocity is negative (reverse flow) in the
-   recirculation zone; the minimum `Ux` in the domain is about -2.4 m/s (24 % of the
-   inlet velocity).
-
-3. **Pressure recovery** - Kinematic pressure drops to a minimum of about -24 $\mathrm{m}^{2}/\mathrm{s}^{2}$ inside
-   the corner-eddy and bubble region (x/H $\approx 2.3$), then rises through the
-   expansion to the outlet reference value 0; pressure along the lower wall is about
-   -23 at x/H = 1, -17 at 5, -5 at 9 and +0.3 at 25.
-
-4. **Turbulent kinetic energy peak** - Maximum k (about 5.2 $\mathrm{m}^{2}/\mathrm{s}^{2}$) occurs in the free
-   shear layer, at about x/H = 4.8 downstream of the step edge, y/H = -0.25.
-
-5. **Wall shear stress sign change** - On the bottom wall, the wall shear stress
-   (OpenFOAM sign convention) changes from positive (reverse flow in the bubble) to
-   negative (attached flow) at reattachment.
-
-6. **Mass conservation** - Outlet flux balances the inlet flux
-   (1.6129e-3 $\mathrm{m}^{3}/\mathrm{s}$ for the 1H-deep slab) to better than 1e-6 relative.
-
-### Figures
-
-All figures are rendered from the final time (iteration 1968) of a run with
-`make_images.py` (ParaView `pvpython`); `x` and `y` are in units of the step height H.
-
-**Mesh near the step** (`x/H` from -2 to 4): cells are clustered at the step edge and
-towards the walls.
-
-![Mesh near the step](images/mesh_step.png)
-
-**Velocity magnitude** over the whole domain: the jet from the narrow upstream channel
-expands into the 2H channel; low speed in the bubble below.
-
-![Velocity magnitude](images/velocity_magnitude.png)
-
-**Recirculation zone**: `Ux` (colour), streamlines (black), and the white `Ux = 0` line. Look at
-the closed bubble and the small corner eddy, and where the zero line meets the bottom wall.
-
-![Recirculation zone](images/recirculation_streamlines.png)
-
-**Pressure** (kinematic): low pressure in the separated region, recovery downstream.
-
-![Pressure](images/pressure.png)
-
-**Turbulent kinetic energy**: maximum in the free shear layer above the bubble.
-
-![Turbulent kinetic energy](images/tke.png)
-
-**Wall shear stress on the bottom wall**: look at the sign changes; the dashed red line
-marks the reattachment point.
-
-![Wall shear stress along bottomWall](images/wall_shear_stress.png)
-
----
-
-## Post-Processing Guide
-
-### Viewing Results
-
-```bash
-# Open in ParaView (creates backward_step.foam)
-./open_paraview.sh
-
-# Or by hand
-touch backward_step.foam
-paraview backward_step.foam
-
-# Re-render the figures of this README (needs pvpython on PATH, after a run)
-pvpython make_images.py
-```
-
-### Finding the Reattachment Length
-
-The reattachment point is where the wall shear stress on the bottom wall changes sign.
-Several methods:
-
-**Method 1: Wall shear stress (most accurate)**
-
-The `wallShearStress` function object (configured in controlDict) writes the wall
-shear stress at each write time. In ParaView:
-
-1. Load the case and advance to the final time step
-2. Apply "Extract Block" to select the `bottomWall` patch
-3. Plot `wallShearStress_X` along the x-axis
-4. The last zero-crossing from positive to negative is the reattachment point
-
-`verify.py` does the same from the written fields.
-
-**Method 2: Velocity sign change**
-
-`system/sampleDict` is included in the case (set type `lineUniform` in OpenFOAM 6;
-older versions call it `uniform`). It samples `U` on a line inside the first
-cell row above `bottomWall`:
-
-```bash
-postProcess -func sampleDict -latestTime
-# result: postProcessing/sampleDict/<time>/nearWall_U.xy  (columns: x Ux Uy Uz)
-```
-
-The reattachment point is the x where `Ux` changes from negative to positive for the
-last time.
-
-**Method 3: Streamlines**
-
-In ParaView, create streamlines seeded near the step edge. The reattachment point
-is visible as the location where the lowest streamline contacts the bottom wall.
-
-### Velocity Profiles
-
-Plot velocity profiles at key x/H locations (for comparison with experimental
-data, if available for your configuration):
-
-| Station | x/H  | Description                                          |
-|---------|------|------------------------------------------------------|
-| 1       | 1    | Corner eddy region                                   |
-| 2       | 4    | Mid-recirculation                                    |
-| 3       | 9    | Reattachment (this case)                             |
-| 4       | 12   | Just after reattachment                              |
-| 5       | 20   | Recovery region                                      |
-| 6       | 28   | Close to the outlet (30H)                            |
-
-(The original station list 1, 4, 6, 8, 15, 25 was chosen for Xr/H $\approx 6$; the stations
-above are shifted for the Xr/H = 9 of this case. Use 6 for an Xr/H = 6 configuration.)
-
-### Skin Friction Coefficient
-
-The skin friction coefficient on the bottom wall (OpenFOAM's `wallShearStress` is
-kinematic, so no density appears):
-
-$$
-C_f=\frac{\tau_w}{0.5U_\infty^2}
-$$
-
-Here $\tau_w$ is the kinematic wall shear stress from wallShearStress, and $U_\infty=10\ \mathrm{m/s}$.
-
-Plot $C_f$ vs $x/H$. The reattachment point is at $C_f = 0$ (last crossing). With
-the OpenFOAM sign convention reverse flow gives positive `tau_x`; multiply by -1 to
-get the conventional sign (negative Cf = reverse flow).
-
-### Pressure Coefficient
-
-$$
-C_p=\frac{p-p_{\mathrm{ref}}}{0.5U_\infty^2}
-$$
-
-Here $p$ is kinematic pressure and $p_{\mathrm{ref}}=0$ at the outlet.
-
-Plot Cp along the top and bottom walls to visualise the pressure recovery through
-the expansion.
-
-### Checking y+
-
-The `yPlus` function object writes y+ values at each write time and prints the
-per-patch range in the log:
-
-```bash
-# Per-patch y+ range at the final iteration
-grep "y+" log.simpleFoam | tail -3
-
-# Or recompute at the latest time
-postProcess -func yPlus -latestTime
-```
-
-Target values:
-- Wall functions: y+ = 30-300 (acceptable), y+ = 30-100 (ideal)
-- Low-Re wall treatment: y+ < 1 (this case: max 1.5 at the step face)
-
----
-
-## Exercises
-
-### Exercise 1: Turbulence Model Comparison
-
-Compare k-$\omega$ SST with standard k-$\varepsilon$:
-
-1. Copy the case directory
-2. Change `constant/turbulenceProperties`:
-   ```
-   RASModel    kEpsilon;
-   ```
-3. Replace `0/omega` with `0/epsilon`:
-   ```
-   dimensions      [0 2 -3 0 0 0 0];
-   internalField   uniform 9.5;   // ε = Cμ^0.75 k^1.5 / l = Cμ k ω (k = 0.24, ω = 440)
-   // inlet: fixedValue 9.5; outlet: zeroGradient; walls: epsilonWallFunction
-   ```
-4. In `system/fvSchemes` add `div(phi,epsilon) bounded Gauss upwind;`, in `system/fvSolution`
-   add an `epsilon` solver and relaxation factor (copy the `omega` entries).
-5. At y+ < 1 the `epsilonWallFunction` is outside its intended range
-   ([Exercise 4](#exercise-4-wall-treatment-study)), so compare on a coarser wall mesh as well.
-6. Run and compare reattachment lengths
-
-Expected result (literature): k-$\varepsilon$ predicts a shorter reattachment length than
-k-$\omega$ SST (4.5-5.0 in the classic configuration). Not run for this case.
-
-### Exercise 2: Reynolds Number Sensitivity
-
-Run the case at different Reynolds numbers by changing the inlet velocity in `0/U`
-(`internalField` and `inlet`):
-
-| Case | $U_\infty$ (m/s) | Re_H    | Xr/H |
-|------|----------|---------|----------------|
-| A    | 2        | ~1,700  | not measured (original estimate ~5.0) |
-| B    | 5        | ~4,200  | not measured (original estimate ~5.5) |
-| C    | 10       | ~8,500  | **9.0 (measured, this case)** |
-| D    | 20       | ~17,000 | not measured (original estimate ~6.5) |
-| E    | 50       | ~42,000 | not measured (original estimate ~6.5) |
-
-The "original estimate" values are the rough numbers of the earlier README; case C
-shows they are not reliable for this geometry. Keep the inlet `k` at 4 % intensity
-($k=1.5(0.04U)^2$) and scale `omega` with `sqrt(k)`. Note: at low Re (< 400), the
-flow is laminar and the reattachment length depends strongly on Re. At high Re, the
-reattachment length becomes nearly independent of Re. The turbulence model assumes
-fully turbulent flow; for cases A and B, which are transitional at best, results should be
-interpreted with care.
-
-### Exercise 3: Mesh Refinement Study
-
-Perform a systematic grid convergence study. The y-cell count of block 0 and block 1
-must be equal (they share the face at x = 0, 0 < y < H):
-
-| Level  | Upstream     | Downstream    | Total cells | Purpose           |
-|--------|-------------|---------------|-------------|-------------------|
-| Coarse | 40 $\times$ 20    | 150 $\times$ 20      | 6,800       | Quick test        |
-| Medium | 80 $\times$ 40    | 300 $\times$ 40      | 27,200      | Baseline (this)   |
-| Fine   | 160 $\times$ 80   | 600 $\times$ 80      | 108,800     | Grid convergence  |
-| V.Fine | 320 $\times$ 160  | 1200 $\times$ 160    | 435,200     | Reference         |
-
-(Original table used $150 \times 30$ for the coarse level, which does not match the 20 cells
-of the upstream block and fails in `blockMesh`; corrected to $150 \times 20$, 6,800 cells.)
-
-Plot Xr/H vs total cell count. The solution should become grid-independent at the
-Fine or Very Fine level. Remember `endTime` and `residualControl` for the finer meshes.
-
-### Exercise 4: Wall Treatment Study
-
-The supplied mesh is wall-resolved (max y+ $\approx 1.5$). Two directions to explore:
-
-**Wall-function regime (y+ $\approx 30$-100):** reduce the wall-normal cell counts and
-the wall grading so that the first cell centre is 1-3 mm from the wall (y+ $\approx 30$-100,
-see the estimate in [y+ Considerations](#y-considerations)), and check
-`grep "y+" log.simpleFoam`. Compare Xr/H with the resolved-wall result.
-
-**Resolved boundary layers (y+ < 1, as supplied):** the supplied mesh already does
-this. To go further:
-
-1. Increase wall-normal cell count or grading to achieve y+ $\approx 0.5$
-2. Change wall functions if desired:
-   - `k`: `fixedValue uniform 0` (k = 0 at wall)
-   - `omega`: `omegaWallFunction` (handles both low-Re and wall-function)
-   - `nut`: `nutLowReWallFunction` or keep `nutkWallFunction` (auto-adapts)
-
-### Exercise 5: Expansion Ratio Study
-
-Investigate the effect of expansion ratio on reattachment length:
-
-| ER  | Downstream height | Xr/H |
-|-----|-------------------|----------------|
-| 1.2 | 1.2H              | not measured (original estimate ~4) |
-| 1.5 | 1.5H              | not measured (original estimate ~5) |
-| 2.0 | 2.0H (this case)  | **9.0 (measured)** |
-| 3.0 | 3.0H              | not measured (original estimate ~8) |
-
-Modify `system/blockMeshDict` to change the downstream channel height (vertices 6, 7,
-14, 15 and the cell count of blocks 2 in y). Expect Xr/H to increase with ER.
-
-### Exercise 6: Inlet Profile Effects
-
-Replace the uniform inlet velocity with a fully developed turbulent channel profile:
-
-1. Run a separate precursor channel flow simulation
-2. Map the outlet of the precursor to the inlet of the step case using `mapFields`
-3. Compare results with the uniform inlet case
-
----
-
-## Troubleshooting
-
-| Symptom | Cause / fix |
-|---------|-------------|
-| `FOAM FATAL IO ERROR: wrong token type - expected string, found ... fieldFunctionObjects` right after `Starting time loop` | In OpenFOAM 6 `libs` entries must be quoted file names: `libs ("libfieldFunctionObjects.so");` (fixed in `system/controlDict`) |
-| `Unknown sample set type uniform` in `log.postProcess.nearWall` (exit code 0, no sample file) | In OpenFOAM 6 the set type is `lineUniform` (fixed in `system/sampleDict`); `verify.py` reports the missing `nearWall_U.xy` |
-| `Allrun` ends but `log.simpleFoam` shows a crash | Check `tail log.simpleFoam`; `Allrun` now stops with an error message if any step fails |
-| Run stops at `endTime` without `SIMPLE solution converged` | Residuals not yet below `residualControl`; raise `endTime` or relax the criteria (the flow will be unchanged within the tolerance) |
-| `verify.py` reports `missing file ...` (exit 2) | No finished run in this directory; run `./run_docker.sh` first |
-| `pvpython make_images.py` finds no time directory | Run the case first; `make_images.py` reads the latest time directory |
-| Generated files owned by root | Use `./run_docker.sh` (runs the container with your uid); fix ownership with `sudo chown -R $USER .` and run `./Allclean` again |
-
----
-
-## References
-
-### Primary Experimental References
-
-1. **Driver, D.M. & Seegmiller, H.L.** (1985). "Features of a reattaching turbulent
-   shear layer in divergent channel flow." *AIAA Journal*, 23(2), pp.163-171.
-   - Detailed experimental study. Provides velocity profiles, turbulence statistics
-   and skin friction measurements at $Re_H \approx 37{,}400$ (step height 12.7 mm, expansion
-   ratio 1.125).
-
-2. **Kim, J., Kline, S.J. & Johnston, J.P.** (1980). "Investigation of a reattaching
-   turbulent shear layer: flow over a backward-facing step." *Journal of Fluids
-   Engineering*, 102(3), pp.302-308.
-   - Early comprehensive experimental study with extensive flow visualisation.
-
-3. **Armaly, B.F., Durst, F., Pereira, J.C.F. & Schönung, B.** (1983). "Experimental
-   and theoretical investigation of backward-facing step flow." *Journal of Fluid
-   Mechanics*, 127, pp.473-496.
-   - Covers a wide range of Reynolds numbers from laminar to turbulent; the expansion
-     ratio of about 1.94 is the closest of the three to this case.
-
-### Turbulence Modelling References
-
-4. **Menter, F.R.** (1994). "Two-equation eddy-viscosity turbulence models for
-   engineering applications." *AIAA Journal*, 32(8), pp.1598-1605.
-   - Original k-$\omega$ SST paper. Includes the backward-facing step among its test
-     cases for separated flows.
-
-5. **Wilcox, D.C.** (2006). *Turbulence Modeling for CFD*. 3rd edition, DCW
-   Industries.
-   - Comprehensive reference on turbulence modelling, including discussion
-     of the backward-facing step as a validation case.
-
-6. **Pope, S.B.** (2000). *Turbulent Flows*. Cambridge University Press.
-   - Fundamental reference on turbulence physics, shear layers, and recirculating
-     flows.
-
-### Computational References
-
-7. **Le, H., Moin, P. & Kim, J.** (1997). "Direct numerical simulation of turbulent
-   flow over a backward-facing step." *Journal of Fluid Mechanics*, 330, pp.349-374.
-   - DNS data providing a reference for turbulence model validation.
-
-8. **Patel, V.C., Rodi, W. & Scheuerer, G.** (1985). "Turbulence models for
-   near-wall and low Reynolds number flows: a review." *AIAA Journal*, 23(9),
-   pp.1308-1319.
-   - Review of near-wall modelling approaches relevant to step flow.
-
-### Cross-References to Tutorial Notes
-
-For deeper understanding of the concepts used in this case, refer to the companion
-notes in the `notes/` directory:
-
-| Topic                  | Notes File                           | Relevant Sections            |
-|------------------------|--------------------------------------|------------------------------|
-| CFD fundamentals       | `notes/01_short_intro_to_cfd.md`     | Governing equations, FVM     |
-| Case structure         | `notes/02_openfoam_cases.md`         | Directory layout, file types |
-| Dictionary syntax      | `notes/03_openfoam_dictionaries.md`  | FoamFile headers, keywords   |
-| Meshing strategies     | `notes/04_meshing.md`                | blockMesh, grading, quality  |
-| Boundary conditions    | `notes/05_boundary_conditions.md`    | Wall functions, inlet/outlet |
-| Turbulence models      | `notes/06_turbulence_models.md`      | k-$\omega$ SST, wall treatment     |
-| Linear solvers         | `notes/09_linear_solvers.md`         | GAMG, smoothSolver, SIMPLE   |
+- `vortex_shedding`: vorticity, following the vortices from the step downstream;
+- `dye`: the dye being wound up and pulled into the bubble.
+
+They are written to `output/artifacts/07_backward_facing_step/` (not tracked by git).
+`"solid": true` paints the step block grey, `"skip_after": 0.08` limits them to the
+densely written start-up stage, and `"camera"` keyframes pan along the channel.
+
+## 12. Exercises
+
+1. **Go 3D.** Extrude the mesh to a span of 4h with 40 cells (`zMin -2; zMax 2;` and
+   40 cells in z in `blockMeshDict`), make `frontAndBack` a `cyclic` pair, and use
+   `turbulentInlet` for `U`. The vortices now break up into smaller, three-dimensional
+   eddies. Expect about 2.4 million cells and many hours on 8 cores; compare `Xr/h`
+   (DNS: 6.28h) and the spectrum with the 2D run.
+2. **Reynolds number.** Halve and double `U0` (scale the whole table in `0/U`). How
+   do the shedding frequency in Hz and `St_h` change?
+3. **Laminar inflow.** Replace the 1/7 profile by a uniform 7.65 m/s. The separating
+   shear layer is now much thinner: how does the vortex size change?
+4. **Numerical damping.** Change `div(phi,U)` to `Gauss linearUpwind grad(U)` and
+   then `Gauss upwind`. Watch the vortices (and the shedding peak) fade.
+5. **Steady RANS.** Run the same geometry with `simpleFoam` and k-ω SST. You get one
+   picture of the mean bubble. Compare its `Xr/h` with the LES mean.
+
+## 13. Troubleshooting
+
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `Case is 2D, LES is not strictly applicable` | expected warning | none needed (see [Section 3](#3-why-les-and-why-only-2d-here)) |
+| Courant number grows, solver diverges | `maxCo` raised or mesh refined without lowering it | keep `maxCo` ≤ 0.8 for PISO |
+| `verify.py`: missing `log.pimpleFoam.statistics` | stage 2 did not run | check `log.pimpleFoam.startup` for errors |
+| `mpirun` refuses to run as root | Docker without `--user` | use `./run_docker.sh` (runs with your uid) |
+| No `UMean` in the last time | run stopped before 0.08 s | rerun; `fieldAverage` starts at 0.08 s |
+| ParaView shows only the last time | reconstructed case missing | `reconstructPar` (Allrun does it) or open the decomposed case |
+
+## 14. References
+
+1. **Le, H., Moin, P. & Kim, J.** (1997). "Direct numerical simulation of turbulent
+   flow over a backward-facing step." *Journal of Fluid Mechanics*, 330, 349–374.
+   The reference case: expansion ratio 1.2, `Re_h` = 5100, `Xr` = 6.28h.
+2. **Jovic, S. & Driver, D.M.** (1994). "Backward-facing step measurements at low
+   Reynolds number, Re_h = 5000." NASA Technical Memorandum 108807.
+3. **Nicoud, F. & Ducros, F.** (1999). "Subgrid-scale stress modelling based on the
+   square of the velocity gradient tensor." *Flow, Turbulence and Combustion*, 62,
+   183–200. The WALE model.
+4. **Kiya, M. & Sasaki, K.** (1983). "Structure of a turbulent separation bubble."
+   *Journal of Fluid Mechanics*, 137, 83–113.
+5. **Eaton, J.K. & Johnston, J.P.** (1981). "A review of research on subsonic
+   turbulent flow reattachment." *AIAA Journal*, 19(9), 1093–1100.
+6. OpenFOAM 6 tutorial `incompressible/pisoFoam/LES/pitzDaily`: a 2D LES of a step
+   with the same function objects (`fieldAverage`, `probes`, `scalarTransport`).
+
+Companion notes: [Turbulence models (LES)](../../notes/06_turbulence_models.md#6-large-eddy-simulation-les),
+[CFL number](../../notes/08_cfl_number.md), [Parallelization](../../notes/07_parallelization.md),
+[Meshing](../../notes/04_meshing.md).
 
 ---
 

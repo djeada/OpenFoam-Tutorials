@@ -35,9 +35,9 @@ import sys
 import tempfile
 from pathlib import Path
 
-from paraview.simple import (AppendDatasets, Calculator, ColorBy, CreateRenderView,
-                             GetColorTransferFunction, Gradient, GetScalarBar, Line, OpenFOAMReader,
-                             Plane, ResetSession, SaveScreenshot, Show, Slice,
+from paraview.simple import (AppendDatasets, Calculator, ColorBy, Contour, CreateRenderView,
+                             GetColorTransferFunction, GetScalarBar, Gradient, Line,
+                             OpenFOAMReader, Plane, ResetSession, SaveScreenshot, Show, Slice,
                              StreamTracerWithCustomSource, TemporalInterpolator, Text,
                              Transform)
 from vtkmodules.vtkCommonCore import vtkObject
@@ -55,20 +55,24 @@ FPS = 30
 BACKGROUND = [0.04, 0.05, 0.09]
 TEXT = [0.95, 0.96, 0.98]
 MUTED = [0.62, 0.66, 0.74]
+SOLID = [0.60, 0.62, 0.68]  # walls and bodies (holes in the mesh), see "solid" in reel.json
 CARD = [0.09, 0.11, 0.18]
 FIELD_PRIORITY = ("alpha.water", "T", "U", "p_rgh", "p")
 # A preset name, or RGB points (value r g b ...) on a 0..1 scale stretched to the range.
 COLORMAPS = {"alpha.water": [0, 0.09, 0.11, 0.17, 0.5, 0.05, 0.42, 0.72, 1, 0.38, 0.86, 1.0],
              "T": "Turbo", "U": "Turbo", "c": "Viridis (matplotlib)",
+             "s": "Inferno (matplotlib)",
              "k": "Plasma (matplotlib)",
              # Dark where the fluid does not spin, so vortices stand out on the background.
              "vorticity": [0, 0.55, 0.85, 1.0, 0.25, 0.13, 0.38, 0.85, 0.5, 0.06, 0.07, 0.12,
-                           0.75, 0.85, 0.25, 0.12, 1, 1.0, 0.80, 0.45]}
+                           0.75, 0.85, 0.25, 0.12, 1, 1.0, 0.80, 0.45],
+             # Troughs deep blue, calm water mid blue, crests near white.
+             "elevation": [0, 0.03, 0.10, 0.32, 0.5, 0.10, 0.38, 0.70, 1, 0.88, 0.96, 1.0]}
 # Plain-language colour-bar titles; units are appended from the field's dimensions.
 FIELD_NAMES = {"alpha.water": "Water fraction", "T": "Temperature", "U": "Flow speed",
                "p": "Pressure", "p_rgh": "Pressure (hydrostatic part removed)",
-               "k": "Turbulent kinetic energy", "nut": "Turbulent viscosity",
-               "vorticity": "Spin (vorticity)"}
+               "k": "Turbulent kinetic energy", "nut": "Turbulent viscosity", "s": "Dye",
+               "vorticity": "Spin (vorticity)", "elevation": "Water surface height"}
 AXES = {"x": 0, "y": 1, "z": 2}
 # OpenFOAM dimension sets [kg m s K mol A cd] -> unit label for the colour bar.
 UNITS = {(0, 1, -1): "m/s", (1, -1, -2): "Pa", (0, 2, -2): "m²/s²", (0, 0, -1): "1/s",
@@ -77,6 +81,7 @@ UNITS = {(0, 1, -1): "m/s", (1, -1, -2): "Pa", (0, 2, -2): "m²/s²", (0, 0, -1)
 TITLE_Y, SUBTITLE_Y = 0.905, 0.872
 CONTENT_TOP, CONTENT_BOTTOM, CONTENT_WIDTH = 0.80, 0.37, 0.90
 CAPTION_TOP, CLOCK_Y, SPEED_Y, BAR_Y, FOOTER_Y = 0.322, 0.178, 0.152, 0.05, 0.016
+MASK_BANDS = ((-0.1, 0.355), (0.83, 1.1))  # screen heights hidden from the field (fractions)
 FADE = 0.6  # seconds for captions, cards and panel dimming
 
 
@@ -132,6 +137,8 @@ def field_units(case, field):
     """Unit label from the field's `dimensions` entry in the initial conditions."""
     if field == "vorticity":
         return "1/s"
+    if field == "elevation":
+        return "mm"
     for folder in ("0", "0.orig"):
         path = case / folder / field
         if path.is_file():
@@ -290,14 +297,27 @@ def build_panel(case_entry, reel, field_hint, interpolate):
     source = reader
     if interpolate and len(times) >= 2:
         source = TemporalInterpolator(Input=source)  # smooth motion between written times
-    if not is_2d:
+    surface = reel.get("free_surface") and field.startswith("alpha")
+    if surface:
+        # The water surface itself (alpha = 0.5), coloured by its height: shows wave patterns
+        # that are far too small to see in a side slice. Look along gravity ("normal").
+        source = Contour(Input=source)
+        source.ContourBy = ["POINTS", field]
+        source.Isosurfaces = [0.5]
+        vertical, sense = gravity_axis(case) or (2, 1.0)
+        source = Calculator(Input=source)
+        source.ResultArrayName = "elevation"
+        source.Function = f'{1000 * sense}*coords{"XYZ"[vertical]}'
+    elif not is_2d:
         origin = reel.get("origin") or [(bounds[2 * i] + bounds[2 * i + 1]) / 2 for i in range(3)]
         source = Slice(Input=source)
         source.SliceType = "Plane"
         source.SliceType.Origin = origin
         source.SliceType.Normal = [1.0 if i == normal else 0.0 for i in range(3)]
     array, component = field, None
-    if vorticity:
+    if surface:
+        field = array = "elevation"
+    elif vorticity:
         # Only in-plane derivatives enter the normal component, so a slice is enough.
         source = Gradient(Input=source)
         source.ScalarArray = ["POINTS", "U"]
@@ -353,6 +373,7 @@ def add_streamlines(view, panel, spec, toward_camera):
         seed.YResolution = max(1, int(round(height / spacing)) - 1)
     lines = StreamTracerWithCustomSource(Input=panel["source"], SeedSource=seed)
     lines.Vectors = ["POINTS", "U"]
+    lines.SurfaceStreamlines = 0 if panel["is_2d"] else 1  # stay in the slice plane
     lines.IntegrationDirection = spec.get("direction", "BOTH")
     # Short steps keep the curves smooth on coarse meshes.
     lines.InitialStepLength, lines.MaximumStepLength = 0.05, 0.1
@@ -390,7 +411,8 @@ def sample_range(panels, times):
             info = panel["source"].GetPointDataInformation().GetArray(panel["array"])
             if info is None:
                 continue
-            a, b = info.GetRange({"Magnitude": -1, None: 0, "X": 0, "Y": 1, "Z": 2}[panel["component"]])
+            index = {"Magnitude": -1, None: 0, "X": 0, "Y": 1, "Z": 2}[panel["component"]]
+            a, b = info.GetRange(index)
             lo, hi = min(lo, a), max(hi, b)
     if not math.isfinite(lo) or lo == hi:
         return [0.0, 1.0] if not math.isfinite(lo) else [lo - 0.5, hi + 0.5]
@@ -425,11 +447,15 @@ def bar_ticks(lo, hi):
 # --------------------------------------------------------------------------- overlays
 
 def read_series(path, column, scale, offset):
+    """(time, value) rows of a postProcessing file; `column` may be a list of columns
+    to add up (e.g. the pressure and viscous parts of a moment)."""
+    columns = column if isinstance(column, list) else [column]
     rows = []
     for line in Path(path).read_text().splitlines():
         if line.strip() and not line.lstrip().startswith("#"):
             values = line.replace("(", " ").replace(")", " ").split()
-            rows.append((float(values[0]), offset + scale * float(values[column])))
+            rows.append((float(values[0]),
+                         offset + scale * sum(float(values[c]) for c in columns)))
     return rows
 
 
@@ -506,7 +532,9 @@ class Label:
         lines = []
         for paragraph in string.split("\n"):
             line = ""
-            for word in paragraph.split(" "):
+            # Never break between a number and its unit ("27 °C", "10 m/s").
+            for word in re.split(r" (?!(?:°C|%|m/s|rad/s|mm|cm|ms|m|s|Hz|rpm|K)(?:[ .,;:)]|$))",
+                                 paragraph):
                 trial = f"{line} {word}".strip()
                 if line and self.measure(trial)[0] > self.wrap * WIDTH * SCALE - 2 * self.pad:
                     lines.append(line)
@@ -674,18 +702,33 @@ def render_reel(project, reel, args):
     centre_r, middle_up = (hi_r + lo_r) / 2, (hi_up + lo_up) / 2
     if reel.get("center"):
         centre_r, middle_up = reel["center"][right], reel["center"][up]
-    centre_up = middle_up - ((CONTENT_TOP + CONTENT_BOTTOM) / 2 - 0.5) * 2 * scale
+    band_offset = (CONTENT_TOP + CONTENT_BOTTOM) / 2 - 0.5  # content band centre vs frame centre
+    centre_up = middle_up - band_offset * 2 * scale
     depth_mid = (first["bounds"][2 * normal] + first["bounds"][2 * normal + 1]) / 2
 
-    def camera(zoom=1.0):
+    def camera(zoom=1.0, centre=None):
+        """Parallel camera showing world point `centre` (right, up) mid-band at `zoom`."""
+        c_r, c_up = centre or (centre_r, middle_up)
         focal = [0.0] * 3
-        focal[up], focal[right], focal[normal] = centre_up, centre_r, depth_mid
+        focal[up] = c_up - band_offset * 2 * scale / zoom
+        focal[right], focal[normal] = c_r, depth_mid
         position = list(focal)
         position[normal] += 10 * max(hi_r - lo_r, hi_up - lo_up, 1e-6) * (1 if sign > 0 else -1)
         view.CameraFocalPoint = focal
         view.CameraPosition = position
         view.CameraViewUp = [1.0 if i == up else 0.0 for i in range(3)]
         view.CameraParallelScale = scale / zoom
+        # Keep the field inside its band when a close-up would spill over the text.
+        half, width = scale / zoom, scale / zoom * aspect * 1.2
+        for mask, (y0, y1) in zip(masks, MASK_BANDS):
+            corners = []
+            for r_frac, y in ((-1, y0), (1, y0), (-1, y1)):
+                point = [0.0] * 3
+                point[right] = c_r + r_frac * width
+                point[up] = focal[up] + (y - 0.5) * 2 * half
+                point[normal] = mask_depth
+                corners.append(point)
+            mask.Origin, mask.Point1, mask.Point2 = corners
 
     def to_screen(value_up, value_r):
         return (0.5 + (value_r - centre_r) / (2 * scale * aspect),
@@ -696,6 +739,8 @@ def render_reel(project, reel, args):
         times = [t for t in times if t >= reel["skip_before"]]
     if reel.get("skip_after"):
         times = [t for t in times if t <= reel["skip_after"]]
+    if reel.get("final_only"):  # steady results: show the converged field, not the iterations
+        times = times[-1:]
     value_range = reel.get("range") or sample_range(panels, times)
     lut = GetColorTransferFunction(first["array"])
     lut.AutomaticRescaleRangeMode = "Never"
@@ -704,6 +749,28 @@ def render_reel(project, reel, args):
         lut.ApplyPreset(colormap, True)
     else:
         lut.RGBPoints = colormap
+
+    if reel.get("solid"):
+        # A plain plane behind each panel, the size of its bounding box: it shows through
+        # wherever there is no fluid (a step, a blade), so solids read as solid on any colour
+        # map. Give an [r, g, b] colour or true for the default grey.
+        colour = reel["solid"] if isinstance(reel["solid"], list) else SOLID
+        for panel in panels:
+            b = panel["bounds"]
+            back = (b[2 * normal] + b[2 * normal + 1]) / 2 - sign * (
+                (b[2 * normal + 1] - b[2 * normal]) / 2 + 1e-3 * (hi_r - lo_r))
+            corners = []
+            for r_value, up_value in ((b[2 * right], panel["bottom"]),
+                                      (b[2 * right + 1], panel["bottom"]),
+                                      (b[2 * right], panel["top"])):
+                point = [0.0] * 3
+                point[right], point[up], point[normal] = r_value, up_value, back
+                corners.append(point)
+            plane = Plane(Origin=corners[0], Point1=corners[1], Point2=corners[2])
+            plane_display = Show(plane, view)
+            plane_display.ColorArrayName = ["POINTS", ""]
+            plane_display.AmbientColor = plane_display.DiffuseColor = colour
+            plane_display.Ambient, plane_display.Diffuse = 1.0, 0.0
 
     for panel in panels:
         display = Show(panel["source"], view)
@@ -728,6 +795,20 @@ def render_reel(project, reel, args):
         if reel.get("streamlines") and not reel.get("lic"):
             add_streamlines(view, panel, reel["streamlines"], sign)
     lut.RescaleTransferFunction(*value_range)  # after ColorBy, which rescales to the data
+
+    # Background-coloured cards just in front of the field (and its streamlines) above and
+    # below the content band; the 2D text is drawn over them.
+    size = max(hi_r - lo_r, hi_up - lo_up)
+    depth = first["bounds"][2 * normal + 1] - first["bounds"][2 * normal]
+    mask_depth = depth_mid + (depth / 2 + 3e-3 * size) * (1 if sign > 0 else -1)
+    masks = []
+    for _ in MASK_BANDS:
+        mask = Plane()
+        mask_display = Show(mask, view)
+        mask_display.ColorArrayName = ["POINTS", ""]
+        mask_display.AmbientColor = mask_display.DiffuseColor = BACKGROUND
+        mask_display.Ambient, mask_display.Diffuse = 1.0, 0.0
+        masks.append(mask)
 
     # Header, panel labels, captions, cards, clock, colour bar.
     title = reel.get("title") or project_title(project)
@@ -790,8 +871,32 @@ def render_reel(project, reel, args):
 
     def video_time(sim):  # inverse, for captions given in simulation time
         if not transient or t_end == t_start:
-            return intro_s
+            return intro_s + sim  # a single time: captions are in seconds of the main part
         return intro_s + main_s * (sim - t_start) / (t_end - t_start)
+
+    # Optional camera tour: keyframes {"at": seconds into the main part, "zoom": factor on the
+    # fitted view, "center": [x, y, z]}, eased between keyframes and held before/after.
+    keys = sorted(reel.get("camera", []), key=lambda k: k["at"])
+
+    def key_view(key):
+        point = key.get("center")
+        return (key.get("zoom", 1.0),
+                (point[right], point[up]) if point else (centre_r, middle_up))
+
+    def view_at(main_seconds):
+        """(zoom, (right, up) centre) of the camera tour at this point of the main part."""
+        if not keys:
+            return 1.0, None
+        if main_seconds <= keys[0]["at"]:
+            return key_view(keys[0])
+        for a, b in zip(keys, keys[1:]):
+            if main_seconds <= b["at"]:
+                u = (main_seconds - a["at"]) / max(b["at"] - a["at"], 1e-9)
+                u = u * u * (3 - 2 * u)  # smoothstep: no jolt at keyframes
+                (za, ca), (zb, cb) = key_view(a), key_view(b)
+                zoom_now = za * (zb / za) ** u  # geometric, so zooming feels uniform
+                return zoom_now, tuple(x + (y - x) * u for x, y in zip(ca, cb))
+        return key_view(keys[-1])
 
     captions = [(video_time(c["from"]), video_time(c["to"]), c["text"])
                 for c in reel.get("captions", [])]
@@ -804,28 +909,31 @@ def render_reel(project, reel, args):
             print("  outro needs overlay values that are missing; showing it unformatted")
     steady = is_steady(first["case"])
     if steady:
-        speed.set("solver converging towards a steady state" if transient else "")
+        speed.set("solver converging towards a steady state" if transient
+                  else "converged steady-state flow")
     else:
         speed.set(speed_note(t_end - t_start, main_s) if transient else "")
 
-    schedule = []  # (video seconds, simulation time, camera zoom)
+    schedule = []  # (video seconds, simulation time, camera zoom, camera centre)
     for i in range(int(round(intro_s * FPS))):
-        schedule.append((i / FPS, t_start, 1.0))
+        schedule.append((i / FPS, t_start, *view_at(0.0)))
     for i in range(main_n):
-        zoom_now = 1.0 if transient else 1.0 + 0.12 * i / (main_n - 1)
-        schedule.append((intro_s + i / FPS, sim_time(i), zoom_now))
-    last_zoom = schedule[-1][2]
+        zoom_now, centre_now = view_at(i / FPS)
+        if not transient and not keys:
+            zoom_now = 1.0 + 0.12 * i / (main_n - 1)  # slow push-in on a still result
+        schedule.append((intro_s + i / FPS, sim_time(i), zoom_now, centre_now))
+    last_zoom, last_centre = schedule[-1][2:]
     for i in range(int(round(outro_s * FPS))):
-        schedule.append((intro_s + main_s + i / FPS, t_end, last_zoom))
+        schedule.append((intro_s + main_s + i / FPS, t_end, last_zoom, last_centre))
     total_s = len(schedule) / FPS
 
     name = reel.get("name") or first["field"].replace(".", "_")
     out_dir = OUTPUT / project.name
     out_dir.mkdir(parents=True, exist_ok=True)
 
-    def draw(now, t, zoom_now):
+    def draw(now, t, zoom_now, centre_now=None):
         view.ViewTime = t
-        camera(zoom_now)
+        camera(zoom_now, centre_now)
         clock.set(format_time(t, t_end, steady) if transient else "")
         for label, string, series, fmt in labels:
             value = series_at(series, t) if series else None
@@ -842,11 +950,20 @@ def render_reel(project, reel, args):
 
     if args.still:  # a single PNG of the final state, without cards or captions
         still = out_dir / f"{name}.png"
-        draw(intro_s + main_s - 1 / FPS - FADE, t_end, last_zoom)
+        draw(intro_s + main_s - 1 / FPS - FADE, t_end, last_zoom, last_centre)
         caption.set("")
         SaveScreenshot(str(still), view, ImageResolution=[WIDTH * SCALE, HEIGHT * SCALE])
         print(f"  wrote {still.relative_to(REPO)}")
         return still
+
+    if args.frames:  # PNGs of chosen moments of the finished video, for checking a layout
+        for seconds in args.frames:
+            frame = min(schedule, key=lambda f: abs(f[0] - seconds))
+            draw(*frame)
+            path = out_dir / f"{name}_{seconds:g}s.png"
+            SaveScreenshot(str(path), view, ImageResolution=[WIDTH * SCALE, HEIGHT * SCALE])
+            print(f"  wrote {path.relative_to(REPO)}")
+        return path
 
     if args.segment:  # quick silent preview of part of the timeline
         schedule = [f for f in schedule if args.segment[0] <= f[0] < args.segment[1]]
@@ -858,8 +975,8 @@ def render_reel(project, reel, args):
     encoder = Encoder(silent)
     # LIC complains about zero-velocity frames (e.g. the initial state); keep logs readable.
     vtkObject.GlobalWarningDisplayOff()
-    for index, (now, t, zoom_now) in enumerate(schedule):
-        draw(now, t, zoom_now)
+    for index, frame in enumerate(schedule):
+        draw(*frame)
         encoder.add(view)
         if index % 150 == 0:
             print(f"  frame {index + 1}/{len(schedule)}", flush=True)
@@ -911,6 +1028,8 @@ def main(argv):
     parser.add_argument("--segment", nargs=2, type=float, metavar=("START", "END"),
                         help="render only this part of the video (seconds), silent, as *_preview.mp4")
     parser.add_argument("--still", action="store_true", help="write a PNG of the last time only")
+    parser.add_argument("--frames", nargs="+", type=float, metavar="SECONDS",
+                        help="write PNGs of these moments of the video (with captions) instead")
     args = parser.parse_args(argv)
     global SCALE
     SCALE = max(1, args.supersample)

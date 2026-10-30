@@ -14,92 +14,64 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// Backward-facing step geometry
-// Step height H = 0.0127 m
-// Upstream channel:  length = 4H, height = H (above step level)
-// Downstream channel: length = 30H, height = 2H
-// Expansion ratio: 2:1
+// Backward-facing step of Le, Moin & Kim (1997) / Jovic & Driver (1994):
+// step height h = 10 mm, inlet channel 5h high, downstream channel 6h high
+// (expansion ratio 1.2). All coordinates below are in units of h.
 //
-//  Geometry (side view, 2D in x-z plane):
+//          y
+//          6  v3-----------v4---------------------------------v5   top (slip)
+//             |   block A   |            block C               |
+//   inlet ->  |  (5h x 5h)  |          (25h x 5h)              |  -> outlet
+//          1  v0-----------v1---------------------------------v2
+//             step top     |            block B               |
+//                     step |          (25h x 1h)              |
+//          0              v6---------------------------------v7   floor
+//            x=-5         x=0                               x=25
 //
-//    v3──────────────v4──────────────────────────v5
-//    │               │                            │
-//    │   Block 0     │       Block 1              │
-//    │  (upstream)   │   (downstream top)         │
-//    v0──────────────v1                           v2
-//                    │                            │
-//                    │       Block 2              │
-//                    │  (downstream bottom)       │
-//                    v6───────────────────────────v7
-//
+// One cell in z (2D). Cells are smallest at the step lip (x = 0, y = 1),
+// where the shear layer starts, and at the floor; they grow towards the
+// top boundary and the outlet.
 
-convertToMeters 0.0127;  // H = 0.0127 m, coordinates in units of H
+convertToMeters 0.01;
+
+zMin -0.5;
+zMax  0.5;
 
 vertices
 (
-    // Upstream block vertices
-    (-4  0  -0.5)   // 0: upstream inlet bottom (at step level)
-    ( 0  0  -0.5)   // 1: step top-right corner
-    (30  0  -0.5)   // 2: downstream outlet at step level
-    (-4  1  -0.5)   // 3: upstream inlet top
-    ( 0  1  -0.5)   // 4: top wall at step
-    (30  1  -0.5)   // 5: downstream outlet top
+    (-5 1 $zMin)   // 0
+    ( 0 1 $zMin)   // 1  step lip
+    (25 1 $zMin)   // 2
+    (-5 6 $zMin)   // 3
+    ( 0 6 $zMin)   // 4
+    (25 6 $zMin)   // 5
+    ( 0 0 $zMin)   // 6  step foot
+    (25 0 $zMin)   // 7
 
-    // Downstream bottom block vertices
-    ( 0 -1  -0.5)   // 6: step bottom-right (downstream floor at step)
-    (30 -1  -0.5)   // 7: downstream outlet bottom
-
-    // Front plane (z = +0.5)
-    (-4  0   0.5)   // 8
-    ( 0  0   0.5)   // 9
-    (30  0   0.5)   // 10
-    (-4  1   0.5)   // 11
-    ( 0  1   0.5)   // 12
-    (30  1   0.5)   // 13
-    ( 0 -1   0.5)   // 14
-    (30 -1   0.5)   // 15
+    (-5 1 $zMax)   // 8
+    ( 0 1 $zMax)   // 9
+    (25 1 $zMax)   // 10
+    (-5 6 $zMax)   // 11
+    ( 0 6 $zMax)   // 12
+    (25 6 $zMax)   // 13
+    ( 0 0 $zMax)   // 14
+    (25 0 $zMax)   // 15
 );
+
+// x: 0.2h at the inlet -> 0.015h at the step (69 cells)
+xUp     0.075;
+// x after the step: 0.015h -> 0.05h over 8h (275 cells), then -> 0.3h (122 cells)
+xDown   ((8 275 3.333) (17 122 6));
+// y above the step: 0.008h at y = h -> 0.25h at the top (70 cells)
+yTop    31.25;
+// y below the step: 0.006h at the floor and at y = h, 0.03h in the middle (66 cells)
+yBottom ((0.5 33 5) (0.5 33 0.2));
 
 blocks
 (
-    // Block 0: upstream channel (4H x 1H)
-    hex (0 1 4 3 8 9 12 11)
-    (80 40 1)
-    simpleGrading
-    (
-        0.25        // x: refine toward step edge
-        (
-            (0.5 0.5 4)    // bottom half: grade toward bottom
-            (0.5 0.5 0.25) // top half: grade toward top
-        )
-        1           // z: uniform (2D)
-    )
-
-    // Block 1: downstream top (30H x 1H)
-    hex (1 2 5 4 9 10 13 12)
-    (300 40 1)
-    simpleGrading
-    (
-        4           // x: expand downstream
-        (
-            (0.5 0.5 4)    // bottom half: grade toward step level
-            (0.5 0.5 0.25) // top half: grade toward top wall
-        )
-        1           // z: uniform (2D)
-    )
-
-    // Block 2: downstream bottom (30H x 1H, behind step)
-    hex (6 7 2 1 14 15 10 9)
-    (300 40 1)
-    simpleGrading
-    (
-        4           // x: expand downstream
-        (
-            (0.5 0.5 4)    // bottom half: grade toward bottom wall
-            (0.5 0.5 0.25) // top half: grade toward step level
-        )
-        1           // z: uniform (2D)
-    )
+    hex (0 1 4 3 8 9 12 11) A (69 70 1)  simpleGrading ($xUp $yTop 1)
+    hex (1 2 5 4 9 10 13 12) C (397 70 1) simpleGrading ($xDown $yTop 1)
+    hex (6 7 2 1 14 15 10 9) B (397 66 1) simpleGrading ($xDown $yBottom 1)
 );
 
 edges
@@ -111,64 +83,35 @@ boundary
     inlet
     {
         type patch;
-        faces
-        (
-            (0 3 11 8)     // upstream inlet face
-        );
+        faces ((0 8 11 3));
     }
-
     outlet
     {
         type patch;
-        faces
-        (
-            (2 5 13 10)    // downstream top outlet
-            (7 2 10 15)    // downstream bottom outlet
-        );
+        faces ((2 5 13 10) (7 2 10 15));
     }
-
-    topWall
+    top
+    {
+        type patch;
+        faces ((3 11 12 4) (4 12 13 5));
+    }
+    step                // floor of the inlet channel and the vertical step face
     {
         type wall;
-        faces
-        (
-            (3 4 12 11)    // upstream top wall
-            (4 5 13 12)    // downstream top wall
-        );
+        faces ((0 1 9 8) (1 6 14 9));
     }
-
-    bottomWall
+    floor               // floor behind the step
     {
         type wall;
-        faces
-        (
-            (6 7 15 14)    // downstream bottom wall
-        );
+        faces ((6 7 15 14));
     }
-
-    step
-    {
-        type wall;
-        faces
-        (
-            (0 1 9 8)      // step top face (upstream floor)
-            (1 6 14 9)     // step vertical face
-        );
-    }
-
     frontAndBack
     {
         type empty;
         faces
         (
-            // Back faces (z = -0.5)
-            (0 1 4 3)
-            (1 2 5 4)
-            (6 7 2 1)
-            // Front faces (z = +0.5)
-            (8 9 12 11)
-            (9 10 13 12)
-            (14 15 10 9)
+            (0 3 4 1) (1 4 5 2) (6 1 2 7)
+            (8 9 12 11) (9 10 13 12) (14 15 10 9)
         );
     }
 );

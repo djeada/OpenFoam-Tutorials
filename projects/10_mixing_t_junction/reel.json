@@ -1,11 +1,55 @@
 {
+  "name": "hot_cold_mixing",
   "title": "Hot and cold T-junction",
   "intro": {
     "seconds": 5,
-    "text": "Hot and cold water meet in a T-junction.\n\nThe solver iterates towards a steady temperature field."
+    "text": "Hot water flows along a pipe. Cold water joins from a side branch.\n\nDo they mix?"
   },
   "outro": {
-    "seconds": 5,
-    "text": "The two streams mix downstream of the junction, with weak thermal layering.\n\nOpenFOAM buoyantSimpleFoam · k-ε"
-  }
+    "seconds": 6,
+    "text": "Fully mixed, it would all be 67 °C. Layering like this matters for thermal stress in pipe junctions.\n\nOpenFOAM buoyantSimpleFoam · 2D RANS"
+  },
+  "field": "T",
+  "offset": -273.15,
+  "range": [27, 77],
+  "bar_title": "Water temperature (°C)",
+  "final_only": true,
+  "duration": 38,
+  "streamlines": {
+    "lines": [
+      [[0.005, 0.004, 0], [0.005, 0.096, 0], 8],
+      [[0.129, 0.196, 0], [0.171, 0.196, 0], 4]
+    ],
+    "direction": "FORWARD",
+    "opacity": 0.5
+  },
+  "camera": [
+    {"at": 0, "zoom": 1, "center": [0.25, 0.1, 0.005]},
+    {"at": 8, "zoom": 1, "center": [0.25, 0.1, 0.005]},
+    {"at": 18, "zoom": 2.2, "center": [0.15, 0.1, 0.005]},
+    {"at": 28, "zoom": 2.2, "center": [0.38, 0.05, 0.005]},
+    {"at": 35, "zoom": 1, "center": [0.25, 0.1, 0.005]}
+  ],
+  "captions": [
+    {
+      "from": 0,
+      "to": 9,
+      "text": "Hot water (77 °C) enters from the left. Cold water (27 °C) comes down the branch."
+    },
+    {
+      "from": 9,
+      "to": 18,
+      "text": "The hot stream is faster and carries more water, so it bends the cold jet over."
+    },
+    {
+      "from": 18,
+      "to": 28,
+      "text": "The cold water ends up as a layer along the top wall instead of mixing in."
+    },
+    {
+      "from": 28,
+      "to": 38,
+      "text": "Even at the outlet the water is about 38 °C at the top and 77 °C at the bottom."
+    }
+  ]
 }

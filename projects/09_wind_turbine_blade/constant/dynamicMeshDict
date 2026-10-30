@@ -1,0 +1,38 @@
+/*--------------------------------*- C++ -*----------------------------------*\
+| =========                 |                                                 |
+| \\      /  F ield         | OpenFOAM: The Open Source CFD Toolbox           |
+|  \\    /   O peration     | Version:  6                                     |
+|   \\  /    A nd           | Website:  www.openfoam.org                      |
+|    \\/     M anipulation  |                                                 |
+\*---------------------------------------------------------------------------*/
+FoamFile
+{
+    version     2.0;
+    format      ascii;
+    class       dictionary;
+    object      dynamicMeshDict;
+}
+// * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
+
+// The rotor cellZone (the disc around the blades, from the "rotor" volume of
+// the Gmsh mesh) turns as a rigid body. Its outer edge, AMI_rotor, slides
+// along AMI_stator; cyclicAMI interpolates between the two every time step.
+
+dynamicFvMesh   dynamicMotionSolverFvMesh;
+
+motionSolverLibs ("libfvMotionSolvers.so");
+
+motionSolver    solidBody;
+
+cellZone        rotor;
+
+solidBodyMotionFunction rotatingMotion;
+
+origin          (0 0 0);
+axis            (0 0 1);        // anticlockwise seen from +z
+
+// Tip-speed ratio lambda = omega R / U = 40 * 0.5 / 8 = 2.5
+// (382 rpm, one revolution every 0.157 s)
+omega           40;             // rad/s
+
+// ************************************************************************* //

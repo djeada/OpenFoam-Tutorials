@@ -19,68 +19,38 @@ solvers
     p
     {
         solver          GAMG;
+        smoother        DIC;
         tolerance       1e-06;
-        relTol          0.1;
-        smoother        GaussSeidel;
-        nPreSweeps      0;
-        nPostSweeps     2;
-        cacheAgglomeration on;
-        agglomerator    faceAreaPair;
-        nCellsInCoarsestLevel 10;
-        mergeLevels     1;
+        relTol          0.05;
     }
 
-    U
+    pFinal
+    {
+        $p;
+        relTol          0;
+    }
+
+    "(U|s)"
     {
         solver          smoothSolver;
         smoother        symGaussSeidel;
         tolerance       1e-07;
-        relTol          0.1;
+        relTol          0;
     }
 
-    k
+    "(U|s)Final"
     {
-        solver          smoothSolver;
-        smoother        symGaussSeidel;
-        tolerance       1e-07;
-        relTol          0.1;
-    }
-
-    omega
-    {
-        solver          smoothSolver;
-        smoother        symGaussSeidel;
-        tolerance       1e-07;
-        relTol          0.1;
+        $U;
     }
 }
 
-SIMPLE
+// One outer iteration and two pressure correctors: the PISO algorithm. The
+// Courant number is kept below 1, so outer iterations are not needed.
+PIMPLE
 {
-    nNonOrthogonalCorrectors 0;
-    consistent      yes;
-
-    residualControl
-    {
-        p               1e-4;
-        U               1e-5;
-        k               1e-5;
-        omega           1e-5;
-    }
-}
-
-relaxationFactors
-{
-    fields
-    {
-        p               0.3;
-    }
-    equations
-    {
-        U               0.7;
-        k               0.7;
-        omega           0.7;
-    }
+    nOuterCorrectors            1;
+    nCorrectors                 2;
+    nNonOrthogonalCorrectors    0;
 }
 
 // ************************************************************************* //

@@ -85,9 +85,9 @@ OpenFoam-Tutorials/
 │   ├── 04_naca_airfoil_analysis/          Airfoil aerodynamics — Spalart-Allmaras, Gmsh mesh
 │   ├── 05_heated_pipe_flow/               Heated turbulent pipe flow — buoyantSimpleFoam
 │   ├── 06_ahmed_body_aerodynamics/        Automotive aero — k-omega SST
-│   ├── 07_backward_facing_step/           Separated flow validation — k-omega SST
+│   ├── 07_backward_facing_step/           Vortex shedding behind a step — 2D LES, pimpleFoam
 │   ├── 08_dam_break/                      Multiphase VOF — interFoam
-│   ├── 09_wind_turbine_blade/             Rotating machinery — MRF + simpleFoam
+│   ├── 09_wind_turbine_blade/             Rotating machinery — 3-blade VAWT, sliding AMI mesh
 │   ├── 10_mixing_t_junction/              Thermal mixing — buoyantSimpleFoam
 │   ├── 11_boat_hull_fixed/                Fixed hull in water — interFoam + snappyHexMesh
 │   ├── 12_boat_hull_floating/             Floating body dynamics — interFoam + 6-DoF
@@ -174,9 +174,9 @@ Thirteen simulation projects arranged by increasing complexity. Each project dir
 | 04 | [**NACA Airfoil Analysis**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/04_naca_airfoil_analysis) | Steady RANS of a NACA 0012 airfoil at a fixed angle of attack on a Gmsh-generated mesh. Covers lift/drag/moment coefficients and pressure distribution. | `simpleFoam` | Gmsh import | Spalart-Allmaras | 🟡 Intermediate |
 | 05 | [**Heated Pipe Flow**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/05_heated_pipe_flow) | Turbulent heated pipe flow (single region, not conjugate). Introduces the energy equation, buoyancy effects, thermal boundary conditions and an energy-balance check. | `buoyantSimpleFoam` | `blockMesh` | k-epsilon | 🟡 Intermediate |
 | 06 | [**Ahmed Body Aerodynamics**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/06_ahmed_body_aerodynamics) | Full 3D automotive aerodynamics simulation of the Ahmed body — the standard reference geometry for vehicle aero studies. | `simpleFoam` | `snappyHexMesh` | k-omega SST | 🔴 Advanced |
-| 07 | [**Backward-Facing Step**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/07_backward_facing_step) | Classic turbulent separated flow benchmark. Reattachment length is measured from the wall shear stress (Xr/H $\approx 9.0$ for this setup, kept as a regression baseline). | `simpleFoam` | `blockMesh` | k-omega SST | 🔴 Advanced |
+| 07 | [**Backward-Facing Step**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/07_backward_facing_step) | Transient flow over a step (Le, Moin & Kim geometry, Re_h = 5100): the shear layer rolls up and sheds a vortex every 23 ms. Inlet profile with `fixedProfile`, passive dye, parallel two-stage run, shedding spectrum and mean bubble compared with DNS (and why 2D falls short). | `pimpleFoam` | `blockMesh` | LES (WALE), 2D | 🔴 Advanced |
 | 08 | [**Dam Break**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/08_dam_break) | Multiphase free-surface flow using Volume of Fluid (VOF). Water column collapse with gravity — transient interFoam simulation. | `interFoam` | `blockMesh` | Laminar | 🔴 Advanced |
-| 09 | [**Wind Turbine Blade**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/09_wind_turbine_blade) | Demonstrates the Multiple Reference Frame (MRF) approach with a rotating cell zone (no blades). Introduces `topoSet` and `MRFProperties`. | `simpleFoam` | `blockMesh` | k-epsilon | 🔴 Advanced |
+| 09 | [**Wind Turbine Blade**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/09_wind_turbine_blade) | A 3-blade vertical-axis wind turbine (NACA 0018) turning in the wind on a rotating mesh with a sliding (`cyclicAMI`) interface. Per-blade torque, power coefficient, dynamic stall and the blade wakes. | `pimpleFoam` (moving mesh) | Gmsh import | k-omega SST (URANS) | 🔴 Advanced |
 | 10 | [**Mixing T-Junction**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/10_mixing_t_junction) | Thermal mixing of hot (350 K) and cold (300 K) streams in a T-junction. Multi-block structured mesh with buoyancy coupling. | `buoyantSimpleFoam` | `blockMesh` | k-epsilon | 🔴 Advanced |
 | 11 | [**Boat Hull — Fixed**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/11_boat_hull_fixed) | Fixed toy boat hull in calm water with free surface. Uses your own STL geometry with snappyHexMesh for drag and wave pattern analysis. | `interFoam` | `snappyHexMesh` | Laminar | 🔴 Advanced |
 | 12 | [**Boat Hull — Floating**](https://github.com/djeada/OpenFoam-Tutorials/tree/main/projects/12_boat_hull_floating) | Floating rigid-body boat with 6-DoF motion. Dynamic mesh morphing with constrained heave/yaw motion — the capstone project. | `interFoam` | `snappyHexMesh` | Laminar | 🔴 Advanced |
@@ -202,14 +202,14 @@ Thirteen simulation projects arranged by increasing complexity. Each project dir
                              ▼                                            │
                         ┌──────────┐           ┌──────────┐              ▼
                         │06 Ahmed  │           │07 BFS    │         ┌──────────┐
-                        │ Body 3D  │           │ k-ω SST  │         │12 Boat   │
-                        │ k-ω SST  │           │validation│         │ Floating │
+                        │ Body 3D  │           │ 2D LES   │         │12 Boat   │
+                        │ k-ω SST  │           │ shedding │         │ Floating │
                         └──────────┘           └──────────┘         │interFoam │
                                                                     │ 6-DoF    │
                         ┌──────────┐                                └──────────┘
                         │09 Wind   │
                         │ Turbine  │
-                        │ MRF      │
+                        │ AMI mesh │
                         └──────────┘
 
   Learn:                Learn:                 Learn:                Learn:
@@ -305,13 +305,30 @@ an N-wide grid of fixed seeds; in `reel.json`, `"streamlines": {"lines": [[start
 seeds them along lines instead, for example across an inlet or from a vortex centre to a wall.
 `--lic` adds a flow-texture overlay, which suits steady or slowly changing flow; in fast
 transients it shimmers and greys out the colours. `--music track.mp3` uses your own audio
-and `--no-music` makes the video silent. `--supersample 1` gives a fast draft, and `--still`
-writes a PNG of the final frame. A project can also ship a `reel.json` with stacked comparison
-panels, labels, live numbers from `postProcessing`, captions timed to simulation time, and
-intro/outro text that can quote final values. See
+and `--no-music` makes the video silent. `--supersample 1` gives a fast draft, `--still`
+writes a PNG of the final frame, and `--frames 5 20 40` writes PNGs of those moments of the
+video (with captions) for checking a layout. A project can also ship a `reel.json` with stacked
+comparison panels, labels, live numbers from `postProcessing`, captions timed to simulation
+time, and intro/outro text that can quote final values. See
 [project 13](projects/13_window_ventilation/reel.json) for an example, and projects
 [01](projects/01_lid_driven_cavity/reel.json), [02](projects/02_elbow/reel.json) and
-[03](projects/03_flow_around_cylinder/reel.json) for streamlines and vorticity. Interpolation
+[03](projects/03_flow_around_cylinder/reel.json) for streamlines and vorticity.
+
+Steady (SIMPLE) results have no real time history, so their reels set `"final_only": true` and
+show the converged field with a camera tour instead: `"camera"` lists keyframes
+`{"at": seconds, "zoom": factor, "center": [x, y, z]}` that the view eases between, and
+captions are then timed in seconds of the video rather than simulation time (see
+[05](projects/05_heated_pipe_flow/reel.json) or [06](projects/06_ahmed_body_aerodynamics/reel.json)).
+Camera keyframes also work on transient reels, for example to follow vortices down a
+channel ([07](projects/07_backward_facing_step/reel.json)) or to pan from a rotor into its
+wake ([09](projects/09_wind_turbine_blade/reel.json)). `"solid": true` paints solid bodies
+(holes in the mesh, such as a step or turbine blades) grey, so they stay visible on dark
+colour maps. An overlay `"column"` may be a list of columns to add up, such as the pressure
+and viscous parts of a moment in a `forces.dat` file.
+Close-ups are clipped to the picture area, so the field never covers the title or captions.
+For free-surface (VOF) cases, `"free_surface": true` draws the water surface itself, coloured
+by its height in mm and seen along gravity (`"normal": "z"`), which shows waves far too small
+to see in a side slice ([11](projects/11_boat_hull_fixed/reel.json)). Interpolation
 cross-fades between written times, so fast events such as splashes look better when results
 are written more often. Use `--no-interpolate` if the mesh topology changes between time
 steps. Add `--force-offscreen-rendering` to `pvbatch` on headless machines.

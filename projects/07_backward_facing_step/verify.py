@@ -1,21 +1,27 @@
 #!/usr/bin/env python3
-"""Check the results of a finished backward-facing-step run.
+"""Check the results of a finished backward-facing-step LES run.
 
 Usage:  python3 verify.py [case_dir]
 
-Only reads files already written by ./Allrun (log.*, constant/polyMesh, the
-latest time directory, system/*). No OpenFOAM, docker or third-party Python
-packages are needed. Prints one line per check and exits 0 only if all pass.
+Only reads files already written by ./Allrun (log.*, postProcessing/*,
+system/*). No OpenFOAM, docker or third-party Python packages are needed.
+Prints one line per check and exits 0 only if all pass.
 """
+import cmath
+import glob
+import math
 import os
 import re
 import sys
 
 CASE = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else os.path.dirname(os.path.abspath(__file__))
 
-H = 0.0127          # step height [m]            (system/blockMeshDict, convertToMeters)
-U_IN = 10.0         # inlet velocity [m/s]       (0/U)
-DEPTH = 1.0 * H     # z thickness of the 2D mesh (blockMeshDict: z = -0.5 .. 0.5, in units of H)
+H = 0.01            # step height [m]                (system/blockMeshDict, convertToMeters)
+U0 = 7.65           # free-stream speed at the inlet  (0/U, edge of the boundary layer)
+T_AVG = 0.08        # start of the averaging window   (system/controlDict, fieldAverage)
+XR_DNS = 6.28       # Le, Moin & Kim (1997), DNS, same geometry and Re_h = 5100
+XR_EXP = 6.0        # Jovic & Driver (1994), experiment, +-0.15
+XR_REF = 3.48       # this 2D LES (OpenFOAM 6, 8 cores): regression value
 
 results = []
 
@@ -34,174 +40,144 @@ def read(rel):
         return f.read()
 
 
-def check(name, measured, expected, tol, ok, unit=""):
+def check(name, measured, expected, tol, ok):
     results.append(ok)
-    print("%s  %-34s measured=%s  expected=%s%s"
+    print("%s  %-30s measured=%s  expected=%s%s"
           % ("PASS" if ok else "FAIL", name, measured, expected,
              (" +- %s" % tol) if tol is not None else ""), flush=True)
 
 
-def latest_time():
-    times = []
-    for d in os.listdir(CASE):
-        try:
-            t = float(d)
-        except ValueError:
-            continue
-        if os.path.isdir(os.path.join(CASE, d)) and t > 0:
-            times.append((t, d))
-    if not times:
-        fail_missing("no time directory > 0 found (solver did not write results)")
-    return max(times)[1]
-
-
-def boundary_values(text, patch):
-    """Return the list of values of boundaryField/<patch>/value (floats or 3-tuples)."""
-    m = re.search(r"^\s*%s\s*\{(.*?)\n\s*\}" % re.escape(patch), text, re.S | re.M)
-    if not m:
-        fail_missing("patch %s not found in field file" % patch)
-    blk = m.group(1)
-    m = re.search(r"value\s+nonuniform\s+List<(\w+)>\s*(\d+)\s*\(\s*\n(.*?)\n\s*\)\s*;", blk, re.S)
-    if not m:
-        fail_missing("patch %s has no nonuniform value list" % patch)
-    kind, n, body = m.group(1), int(m.group(2)), m.group(3).split("\n")
-    vals = []
-    for line in body:
-        line = line.strip()
-        if not line:
-            continue
-        if kind == "vector":
-            vals.append(tuple(float(v) for v in line.strip("()").split()))
-        else:
-            vals.append(float(line))
-    if len(vals) != n:
-        fail_missing("patch %s: expected %d values, parsed %d" % (patch, n, len(vals)))
-    return vals
-
-
-def patch_face_range(patch):
-    text = read("constant/polyMesh/boundary")
-    m = re.search(r"^\s*%s\s*\{(.*?)\}" % re.escape(patch), text, re.S | re.M)
-    n = int(re.search(r"nFaces\s+(\d+)", m.group(1)).group(1))
-    s = int(re.search(r"startFace\s+(\d+)", m.group(1)).group(1))
-    return s, n
-
-
-def patch_face_centres_x(patch):
-    """x of the centre of each face of a patch (mean of its vertex x), from polyMesh."""
-    pts_txt = read("constant/polyMesh/points")
-    i = pts_txt.index("\n(", pts_txt.index("FoamFile"))
-    px = [float(m.group(1)) for m in
-          re.finditer(r"^\([ \t]*(\S+)[ \t]+\S+[ \t]+\S+[ \t]*\)[ \t]*$", pts_txt[i:], re.M)]
-    faces_txt = read("constant/polyMesh/faces")
-    start, n = patch_face_range(patch)
-    faces = re.findall(r"^\d+\(([\d ]+)\)\s*$", faces_txt, re.M)
-    out = []
-    for f in faces[start:start + n]:
-        ids = [int(v) for v in f.split()]
-        out.append(sum(px[k] for k in ids) / len(ids))
-    return out
+def series(pattern):
+    """Rows of numbers from postProcessing files (all restart folders, in time order)."""
+    files = sorted(glob.glob(os.path.join(CASE, pattern)),
+                   key=lambda p: float(p.split(os.sep)[-2]))
+    if not files:
+        fail_missing("no file matches %s" % pattern)
+    rows = {}
+    for path in files:
+        for line in open(path):
+            if line.strip() and not line.startswith("#"):
+                values = [float(v) for v in line.replace("(", " ").replace(")", " ").split()]
+                rows[values[0]] = values  # a restart repeats its first time: keep one row
+    return [rows[t] for t in sorted(rows)]
 
 
 # ---------------------------------------------------------------- logs
-log_mesh = read("log.blockMesh")
-log_chk = read("log.checkMesh")
-log_run = read("log.simpleFoam")
+logs = {name: read("log." + name) for name in
+        ("blockMesh", "checkMesh", "pimpleFoam.startup", "pimpleFoam.statistics")}
 
 # 1. No fatal errors in any log
-fatal = [n for n, t in (("blockMesh", log_mesh), ("checkMesh", log_chk), ("simpleFoam", log_run))
+fatal = [n for n, t in logs.items()
          if "FOAM FATAL" in t or "Floating point exception" in t or "Segmentation fault" in t]
 check("no_fatal_error", "none" if not fatal else ",".join(fatal), "none", None, not fatal)
 
-# 2. Mesh checks. 27200 = 80*40 + 2*300*40 from blockMeshDict.
-m = re.search(r"cells:\s+(\d+)", log_chk)
+# 2. Mesh: 58,822 = 69*70 + 397*70 + 397*66 cells from blockMeshDict.
+m = re.search(r"cells:\s+(\d+)", logs["checkMesh"])
 ncells = int(m.group(1)) if m else -1
-check("mesh_cell_count", ncells, 27200, "0", ncells == 27200)
-check("checkMesh_Mesh_OK", "yes" if "Mesh OK." in log_chk else "no", "yes", None, "Mesh OK." in log_chk)
+check("mesh_cell_count", ncells, 58822, "0", ncells == 58822)
+check("checkMesh_Mesh_OK", "yes" if "Mesh OK." in logs["checkMesh"] else "no", "yes", None,
+      "Mesh OK." in logs["checkMesh"])
 
-# 3. Convergence. The case stops on residualControl; if it ran to endTime it did not converge.
-end_time = int(float(re.search(r"^endTime\s+([\d.e+]+);", read("system/controlDict"), re.M).group(1)))
-m = re.search(r"SIMPLE solution converged in (\d+) iterations", log_run)
-check("simple_converged", int(m.group(1)) if m else "not converged",
-      "< %d (endTime)" % end_time, None, bool(m) and int(m.group(1)) < end_time)
+# 3. Both stages reached their end time.
+for stage, end in (("startup", 0.08), ("statistics", 0.4)):
+    times = [float(t) for t in re.findall(r"^Time = (\S+)", logs["pimpleFoam." + stage], re.M)]
+    last = times[-1] if times else -1
+    check("reached_end_%s" % stage, "%.4f s" % last, "%.2f s" % end, "1e-6",
+          abs(last - end) < 1e-6 and "\nEnd" in logs["pimpleFoam." + stage])
 
-# 4. Final initial residuals are below the residualControl values of system/fvSolution.
-fvs = read("system/fvSolution")
-rc = re.search(r"residualControl\s*\{(.*?)\}", fvs, re.S).group(1)
-limits = {k: float(v) for k, v in re.findall(r"(\w+)\s+([\d.e+-]+);", rc)}
-last = {}
-for fld, res in re.findall(r"Solving for (\w+), Initial residual = ([\d.e+-]+)", log_run):
-    last[fld] = float(res)
-for fld, lim in limits.items():
-    meas = max(last.get(fld + "x", 0), last.get(fld + "y", 0)) if fld == "U" else last.get(fld)
-    if meas is None:
-        fail_missing("no residual for %s in log.simpleFoam" % fld)
-    check("final_residual_%s" % fld, "%.2e" % meas, "< %.0e" % lim, None, meas < lim)
+# 4. Courant number. The time step adapts to maxCo 0.8 (system/controlDict); the first
+#    few steps after the impulsive start overshoot while it adapts, so they are skipped.
+co = [float(v) for stage in ("startup", "statistics")
+      for v in re.findall(r"Courant Number mean: \S+ max: (\S+)", logs["pimpleFoam." + stage])]
+co_max = max(co[20:])
+check("max_courant_after_start", "%.3f" % co_max, "<= 0.85", None, co_max <= 0.85)
 
-# 5. y+ : wall-resolved mesh. Max y+ over all walls from the yPlus function object.
-yp = {}
-for patch, mx in re.findall(r"patch (\w+) y\+ : min = \S+, max = (\S+),", log_run):
-    yp[patch] = float(mx)
-ymax = max(yp.values()) if yp else -1
-# Tolerance: y+ < 5 is the usual limit for a low-Re (viscous sublayer) near-wall treatment.
-check("max_yplus", "%.2f" % ymax, "< 5", None, 0 < ymax < 5)
+# 5. Mass conservation: inlet and outlet flow rates (surfaceFieldValue, every 20 steps)
+#    cancel. The inlet flux is fixed by the profile; any imbalance is solver error.
+q_in = series("postProcessing/flowRates/*/surfaceFieldValue.dat")
+q_out = series("postProcessing/outletFlow/*/surfaceFieldValue.dat")
+out_at = {row[0]: row[1] for row in q_out}
+imb = max(abs(row[1] + out_at[row[0]]) / abs(row[1]) for row in q_in if row[0] in out_at)
+check("mass_balance_max", "%.1e" % imb, "0", "1e-4 rel", imb < 1e-4)
+# The 1/7 power-law profile carries U0 * (5h - delta/8) per metre of span, times the
+# 1h depth of the mesh; the table in 0/U is piecewise linear, so allow 0.5 %.
+q_ref = U0 * (5 * H - 1.2 * H / 8) * H
+check("inlet_flow_rate", "%.4e m3/s" % -q_in[-1][1], "%.4e" % q_ref, "0.5 %",
+      abs(-q_in[-1][1] - q_ref) < 0.005 * q_ref)
 
-# ---------------------------------------------------------------- fields
-t = latest_time()
-
-# 6. Mass conservation from phi on inlet/outlet patches (m^3/s for the 1H-deep slab).
-phi = read(os.path.join(t, "phi"))
-q_in = sum(boundary_values(phi, "inlet"))
-q_out = sum(boundary_values(phi, "outlet"))
-q_ref = U_IN * H * DEPTH
-# Inlet flux is fixed by the BC -> must equal U*H*depth to round-off (1e-6 relative).
-check("inlet_flux", "%.6e" % -q_in, "%.6e" % q_ref, "1e-6 rel", abs(-q_in - q_ref) < 1e-6 * q_ref)
-# Outlet flux must balance inlet; steady, incompressible, converged to p < 1e-4 -> 1e-3 relative.
-imb = abs(q_in + q_out) / q_ref
-check("mass_balance", "%.2e" % imb, "0", "1e-3 rel", imb < 1e-3)
-
-# 7. Reattachment length from the sign change of tau_x on bottomWall.
-# OpenFOAM's wallShearStress is the stress on the fluid, so tau_x > 0 where the near-wall
-# flow is reversed and < 0 where it is attached. Reattachment = last + -> - crossing.
-tau = [v[0] for v in boundary_values(read(os.path.join(t, "wallShearStress")), "bottomWall")]
-xs = patch_face_centres_x("bottomWall")
-pts = sorted(zip(xs, tau))
-xr = None
-for (x0, t0), (x1, t1) in zip(pts, pts[1:]):
-    if t0 > 0 >= t1:
-        xr = (x0 - t0 * (x1 - x0) / (t1 - t0)) / H
+# ---------------------------------------------------------------- mean flow
+# 6. Mean reattachment length: where the time-averaged velocity in the first cell row
+#    above the floor (UMean_x, system/sampleDict) turns from backwards to forwards for
+#    the last time. Near the step a small corner eddy also has forward flow, so the
+#    last - -> + crossing is the reattachment point of the main bubble.
+latest = sorted(glob.glob(os.path.join(CASE, "postProcessing/sampleDict/*/floor_UMean.xy")),
+                key=lambda p: float(p.split(os.sep)[-2]))
+if not latest:
+    fail_missing("postProcessing/sampleDict/<time>/floor_UMean.xy")
+ux = [(float(p[0]), float(p[1])) for p in
+      (line.split() for line in open(latest[-1])) if len(p) >= 4]
+cross = [(x0 - u0 * (x1 - x0) / (u1 - u0)) / H
+         for (x0, u0), (x1, u1) in zip(ux, ux[1:]) if u0 < 0 <= u1]
+xr = cross[-1] if cross else None
 if xr is None:
-    check("reattachment_found", "no sign change", "tau_x + -> -", None, False)
+    check("reattachment_found", "no sign change", "UMean_x - -> +", None, False)
 else:
-    # Regression check: baseline measured with OpenFOAM 6 on this mesh (9.0 H).
-    # +-0.5 H = about 7 cells at x ~ 9H, i.e. allows for different convergence history/compilers
-    # but not for a changed model, mesh or inlet condition. This is NOT experimental validation.
-    check("reattachment_regression", "%.2f" % xr, "9.0", "0.5", abs(xr - 9.0) <= 0.5)
-    # Plausibility: turbulent BFS experiments with expansion ratio 1.1-2 give Xr/H of about
-    # 6-8 (e.g. Driver & Seegmiller 6.26); RANS scatter of +-25% -> accept 5 .. 10.
-    # No experiment matches this exact geometry/Re, so only a sanity band is possible.
-    check("reattachment_plausible", "%.2f" % xr, "5 .. 10", None, 5.0 <= xr <= 10.0)
+    # Regression value of this 2D setup, NOT validation. The DNS of the same geometry
+    # gives 6.28 h: without a third dimension the shed vortices stay large and
+    # coherent and sweep the bubble out early, so a 2D run is expected to come out
+    # short (see the README). +-10 %: run-to-run scatter of a 0.32 s average.
+    check("reattachment_regression", "%.2f h" % xr, "%.2f h (DNS: %.2f h)" % (XR_REF, XR_DNS),
+          "10 %", abs(xr - XR_REF) <= 0.1 * XR_REF)
+    # A small counter-rotating corner eddy sits in the step corner: mean flow next to the
+    # floor runs forwards there, then backwards under the main bubble. The main bubble
+    # starts at the last + -> - crossing before Xr.
+    starts = [(x0 - u0 * (x1 - x0) / (u1 - u0)) / H
+              for (x0, u0), (x1, u1) in zip(ux, ux[1:]) if u0 > 0 >= u1 and x1 < xr * H]
+    xc = starts[-1] if starts else None
+    forward = xc is not None and max(u for x, u in ux if x < xc * H) > 0.01 * U0
+    check("corner_eddy", "%.2f h" % xc if xc is not None else "none",
+          "0.2 h .. Xr, forward flow before it", None, forward and 0.2 <= xc < xr)
 
-    # Independent cross-check: last sign change of Ux (reversed -> forward flow)
-    # along the line sampled in the first cell row (system/sampleDict, written by Allrun).
-    # Same physical event seen through a different field/discretisation; allowed difference
-    # 0.2 H = about 3 cells at x ~ 9H (face-centre vs cell-centre location, sampling spacing 0.03 H).
-    sample = os.path.join("postProcessing", "sampleDict", t, "nearWall_U.xy")
-    ux = []
-    for line in read(sample).splitlines():
-        p = line.split()
-        if len(p) >= 4:
-            ux.append((float(p[0]), float(p[1])))
-    cross = [(x0 - u0 * (x1 - x0) / (u1 - u0)) / H
-             for (x0, u0), (x1, u1) in zip(ux, ux[1:]) if u0 < 0 <= u1]
-    xu = cross[-1] if cross else None
-    check("reattachment_nearwall_Ux", "%.2f" % xu if xu is not None else "none",
-          "%.2f (from tau_x)" % xr, "0.2",
-          xu is not None and abs(xu - xr) <= 0.2)
-
+# ---------------------------------------------------------------- unsteadiness
+# 7. Vortex shedding: the vertical velocity at x = 4h on the step-lip line (probe 1)
+#    must oscillate with a clear dominant frequency. Discrete Fourier transform of the
+#    statistics window (t >= 0.08 s), resampled at 0.1 ms.
+rows = [r for r in series("postProcessing/probes/*/U") if r[0] >= T_AVG]
+if len(rows) < 100:
+    fail_missing("too few probe samples after t = %g s" % T_AVG)
+dt = 1e-4
+t_end = rows[-1][0]
+samples, i = [], 0
+t = T_AVG
+while t <= t_end:
+    while rows[i + 1][0] < t:
+        i += 1
+    (t0, *a), (t1, *b) = rows[i], rows[i + 1]
+    w = (t - t0) / (t1 - t0) if t1 > t0 else 0.0
+    samples.append(a[4] + w * (b[4] - a[4]))  # probe 1 = columns 3..5, Uy = index 4
+    t += dt
+mean = sum(samples) / len(samples)
+samples = [s - mean for s in samples]
+n = len(samples)
+spectrum = []
+for k in range(1, n // 2):
+    f = k / (n * dt)
+    if f > 500:
+        break
+    c = sum(s * cmath.exp(-2j * math.pi * k * j / n) for j, s in enumerate(samples[::1]))
+    spectrum.append((f, abs(c) ** 2))
+f_peak, p_peak = max(spectrum, key=lambda fp: fp[1])
+background = sorted(p for _, p in spectrum)[len(spectrum) // 2]
+st_h = f_peak * H / U0
+check("shedding_peak_clear", "peak/median = %.0f" % (p_peak / background), "> 20", None,
+      p_peak / background > 20)
+# Strouhal number based on the step height, f h / U0: regression value of this
+# setup (one vortex about every 23 ms).
+check("shedding_strouhal_h", "%.3f (f = %.1f Hz)" % (st_h, f_peak), "0.056", "0.01",
+      abs(st_h - 0.056) <= 0.01)
 # ---------------------------------------------------------------- summary
 npass = sum(results)
 print("-" * 60)
-print("%d of %d checks passed (latest time: %s)" % (npass, len(results), t))
+print("%d of %d checks passed" % (npass, len(results)))
 print("RESULT: %s" % ("PASS" if npass == len(results) else "FAIL"))
 sys.exit(0 if npass == len(results) else 1)

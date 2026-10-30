@@ -1,11 +1,107 @@
 {
-  "title": "Wind turbine rotor",
+  "name": "rotor_wake",
+  "title": "Vertical-axis wind turbine",
+  "field": "vorticity",
+  "range": [
+    -150,
+    150
+  ],
+  "bar_title": "Spin: blue clockwise, red anticlockwise (1/s)",
+  "skip_before": 1.25,
+  "solid": true,
+  "zoom": 1,
+  "duration": 44,
+  "cases": [
+    {
+      "path": ".",
+      "label": "Power coefficient",
+      "overlay": {
+        "file": "postProcessing/rotor/1.2*/forces.dat",
+        "column": [
+          12,
+          15
+        ],
+        "scale": 0.12755,
+        "format": "{:.2f}"
+      }
+    }
+  ],
+  "camera": [
+    {
+      "at": 0,
+      "zoom": 10,
+      "center": [
+        0.35,
+        0,
+        0.5
+      ]
+    },
+    {
+      "at": 14,
+      "zoom": 10,
+      "center": [
+        0.35,
+        0,
+        0.5
+      ]
+    },
+    {
+      "at": 30,
+      "zoom": 5.5,
+      "center": [
+        1.4,
+        0,
+        0.5
+      ]
+    },
+    {
+      "at": 42,
+      "zoom": 3.0,
+      "center": [
+        3.1,
+        0,
+        0.5
+      ]
+    }
+  ],
   "intro": {
     "seconds": 5,
-    "text": "Wind passes through a spinning rotor, modelled with a rotating reference frame (MRF).\n\nThe solver iterates towards a steady flow."
+    "text": "A vertical-axis wind turbine: three blades turning in the wind.\n\nHow do blades that only go round in circles pull energy out of the air?"
   },
+  "captions": [
+    {
+      "from": 1.2566,
+      "to": 1.3,
+      "text": "Wind blows left to right at 8 m/s. The three blades turn anticlockwise at 382 rpm, 2.5 times faster than the wind."
+    },
+    {
+      "from": 1.3,
+      "to": 1.345,
+      "text": "The faint dotted circle is the edge of the rotating part of the mesh. Each blade meets the air at an angle that swings by up to 24° every turn."
+    },
+    {
+      "from": 1.345,
+      "to": 1.395,
+      "text": "On the upwind side the angle grows too large: the blade stalls and sheds a strong vortex. This is dynamic stall."
+    },
+    {
+      "from": 1.395,
+      "to": 1.445,
+      "text": "Most of the power comes just before the stall. A stalled blade briefly brakes the rotor."
+    },
+    {
+      "from": 1.445,
+      "to": 1.5,
+      "text": "Downwind, the blades meet air already slowed by the rotor, and the wakes of the other blades."
+    },
+    {
+      "from": 1.5,
+      "to": 1.5708,
+      "text": "The number on top is the power coefficient: the share of the wind's energy the rotor takes. It pulses three times per turn and dips below zero at each stall."
+    }
+  ],
   "outro": {
-    "seconds": 5,
-    "text": "MRF adds the rotation to the equations instead of moving the mesh: fast, steady and approximate.\n\nOpenFOAM simpleFoam · MRF · k-ε"
+    "seconds": 6,
+    "text": "On average the rotor takes 13 % of the wind's energy (Cp = 0.13).\nAt this speed the blades stall on every turn; spinning faster would keep the angle smaller.\n\nOpenFOAM pimpleFoam · rotating mesh (AMI) · k-omega SST"
   }
 }

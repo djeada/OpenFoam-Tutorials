@@ -1,11 +1,55 @@
 {
   "title": "Backward-facing step",
+  "skip_after": 0.08,
+  "solid": true,
+  "zoom": 1,
+  "duration": 45,
+  "camera": [
+    {"at": 0, "zoom": 3.4, "center": [0.03, 0.03, 0]},
+    {"at": 12, "zoom": 3.4, "center": [0.03, 0.03, 0]},
+    {"at": 24, "zoom": 2.8, "center": [0.05, 0.03, 0]},
+    {"at": 35, "zoom": 2.8, "center": [0.05, 0.03, 0]},
+    {"at": 44, "zoom": 1.3, "center": [0.1, 0.03, 0]}
+  ],
   "intro": {
     "seconds": 5,
-    "text": "Air flows over a sudden step down in a channel.\n\nThe solver iterates towards a steady flow."
+    "text": "Air flows along a channel and over a sudden step down.\n\nWhat happens in the corner behind the step?"
   },
-  "outro": {
-    "seconds": 5,
-    "text": "The flow separates at the step edge and traps a recirculation bubble before it reattaches downstream.\n\nOpenFOAM simpleFoam · k-ω SST"
-  }
+  "reels": [
+    {
+      "name": "vortex_shedding",
+      "field": "vorticity",
+      "range": [-3000, 3000],
+      "bar_title": "Spin: blue clockwise, red anticlockwise (1/s)",
+      "captions": [
+        {"from": 0, "to": 0.007, "text": "The air is switched on at 7.65 m/s. The grey block is a 1 cm step; colours show where the air spins."},
+        {"from": 0.007, "to": 0.021, "text": "The flow cannot turn the sharp corner. It breaks away, and a starting vortex rolls up behind the step."},
+        {"from": 0.021, "to": 0.036, "text": "The vortex grows until it is swept downstream, and the next one starts at once."},
+        {"from": 0.036, "to": 0.052, "text": "From now on a new vortex leaves the step every 23 ms: 44 vortices per second."},
+        {"from": 0.052, "to": 0.067, "text": "Each vortex drags fluid with it. Next to the floor, under the vortices, the air flows backwards towards the step."},
+        {"from": 0.067, "to": 0.08, "text": "Averaged over time, this backflow forms a bubble 3.5 step heights long."}
+      ],
+      "outro": {
+        "seconds": 6,
+        "text": "One vortex every 23 ms, a backflow bubble 3.5 steps long.\nIn real 3D turbulence the vortices break up and the bubble is 6.3 steps long: 2D vortices stay too strong.\n\nOpenFOAM pimpleFoam · 2D LES, Re = 5100"
+      }
+    },
+    {
+      "name": "dye",
+      "field": "s",
+      "range": [0, 1],
+      "bar_title": "Dye released near the floor of the inlet",
+      "captions": [
+        {"from": 0, "to": 0.008, "text": "Dye marks the slow air near the floor of the inlet channel. The grey block is a 1 cm step."},
+        {"from": 0.008, "to": 0.022, "text": "At the corner the dye is lifted off the wall and wound into a spiral: the starting vortex."},
+        {"from": 0.022, "to": 0.04, "text": "The spiral is swept away, and the next vortex starts rolling up more dye."},
+        {"from": 0.04, "to": 0.06, "text": "Some dye is pulled backwards into the corner behind the step and stays there."},
+        {"from": 0.06, "to": 0.08, "text": "This stirring costs energy: it is why separated flow adds drag behind cars and losses in pipes and diffusers."}
+      ],
+      "outro": {
+        "seconds": 6,
+        "text": "The shear layer behind the step rolls up into a vortex every 23 ms and stirs the dye into the corner.\n\nOpenFOAM pimpleFoam · 2D LES, Re = 5100"
+      }
+    }
+  ]
 }

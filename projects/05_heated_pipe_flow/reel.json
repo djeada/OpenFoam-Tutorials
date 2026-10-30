@@ -1,11 +1,52 @@
 {
+  "name": "heating_channel",
   "title": "Heated channel flow",
   "intro": {
     "seconds": 5,
-    "text": "Air flows through a channel with heated walls.\n\nThe solver iterates towards a steady temperature field."
+    "text": "Cold air flows through a long, narrow channel with hot walls.\n\nHow quickly does the air warm up?"
   },
   "outro": {
-    "seconds": 5,
-    "text": "Heat diffuses from the hot walls into a thin thermal boundary layer that thickens downstream.\n\nOpenFOAM buoyantSimpleFoam · k-ε"
-  }
+    "seconds": 6,
+    "text": "Heat in = heat carried out: the 15 °C rise matches the energy balance to within 0.1 %.\n\nOpenFOAM buoyantSimpleFoam · 2D RANS"
+  },
+  "field": "T",
+  "offset": -273.15,
+  "range": [27, 77],
+  "bar_title": "Air temperature (°C)",
+  "colormap": [0, 0.12, 0.3, 0.78, 0.35, 0.47, 0.27, 0.68, 0.68, 0.92, 0.36, 0.26, 1, 1.0, 0.86, 0.45],
+  "final_only": true,
+  "duration": 40,
+  "camera": [
+    {"at": 0, "zoom": 3, "center": [0.13, 0.05, 0.005]},
+    {"at": 5, "zoom": 3, "center": [0.13, 0.05, 0.005]},
+    {"at": 31, "zoom": 3, "center": [1.87, 0.05, 0.005]},
+    {"at": 37, "zoom": 0.38, "center": [1.0, 0.05, 0.005]}
+  ],
+  "captions": [
+    {
+      "from": 0,
+      "to": 8,
+      "text": "Air at 27 °C flows in from the left. Both walls are held at 77 °C."
+    },
+    {
+      "from": 8,
+      "to": 17,
+      "text": "Heat soaks in from the walls, so a warm layer grows along each one."
+    },
+    {
+      "from": 17,
+      "to": 26,
+      "text": "The hot walls pass on most heat near the inlet, where the air touching them is still cold."
+    },
+    {
+      "from": 26,
+      "to": 33,
+      "text": "Further along, the warm layers thicken and the cold core in the middle shrinks."
+    },
+    {
+      "from": 33,
+      "to": 40,
+      "text": "The whole 2 m channel: by the outlet the air is about 15 °C warmer on average."
+    }
+  ]
 }

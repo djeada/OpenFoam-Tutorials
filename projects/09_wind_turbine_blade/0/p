@@ -14,7 +14,7 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-dimensions      [0 2 -2 0 0 0 0];
+dimensions      [0 2 -2 0 0 0 0];   // kinematic pressure p/rho
 
 internalField   uniform 0;
 
@@ -31,9 +31,26 @@ boundaryField
         value           uniform 0;
     }
 
-    topAndBottom
+    "blade.*"
     {
-        type            slip;
+        type            zeroGradient;
+    }
+
+    AMI_rotor
+    {
+        type            cyclicAMI;
+        value           $internalField;
+    }
+
+    AMI_stator
+    {
+        type            cyclicAMI;
+        value           $internalField;
+    }
+
+    sides
+    {
+        type            symmetry;
     }
 
     frontAndBack

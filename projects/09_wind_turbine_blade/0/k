@@ -14,30 +14,48 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// Turbulent kinetic energy
-// k = 1.5 * (U * TI)^2 = 1.5 * (10 * 0.05)^2 = 0.375
-// where TI = 5% turbulence intensity, U = 10 m/s
-
 dimensions      [0 2 -2 0 0 0 0];
 
-internalField   uniform 0.375;
+// Inlet turbulence intensity I = 1 %: k = 1.5 (I U)^2 = 1.5 (0.08)^2
+internalField   uniform 0.0096;
 
 boundaryField
 {
     inlet
     {
         type            fixedValue;
-        value           uniform 0.375;
+        value           $internalField;
     }
 
     outlet
     {
-        type            zeroGradient;
+        type            inletOutlet;
+        inletValue      $internalField;
+        value           $internalField;
     }
 
-    topAndBottom
+    // Zero gradient at the wall; k in the wall cell comes from its own equation.
+    "blade.*"
     {
-        type            slip;
+        type            kqRWallFunction;
+        value           $internalField;
+    }
+
+    AMI_rotor
+    {
+        type            cyclicAMI;
+        value           $internalField;
+    }
+
+    AMI_stator
+    {
+        type            cyclicAMI;
+        value           $internalField;
+    }
+
+    sides
+    {
+        type            symmetry;
     }
 
     frontAndBack

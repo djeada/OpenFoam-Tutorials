@@ -1,13 +1,71 @@
 {
+  "name": "car_wake",
   "title": "Ahmed body aerodynamics",
   "intro": {
     "seconds": 5,
     "text": "The Ahmed body is a simplified car shape used to study aerodynamic drag.\n\nThis is a slice through its centre plane."
   },
   "outro": {
-    "seconds": 5,
-    "text": "Most of the drag comes from the low-pressure wake behind the slanted rear.\n\nOpenFOAM simpleFoam · k-ω SST · snappyHexMesh"
+    "seconds": 6,
+    "text": "In wind tunnels the slope flow partly reattaches. Steady RANS models like this one often miss that.\n\nOpenFOAM simpleFoam · k-ω SST · snappyHexMesh"
   },
   "normal": "y",
-  "up": "z"
+  "up": "z",
+  "field": "U",
+  "range": [0, 50],
+  "final_only": true,
+  "duration": 42,
+  "streamlines": {
+    "lines": [
+      [[-0.5, 0, 0.02], [-0.5, 0, 1.3], 29],
+      [[1.12, 0, 0.07], [1.12, 0, 0.32], 5]
+    ],
+    "opacity": 0.55
+  },
+  "camera": [
+    {"at": 0, "zoom": 10, "center": [0.5, 0, 0.64]},
+    {"at": 6, "zoom": 10, "center": [0.5, 0, 0.64]},
+    {"at": 12, "zoom": 18, "center": [0.15, 0, 0.356]},
+    {"at": 17, "zoom": 18, "center": [0.15, 0, 0.356]},
+    {"at": 24, "zoom": 15, "center": [1.05, 0, 0.427]},
+    {"at": 31, "zoom": 15, "center": [1.05, 0, 0.427]},
+    {"at": 38, "zoom": 7, "center": [1.05, 0, 0.914]}
+  ],
+  "captions": [
+    {
+      "from": 0,
+      "to": 6,
+      "text": "A 1.04 m car-like body at 40 m/s (144 km/h), 5 cm above a moving road. White lines are streamlines."
+    },
+    {
+      "from": 6,
+      "to": 12,
+      "text": "At the rounded nose the air is brought to a stop. This stagnation point has the highest pressure."
+    },
+    {
+      "from": 12,
+      "to": 18,
+      "text": "Squeezed through the 5 cm gap underneath, the air speeds up to nearly 50 m/s."
+    },
+    {
+      "from": 18,
+      "to": 24,
+      "text": "Over the 25° rear slope the flow breaks away from the surface."
+    },
+    {
+      "from": 24,
+      "to": 31,
+      "text": "Close to the slope the air runs backwards, up the slope, at up to 15 m/s. Behind the flat back it swirls in a wake about 25 cm long."
+    },
+    {
+      "from": 31,
+      "to": 37,
+      "text": "Low pressure on the slope and the flat back pulls the body backwards. That is most of its drag."
+    },
+    {
+      "from": 37,
+      "to": 42,
+      "text": "Drag coefficient: 0.290 here, 0.285 measured in the wind tunnel (Ahmed, 1984)."
+    }
+  ]
 }

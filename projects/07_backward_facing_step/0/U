@@ -16,32 +16,64 @@ FoamFile
 
 dimensions      [0 1 -1 0 0 0 0];
 
-internalField   uniform (10 0 0);
+// Fluid at rest; the inflow is switched on at t = 0 (impulsive start).
+internalField   uniform (0 0 0);
 
 boundaryField
 {
+    // Turbulent boundary layer of thickness delta = 1.2h on the floor of the
+    // inlet channel: u = U0 (y'/delta)^(1/7) with U0 = 7.65 m/s, where y' is the
+    // height above the step top (y = h = 0.01 m), as in Le, Moin & Kim (1997).
+    // fixedProfile evaluates the table at (direction & face centre) - origin = y'.
     inlet
     {
-        type            fixedValue;
-        value           uniform (10 0 0);
+        type            fixedProfile;
+        profile         table
+        (
+            (0        (0.0000 0 0))
+            (2.4e-05  (3.1484 0 0))
+            (6e-05    (3.5887 0 0))
+            (0.00012  (3.9623 0 0))
+            (0.00024  (4.3747 0 0))
+            (0.00048  (4.8301 0 0))
+            (0.00084  (5.2321 0 0))
+            (0.0012   (5.5056 0 0))
+            (0.0018   (5.8339 0 0))
+            (0.0024   (6.0787 0 0))
+            (0.0036   (6.4412 0 0))
+            (0.0048   (6.7114 0 0))
+            (0.006    (6.9288 0 0))
+            (0.0072   (7.1116 0 0))
+            (0.0084   (7.2700 0 0))
+            (0.0096   (7.4100 0 0))
+            (0.0108   (7.5357 0 0))
+            (0.012    (7.6500 0 0))
+            (0.05     (7.6500 0 0))
+        );
+        direction       (0 1 0);
+        origin          0.01;
+        value           uniform (7.65 0 0);
     }
 
     outlet
     {
-        type            zeroGradient;
+        // Lets vortices leave; blocks backflow if one sits on the outlet.
+        type            inletOutlet;
+        inletValue      uniform (0 0 0);
+        value           uniform (0 0 0);
     }
 
-    topWall
+    top
     {
-        type            noSlip;
-    }
-
-    bottomWall
-    {
-        type            noSlip;
+        type            slip;           // free stream, no wall boundary layer
     }
 
     step
+    {
+        type            noSlip;
+    }
+
+    floor
     {
         type            noSlip;
     }

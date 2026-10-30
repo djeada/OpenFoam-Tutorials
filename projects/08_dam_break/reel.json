@@ -1,11 +1,32 @@
 {
+  "name": "dam_break",
   "title": "Dam break",
   "intro": {
     "seconds": 5,
-    "text": "A column of water is released and collapses under gravity.\n\nBlue is water, dark is air."
+    "text": "A column of water is held against the left wall of a tank. Then the dam is removed.\n\nBlue is water, dark is air."
   },
   "outro": {
-    "seconds": 5,
-    "text": "The free surface is captured with the Volume of Fluid method.\n\nOpenFOAM interFoam · 2D laminar"
-  }
+    "seconds": 6,
+    "text": "The free surface is tracked with the Volume of Fluid method: each cell stores how full of water it is.\n\nOpenFOAM interFoam · 2D laminar"
+  },
+  "duration": 40,
+  "captions": [
+    {
+      "from": 0,
+      "to": 0.12,
+      "text": "Gravity pulls the column down, and the water starts to spread across the floor."
+    },
+    {"from": 0.12, "to": 0.3, "text": "The front races along the bottom of the tank."},
+    {
+      "from": 0.3,
+      "to": 0.5,
+      "text": "At about 0.3 s it hits the right wall and shoots up it as a thin jet."
+    },
+    {
+      "from": 0.5,
+      "to": 0.75,
+      "text": "The jet almost reaches the top of the tank, then falls back and folds over, trapping air."
+    },
+    {"from": 0.75, "to": 1.0, "text": "The water keeps sloshing back and forth as it settles."}
+  ]
 }
