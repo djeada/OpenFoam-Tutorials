@@ -11,32 +11,8 @@
   },
   "streamlines": {
     "lines": [
-      [
-        [
-          0.4,
-          0.8,
-          0
-        ],
-        [
-          0.4,
-          15.2,
-          0
-        ],
-        10
-      ],
-      [
-        [
-          53.0,
-          -4.2,
-          0
-        ],
-        [
-          56.1,
-          -4.2,
-          0
-        ],
-        4
-      ]
+      [[0.4, 0.8, 0], [0.4, 15.2, 0], 10],
+      [[53.0, -4.2, 0], [56.1, -4.2, 0], 4]
     ],
     "direction": "FORWARD",
     "opacity": 0.6
@@ -53,11 +29,7 @@
       "to": 25,
       "text": "White lines are streamlines. The fast jet hugs the outer wall of the bend."
     },
-    {
-      "from": 25,
-      "to": 40,
-      "text": "Where the two streams meet, the jet wobbles back and forth."
-    },
+    {"from": 25, "to": 40, "text": "Where the two streams meet, the jet wobbles back and forth."},
     {
       "from": 40,
       "to": 57,

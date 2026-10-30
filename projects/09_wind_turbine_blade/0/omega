@@ -10,36 +10,53 @@ FoamFile
     version     2.0;
     format      ascii;
     class       volScalarField;
-    object      epsilon;
+    object      omega;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// Turbulent dissipation rate
-// epsilon = Cmu^0.75 * k^1.5 / L
-// Cmu = 0.09, k = 0.375 m^2/s^2
-// L = 0.07 * D = 0.07 * 0.6 m = 0.042 m (D = MRF zone diameter)
-// epsilon = 0.09^0.75 * 0.375^1.5 / 0.042 = 0.898 m^2/s^3
+dimensions      [0 0 -1 0 0 0 0];
 
-dimensions      [0 2 -3 0 0 0 0];
-
-internalField   uniform 0.898;
+// Eddy viscosity 10 times the molecular viscosity: omega = k / (10 nu)
+internalField   uniform 64;
 
 boundaryField
 {
     inlet
     {
         type            fixedValue;
-        value           uniform 0.898;
+        value           $internalField;
     }
 
     outlet
     {
-        type            zeroGradient;
+        type            inletOutlet;
+        inletValue      $internalField;
+        value           $internalField;
     }
 
-    topAndBottom
+    // Sets omega in the wall cell, blending the viscous-sublayer value
+    // 6 nu / (beta1 y^2) and the log-layer value, so it works at any y+.
+    "blade.*"
     {
-        type            slip;
+        type            omegaWallFunction;
+        value           $internalField;
+    }
+
+    AMI_rotor
+    {
+        type            cyclicAMI;
+        value           $internalField;
+    }
+
+    AMI_stator
+    {
+        type            cyclicAMI;
+        value           $internalField;
+    }
+
+    sides
+    {
+        type            symmetry;
     }
 
     frontAndBack

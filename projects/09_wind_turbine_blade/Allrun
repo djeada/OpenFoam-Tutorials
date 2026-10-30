@@ -1,19 +1,74 @@
 #!/bin/bash
 #------------------------------------------------------------------------------
-# Run the wind turbine MRF case (quasi-2D rotating zone in uniform flow).
+# Allrun - 2D vertical-axis wind turbine on a rotating mesh (pimpleFoam + AMI)
 #
-#   1. blockMesh  - rectangular background mesh
-#   2. topoSet    - cylindrical cellZone "rotatingZone" for the MRF region
-#   3. checkMesh  - mesh quality check
-#   4. simpleFoam - steady-state SIMPLE solver with MRF
+#   Gmsh mesh (on the host) -> gmshToFoam -> changeDictionary -> checkMesh
+#   -> decomposePar
+#   -> pimpleFoam stage 1: revolutions 0-8, written once per revolution
+#   -> pimpleFoam stage 2: revolutions 8-10, written every 4 degrees
+#   -> reconstructPar
+#
+# Each step writes log.<application>; the script stops at the first failure.
+# Set NPROCS to choose the number of cores (default: all, at most 8).
 #------------------------------------------------------------------------------
 cd "${0%/*}" || exit 1
-. "${WM_PROJECT_DIR:?}/bin/tools/RunFunctions"
 
-runApplication blockMesh
-runApplication topoSet
-runApplication checkMesh
-runApplication simpleFoam
+# Source OpenFOAM run functions
+. "${WM_PROJECT_DIR:?OpenFOAM environment not sourced}/bin/tools/RunFunctions"
 
-echo "Done. Logs: log.blockMesh, log.topoSet, log.checkMesh, log.simpleFoam"
-echo "View results with ./open_paraview.sh (or paraFoam inside an OpenFOAM shell)."
+run() {
+    runApplication "$@" || { echo "ERROR: $1 failed, see log.$1" >&2; exit 1; }
+}
+solve() {  # solve <log suffix>
+    if [ "$NPROCS" -gt 1 ]; then
+        runParallel -s "$1" pimpleFoam
+    else
+        runApplication -s "$1" pimpleFoam
+    fi || { echo "ERROR: pimpleFoam failed, see log.pimpleFoam.$1" >&2; exit 1; }
+}
+
+# Stage settings are edited in system/controlDict with sed (foamDictionary would
+# drop the comments) and put back to the stage-1 values when the script exits.
+stage() {  # stage <endTime> <writeInterval in time steps>
+    sed -i -e "s/^endTime .*/endTime         $1;/" \
+           -e "s/^writeInterval .*/writeInterval   $2;/" system/controlDict
+}
+trap 'stage 1.2566371 1800' EXIT
+
+NPROCS=${NPROCS:-$(nproc)}
+[ "$NPROCS" -gt 8 ] && NPROCS=8
+sed -i "s/^numberOfSubdomains .*/numberOfSubdomains $NPROCS;/" system/decomposeParDict
+
+# Mesh: the OpenFOAM Docker image has no Gmsh, so ./run_docker.sh meshes on the
+# host first and this script reuses constant/vawt.msh.
+if command -v gmsh >/dev/null 2>&1; then
+    python3 generate_vawt_geo.py --output constant/vawt.geo
+    gmsh -3 -format msh2 constant/vawt.geo -o constant/vawt.msh > log.gmsh 2>&1 \
+        || { echo "ERROR: gmsh failed, see log.gmsh" >&2; exit 1; }
+elif [ ! -f constant/vawt.msh ]; then
+    echo "ERROR: constant/vawt.msh is missing and gmsh is not installed." >&2
+    echo "Run ./run_docker.sh, or install gmsh and rerun." >&2
+    exit 1
+fi
+
+run gmshToFoam constant/vawt.msh
+run changeDictionary
+run checkMesh
+rm -f 0/cellToRegion     # written by checkMesh because rotor and stator are 2 regions
+
+[ "$NPROCS" -gt 1 ] && run decomposePar
+
+stage 1.2566371 1800     # 8 revolutions, written once per revolution
+solve spinup
+stage 1.5707963 20       # revolutions 8-10, written every 4 degrees
+solve record
+
+if [ "$NPROCS" -gt 1 ]; then
+    run reconstructPar
+    rm -rf processor*
+fi
+
+echo "Case complete. Check results with: python3 verify.py"
+echo "View results with: ./open_paraview.sh"
+
+#------------------------------------------------------------------------------

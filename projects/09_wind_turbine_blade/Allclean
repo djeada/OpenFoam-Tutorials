@@ -1,9 +1,11 @@
 #!/bin/bash
 #------------------------------------------------------------------------------
 # Remove generated files (mesh, time directories, logs, ParaView stub).
+# Keeps 0/, constant/*Properties, constant/dynamicMeshDict, system/ and images/.
 #------------------------------------------------------------------------------
 cd "${0%/*}" || exit 1
 . "${WM_PROJECT_DIR:?}/bin/tools/CleanFunctions"
 
 cleanCase
-rm -f wind_turbine.foam
+rm -rf processor*
+rm -f log.* 0/cellToRegion constant/vawt.geo constant/vawt.msh wind_turbine.foam 09_wind_turbine_blade.foam

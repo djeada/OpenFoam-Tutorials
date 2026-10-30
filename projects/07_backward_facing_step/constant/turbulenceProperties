@@ -14,15 +14,27 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-simulationType  RAS;
+// Large-eddy simulation: the large vortices are computed, only the effect of
+// eddies smaller than the cells is modelled (WALE subgrid-scale model).
+// The mesh is 2D, so this resolves 2D vortex dynamics only; see the README.
+simulationType  LES;
 
-RAS
+LES
 {
-    RASModel        kOmegaSST;
+    LESModel        WALE;
 
     turbulence      on;
 
     printCoeffs     on;
+
+    // Filter width: cube root of the cell volume. On a 2D mesh OpenFOAM uses
+    // the square root of the cell area instead (cubeRootVolDelta.C).
+    delta           cubeRootVol;
+
+    cubeRootVolCoeffs
+    {
+        deltaCoeff      1;
+    }
 }
 
 // ************************************************************************* //

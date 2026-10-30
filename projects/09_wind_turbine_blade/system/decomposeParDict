@@ -10,31 +10,14 @@ FoamFile
     version     2.0;
     format      ascii;
     class       dictionary;
-    object      MRFProperties;
+    object      decomposeParDict;
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-// Multiple Reference Frame (MRF) zone
-//
-// Adds Coriolis and centrifugal source terms to the momentum equation
-// inside the cellZone. The mesh does not move (steady-state approximation).
-//
-// omega = 100 RPM = 100 * 2*pi/60 = 10.472 rad/s
-// Axis (0 0 1): normal to the x-y plane of the quasi-2D domain
+// Allrun replaces numberOfSubdomains with the number of available cores
+// (at most 8).
+numberOfSubdomains 8;
 
-MRF1
-{
-    cellZone        rotatingZone;
-
-    active          yes;
-
-    // Walls inside the zone that stay stationary; none in this case.
-    nonRotatingPatches ();
-
-    origin          (1.0 0.5 0);    // same centre as the topoSetDict cylinder
-    axis            (0 0 1);
-
-    omega           10.472;         // rad/s (100 RPM)
-}
+method          scotch;
 
 // ************************************************************************* //

@@ -10,18 +10,11 @@
     "text": "A new vortex leaves every 2.5 s, alternating sides (Strouhal number 0.20, as in published results).\n\nOpenFOAM pimpleFoam · 2D laminar, Re = 200"
   },
   "field": "vorticity",
-  "range": [
-    -2,
-    2
-  ],
+  "range": [-2, 2],
   "bar_title": "Spin: blue clockwise, red anticlockwise",
   "skip_after": 120,
   "zoom": 2.2,
-  "center": [
-    6,
-    0,
-    0.05
-  ],
+  "center": [6, 0, 0.05],
   "duration": 42,
   "captions": [
     {

@@ -4,13 +4,9 @@
 # Keeps 0/, constant/*Properties, system/, images/ and verify.py.
 #------------------------------------------------------------------------------
 cd "${0%/*}" || exit 1
-
 . "${WM_PROJECT_DIR:?OpenFOAM environment not sourced}/bin/tools/CleanFunctions"
-
 cleanCase
 rm -rf processor* logs
-rm -f log.* backward_step.foam
-
+rm -f log.* backward_step.foam 07_backward_facing_step.foam
 echo "Case cleaned."
-
 #------------------------------------------------------------------------------

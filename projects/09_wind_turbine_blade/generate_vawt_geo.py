@@ -1,0 +1,243 @@
+#!/usr/bin/env python3
+"""Write the Gmsh geometry of a 2D three-blade vertical-axis wind turbine (VAWT).
+
+Usage:  python3 generate_vawt_geo.py [--output constant/vawt.geo]
+        gmsh -3 -format msh2 constant/vawt.geo -o constant/vawt.msh
+
+The mesh has two separate parts that touch at a circle of radius R_AMI:
+
+* rotor  - a disc around the three NACA 0018 blades; it rotates with them
+           (constant/dynamicMeshDict) and slides along the circle;
+* stator - the rest of the wind tunnel, which stays fixed.
+
+Both parts mesh the circle with their own nodes, so gmshToFoam creates two
+patches on it, AMI_rotor and AMI_stator, which OpenFOAM couples as a
+cyclicAMI pair. The stator's copy of the circle is 10 micrometres larger:
+Gmsh merges points that coincide, and the gap is far below anything AMI
+or the flow can notice.
+
+The 2D mesh is extruded one cell in z. Around each blade there is a layer of
+thin quadrilaterals (first cell 80 micrometres, y+ of a few units); Spalding's
+wall function, valid at any y+, bridges the first cell.
+"""
+import argparse
+import math
+from pathlib import Path
+
+# Rotor (all lengths in metres)
+N_BLADES = 3
+R = 0.5            # rotor radius: blade quarter-chord points lie on this circle
+CHORD = 0.1        # blade chord, solidity N c / (2 R) = 0.3
+THICKNESS = 0.18   # NACA 0018
+R_AMI = 0.75       # sliding interface radius
+AMI_GAP = 1e-5     # stator circle radius minus rotor circle radius
+SPAN = 1.0         # extrusion depth; forces in postProcessing are per metre of blade
+
+# Wind tunnel: 6 D upstream, 16 D downstream, 15 D wide (blockage 1/15)
+X_MIN, X_MAX, Y_HALF = -6.0, 16.0, 7.5
+
+# Mesh
+BLADE_NODES = 121          # nodes on each side of a blade (clustered at LE and TE)
+AMI_NODES = 400            # nodes on the interface circle (1.2 cm apart)
+FIRST_LAYER = 8e-5         # first cell height on the blades
+BL_RATIO = 1.2
+BL_THICKNESS = 0.004       # quad layer thickness (about 14 cells)
+SIZE_NEAR_BLADE = 0.0015   # triangles just outside the quad layer
+SIZE_ROTOR = 0.012         # rest of the rotor disc
+SIZE_NEAR_WAKE = 0.02      # x < 2.5 m, |y| < 0.9 m
+SIZE_FAR_WAKE = 0.045      # x < 8 m, |y| < 1.5 m
+SIZE_FAR = 0.35            # far field
+
+
+def naca_half(points):
+    """Upper surface (x, y) of a closed-trailing-edge NACA 00xx, LE to TE, cosine spaced."""
+    out = []
+    for i in range(points):
+        x = 0.5 * (1 - math.cos(math.pi * i / (points - 1)))
+        y = 5 * THICKNESS * (0.2969 * math.sqrt(x) - 0.1260 * x - 0.3516 * x ** 2
+                             + 0.2843 * x ** 3 - 0.1036 * x ** 4)
+        out.append((x * CHORD, y * CHORD))
+    out[-1] = (CHORD, 0.0)
+    return out
+
+
+class Geo:
+    def __init__(self):
+        self.lines, self.n = [], 0
+
+    def new(self):
+        self.n += 1
+        return self.n
+
+    def add(self, text):
+        self.lines.append(text)
+
+    def point(self, x, y, size=0.1):
+        tag = self.new()
+        self.add(f"Point({tag}) = {{{x:.10g}, {y:.10g}, 0, {size:.6g}}};")
+        return tag
+
+    def entity(self, kind, args):
+        tag = self.new()
+        self.add(f"{kind}({tag}) = {{{', '.join(map(str, args))}}};")
+        return tag
+
+
+def blade(geo, azimuth):
+    """Blade with its quarter chord on the rotor circle at `azimuth` (rad), chord
+    tangent to the circle and leading edge pointing in the (anticlockwise)
+    direction of rotation. Returns (curves, trailing-edge point)."""
+    cx, cy = R * math.cos(azimuth), R * math.sin(azimuth)
+    tx, ty = -math.sin(azimuth), math.cos(azimuth)   # direction of motion
+    nx, ny = math.cos(azimuth), math.sin(azimuth)    # outward normal
+
+    def place(x, y):  # chord coordinate x (from LE), thickness y (outward +)
+        s = 0.25 * CHORD - x                          # LE is a quarter chord ahead
+        return cx + s * tx + y * nx, cy + s * ty + y * ny
+
+    half = naca_half(80)
+    le = geo.point(*place(0.0, 0.0))
+    te = geo.point(*place(CHORD, 0.0))
+    outer = [geo.point(*place(x, y)) for x, y in half[1:-1]]
+    inner = [geo.point(*place(x, -y)) for x, y in half[1:-1]]
+    c1 = geo.entity("Spline", [le] + outer + [te])
+    c2 = geo.entity("Spline", [te] + inner[::-1] + [le])
+    for c in (c1, c2):
+        geo.add(f"Transfinite Curve {{{c}}} = {BLADE_NODES} Using Bump 0.2;")
+    return [c1, c2], te
+
+
+def circle(geo, radius, nodes):
+    centre = geo.point(0, 0)  # merged with the other circle's centre: harmless
+    pts = [geo.point(radius * math.cos(a), radius * math.sin(a))
+           for a in (0, math.pi / 2, math.pi, 3 * math.pi / 2)]
+    arcs = [geo.entity("Circle", [pts[i], centre, pts[(i + 1) % 4]]) for i in range(4)]
+    geo.add(f"Transfinite Curve {{{', '.join(map(str, arcs))}}} = {nodes // 4 + 1};")
+    return arcs
+
+
+def extrude(geo, surface):
+    tag = geo.new()
+    name = f"ex{tag}"
+    geo.add(f"{name}[] = Extrude {{0, 0, {SPAN}}} {{ Surface{{{surface}}}; Layers{{1}}; Recombine; }};")
+    return name
+
+
+def build():
+    geo = Geo()
+    geo.add("// Generated by generate_vawt_geo.py - edit the script, not this file.")
+    geo.add("Mesh.MeshSizeFromPoints = 0;")
+    geo.add("Mesh.MeshSizeExtendFromBoundary = 0;")
+    geo.add("Mesh.Algorithm = 6;          // Frontal-Delaunay triangles")
+
+    # Rotor: interface circle with three blade holes. Blade 1 starts at the top
+    # of the rotor (moving straight into the wind), blades 2 and 3 follow.
+    blade_curves, trailing_edges = [], []
+    for k in range(N_BLADES):
+        curves, te = blade(geo, math.pi / 2 + 2 * math.pi * k / N_BLADES)
+        blade_curves.append(curves)
+        trailing_edges.append(te)
+    rotor_arcs = circle(geo, R_AMI, AMI_NODES)
+    loops = [geo.entity("Curve Loop", rotor_arcs)]
+    loops += [geo.entity("Curve Loop", c) for c in blade_curves]
+    rotor = geo.entity("Plane Surface", loops)
+
+    # Stator: rectangle with a hole, its own copy of the interface circle.
+    corners = [geo.point(X_MIN, -Y_HALF), geo.point(X_MAX, -Y_HALF),
+               geo.point(X_MAX, Y_HALF), geo.point(X_MIN, Y_HALF)]
+    bottom, outlet, top, inlet = [geo.entity("Line", [corners[i], corners[(i + 1) % 4]])
+                                  for i in range(4)]
+    stator_arcs = circle(geo, R_AMI + AMI_GAP, AMI_NODES)
+    stator = geo.entity("Plane Surface", [geo.entity("Curve Loop", [bottom, outlet, top, inlet]),
+                                          geo.entity("Curve Loop", stator_arcs)])
+
+    all_blades = [c for pair in blade_curves for c in pair]
+    lst = lambda items: ", ".join(map(str, items))
+    geo.add(f"""
+// Quadrilateral layers on the blades (fans at the sharp trailing edges)
+Field[1] = BoundaryLayer;
+Field[1].CurvesList = {{{lst(all_blades)}}};
+Field[1].Size = {FIRST_LAYER};
+Field[1].Ratio = {BL_RATIO};
+Field[1].Thickness = {BL_THICKNESS};
+Field[1].Quads = 1;
+Field[1].FanPointsList = {{{lst(trailing_edges)}}};
+BoundaryLayer Field = 1;
+
+// Small triangles around the blades, only within 12 cm of them
+Field[2] = Distance;
+Field[2].CurvesList = {{{lst(all_blades)}}};
+Field[2].Sampling = 400;
+Field[3] = Threshold;
+Field[3].InField = 2;
+Field[3].SizeMin = {SIZE_NEAR_BLADE};
+Field[3].SizeMax = {SIZE_ROTOR};
+Field[3].DistMin = {BL_THICKNESS};
+Field[3].DistMax = 0.12;
+Field[3].StopAtDistMax = 1;
+
+// The rotor disc, where blade wakes cross the centre
+Field[4] = Ball;
+Field[4].Radius = {R_AMI + 0.02};
+Field[4].VIn = {SIZE_ROTOR};
+Field[4].VOut = 1e3;
+
+// Near and far wake
+Field[5] = Box;
+Field[5].XMin = 0.0; Field[5].XMax = 2.5;
+Field[5].YMin = -0.9; Field[5].YMax = 0.9;
+Field[5].VIn = {SIZE_NEAR_WAKE}; Field[5].VOut = 1e3;
+Field[5].Thickness = 0.5;
+Field[6] = Box;
+Field[6].XMin = 0.0; Field[6].XMax = 8.0;
+Field[6].YMin = -1.5; Field[6].YMax = 1.5;
+Field[6].VIn = {SIZE_FAR_WAKE}; Field[6].VOut = 1e3;
+Field[6].Thickness = 1.5;
+
+// Everywhere else: grow from 2 cm at the interface to {SIZE_FAR} m
+Field[7] = Distance;
+Field[7].CurvesList = {{{lst(stator_arcs)}}};
+Field[8] = Threshold;
+Field[8].InField = 7;
+Field[8].SizeMin = 0.02;
+Field[8].SizeMax = {SIZE_FAR};
+Field[8].DistMin = 0.0;
+Field[8].DistMax = 4.0;
+
+Field[9] = Min;
+Field[9].FieldsList = {{3, 4, 5, 6, 8}};
+Background Field = 9;
+""")
+    rotor_ex = extrude(geo, rotor)
+    stator_ex = extrude(geo, stator)
+    # Extrude returns: [0] top surface, [1] volume, [2..] side surfaces in the
+    # order of the surface's boundary curves.
+    n_ami = len(rotor_arcs)
+    ami_rotor = [f"{rotor_ex}[{2 + i}]" for i in range(n_ami)]
+    blades = [[f"{rotor_ex}[{2 + n_ami + 2 * k + j}]" for j in range(2)] for k in range(N_BLADES)]
+    ami_stator = [f"{stator_ex}[{6 + i}]" for i in range(n_ami)]
+    geo.add(f'Physical Surface("inlet") = {{{stator_ex}[5]}};')
+    geo.add(f'Physical Surface("outlet") = {{{stator_ex}[3]}};')
+    geo.add(f'Physical Surface("sides") = {{{stator_ex}[2], {stator_ex}[4]}};')
+    geo.add(f'Physical Surface("AMI_rotor") = {{{lst(ami_rotor)}}};')
+    geo.add(f'Physical Surface("AMI_stator") = {{{lst(ami_stator)}}};')
+    for k, pair in enumerate(blades, 1):
+        geo.add(f'Physical Surface("blade{k}") = {{{lst(pair)}}};')
+    geo.add(f'Physical Surface("frontAndBack") = {{{rotor}, {stator}, '
+            f'{rotor_ex}[0], {stator_ex}[0]}};')
+    geo.add(f'Physical Volume("rotor") = {{{rotor_ex}[1]}};')
+    geo.add(f'Physical Volume("stator") = {{{stator_ex}[1]}};')
+    return "\n".join(geo.lines) + "\n"
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
+    parser.add_argument("--output", default="constant/vawt.geo", type=Path)
+    args = parser.parse_args()
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(build())
+    print(f"wrote {args.output}")
+
+
+if __name__ == "__main__":
+    main()

@@ -1,1325 +1,511 @@
-# Tutorial 09: Wind Turbine Blade Simulation with MRF
+# Tutorial 09: Vertical-Axis Wind Turbine on a Rotating Mesh
 
 **Difficulty:** ★★★★☆ Advanced
-**Solver:** `simpleFoam` (steady-state, incompressible, turbulent with MRF)
-**Turbulence Model:** k-epsilon (RAS)
-**Approach:** Multiple Reference Frame (Frozen Rotor)
-**Tested with:** OpenFOAM 6 (`cfdengine/openfoam` Docker image)
-**Run time:** about 6 s on a workstation (124 iterations, 15,000 cells)
+**Solver:** `pimpleFoam` with a dynamic mesh (transient, incompressible)
+**Turbulence model:** k-ω SST (unsteady RANS)
+**Rotation:** solid-body rotation of a mesh zone, sliding interface (`cyclicAMI`)
+**Tested with:** OpenFOAM 6 (`cfdengine/openfoam` Docker image), Gmsh 4.12.1
+**Run time:** about 70 minutes on 8 cores (10 revolutions, 18,000 time steps)
+
+![Vorticity around the turning rotor](images/vorticity.png)
 
 ---
 
 ## Goal
 
-Learn how a rotating region is set up and solved with the **Multiple Reference Frame
-(MRF)** technique in OpenFOAM, using the smallest possible case:
+Simulate a real rotor: a three-blade **vertical-axis wind turbine** (an H-type
+Darrieus rotor) turning in the wind, with the blades and their wakes resolved in
+time. You will learn to:
 
-- how a `cellZone` is created with `topoSet` and referenced from `constant/MRFProperties`;
-- how `omega`, `origin` and `axis` define the rotation, and how RPM relates to rad/s
-  and to the tip-speed ratio;
-- what MRF does to a steady `simpleFoam` solution (extra Coriolis and centrifugal
-  terms inside the zone, no mesh motion);
-- how to check a run with logs, `checkMesh` and a script (`verify.py`).
-
-The case is a **teaching case, not a turbine model**. The rotating zone is an empty
-disc: it contains **no blade geometry and no wall**, so no torque or power is produced
-and nothing is extracted from the wind. A real rotor case needs a 3D mesh with the
-blade surface inside the zone (see [Section 5](#5-mesh-generation--blockmesh)).
+- script a 2D rotor mesh in **Gmsh**: three NACA 0018 blades with boundary-layer
+  cells, inside a disc that will rotate, inside a fixed wind tunnel;
+- turn the disc with `dynamicMeshDict` (`solidBody` motion, `rotatingMotion`) and
+  couple it to the fixed mesh with a **sliding interface** (`cyclicAMI`);
+- set boundary conditions on moving walls (`movingWallVelocity`) and use wall
+  functions that work at any y+;
+- measure the **torque of each blade** with the `forces` function object and turn it
+  into a **power coefficient** `Cp`;
+- decide when a rotor simulation has settled (and why it never repeats exactly), and
+  read the torque curve of one blade over a revolution (upwind and downwind halves,
+  dynamic stall);
+- know why the steady **MRF** shortcut (the previous version of this project) cannot
+  give any of this.
 
 ## Target
 
-What a correct run must produce (measured with OpenFOAM 6; no literature or
-experimental reference exists for this simplified case, so the targets are
-self-consistency checks plus the values of one reference run):
+| Quantity                  | Target |
+|---------------------------|--------|
+| Mesh                      | about 110,000 cells, `checkMesh`: `Mesh OK`, rotor and stator are 2 separate regions |
+| Sliding interface         | AMI weights sum to 1 within 1e-3 on both sides, every time step |
+| Run                       | both stages reach their end time (8 and 10 revolutions) |
+| Power                     | `0 < Cp <` Betz limit 16/27 = 0.593; reference run: **Cp = 0.131** (mean of revolutions 7-10) |
+| Settled state             | mean `Cp` of revolutions 9-10 within 10 % of revolutions 7-8 |
+| Physics                   | torque pulses 3× per revolution; the three blades share the work equally (within 15 % over 4 revolutions); most of it is done in the upwind half |
 
-| Quantity                          | Target                                              |
-|-----------------------------------|-----------------------------------------------------|
-| Mesh                              | 15,000 hex cells, `checkMesh` reports `Mesh OK`     |
-| MRF zone                          | `rotatingZone` with 716 cells (analytic pi r^2/dx^2 = 707, within 5 %) |
-| Convergence                       | `SIMPLE solution converged` before `endTime` 1000 (measured: 124 iterations), initial residuals < 1e-4 |
-| Mass balance                      | inlet flux = -U H depth = -2.0 m^3/s, outlet flux balances to 0.5 % |
-| Velocity range                    | min 7.9 m/s, max 11.8 m/s (+-10 %)                  |
-| Kinematic pressure range          | -26.6 to +28.6 m^2/s^2 (+-15 %)                     |
-| Rotation-induced asymmetry        | mean p over the upper half of the zone is lower than over the lower half (sign opposite to `omega`); measured difference -14.4 m^2/s^2 |
-| Torque / power                    | none: no blades or walls in the zone                |
+There is no experiment for exactly this rotor in 2D, so the targets are physical
+limits and self-consistency checks plus the value of the reference run.
+[Section 11](#how-good-is-the-number) discusses how far the number can be trusted.
 
 ## Verification method
 
-After `./run_docker.sh` (which runs `verify.py` as its last step), or after `./Allrun`
-in a local OpenFOAM shell:
-
 ```bash
-python3 verify.py            # reads logs and fields only, needs no OpenFOAM
-echo $?                      # 0 = all checks passed, 1 = a check failed, 2 = results missing
+./run_docker.sh          # mesh on the host, run in Docker, then verify.py
+python3 verify.py        # or: re-check an existing run
 ```
 
-`verify.py` prints one line per check (`PASS|FAIL name measured=... expected=... +- tol`)
-and exits non-zero on any failure. Checks and the values measured in the reference run:
+`verify.py` reads only logs and `postProcessing/` (standard-library Python, no
+OpenFOAM needed) and prints one `PASS`/`FAIL` line per check; the exit code is 0 only
+if all checks pass. Measured values are from the reference run (8 cores, about 70 minutes):
 
-| Check | What it proves | Expected | Tolerance | Measured |
-|-------|----------------|----------|-----------|----------|
-| no FATAL ERROR in logs | all four steps ran | none | exact | none |
-| mesh cell count | blockMesh matches `blockMeshDict` (150 x 100 x 1) | 15000 | 0 | 15000 |
-| checkMesh `Mesh OK` | mesh quality is acceptable | `Mesh OK` | exact | `Mesh OK` |
-| number of cell zones | the zone exists exactly once | 1 | 0 | 1 |
-| cells in `rotatingZone` | `topoSet` selected a disc of radius 0.3 m | 706.9 (pi r^2 / dx dy) | 5 % | 716 |
-| `cellZones` file vs log | zone stored in the mesh equals the topoSet result | 716 | 0 | 716 |
-| MRF zone created | solver found zone `MRF1` | `MRF1` | exact | `MRF1` |
-| omega vs README RPM | `omega` = RPM x 2 pi / 60 | 10.472 rad/s | 1e-3 | 10.472 |
-| omega vs README value | README and dictionary agree | 10.472 rad/s | 1e-3 | 10.472 |
-| tip-speed ratio vs README | omega R / U = 0.31 as stated here | 0.31 | 0.005 | 0.3142 |
-| MRF origin vs topoSet axis | rotation centre = zone centre | 0 m offset | 1e-9 | 0 |
-| SIMPLE converged | steady solution reached | < endTime (1000) | n/a | 124 |
-| final initial residuals | below `residualControl` (1e-4) | < 1e-4 | n/a | 9.6e-5 (p, the largest) |
-| latest time dir | the written time equals the converged iteration | 124 | 0 | 124 |
-| minimum / maximum `|U|` | flow stays near 10 m/s with a local speed-up/slow-down | 7.93 / 11.80 m/s | 10 % | 7.93 / 11.80 |
-| minimum / maximum `p` | size of the rotation-induced pressure field | -26.6 / +28.6 m^2/s^2 | 15 % | -26.6 / +28.6 |
-| inlet flux | `phi` on the inlet = -U H depth | -2.0 m^3/s | 1e-6 | -2.0 |
-| outlet + inlet flux | mass is conserved | 0 | 0.5 % of inlet | -2e-6 |
-| zone p asymmetry sign | rotation produces a lateral pressure difference with the expected sign | upper - lower has the sign opposite to `omega` | n/a | -14.4 |
-| zone p asymmetry magnitude | difference is of the order of the Coriolis scale 2 omega U D = 126 m^2/s^2 | 6.3 to 126 m^2/s^2 | 0.05x to 1x scale | 14.4 |
-
-Notes on the tolerances:
-
-- Velocity and pressure bands are the value of **one** reference run plus an allowance
-  (10 % and 15 %) for other OpenFOAM versions and linear-solver details. They are not
-  derived from measured run-to-run scatter, which was not measured.
-- The 5 % zone-size band allows for the discretisation of the circle on the 0.02 m grid.
-- The asymmetry magnitude is an order-of-magnitude check against the Coriolis scale, not
-  an accuracy claim.
-- Torque and power cannot be verified: the zone has no blades or walls.
-
-Manual checks (not scripted):
-
-1. **Zero rotation.** Set `omega 0;` in `constant/MRFProperties` and re-run
-   `simpleFoam`. Measured (800 iterations): `|U|` = 10.0 m/s everywhere, `|p|` < 3e-13,
-   `|Uy|` < 5e-15. The case then has a uniform solution. (The solver does not print
-   `converged` for this run because the normalised residual of `Ux` does not fall for
-   a uniform field; it simply keeps iterating to `endTime`.)
-2. **Reversed rotation.** Set `omega -10.472;`. Measured: pressure maximum moves to the
-   upper side (+20.7 m^2/s^2 at x = 0.91, y = 0.79) and the minimum to the lower side
-   (-36.4 m^2/s^2 at x = 0.91, y = 0.21). The magnitudes are not exactly mirrored.
-3. **Images.** Compare your `U`, `p` and vorticity plots with the figures in
-   [Section 12](#12-expected-results).
+| Check                     | What it proves | Expected | Tolerance / justification | Measured |
+|---------------------------|----------------|----------|---------------------------|----------|
+| `no_fatal_error`          | no `FOAM FATAL`, FPE or segfault in any log | none | - | none |
+| `mesh_cell_count`         | the Gmsh script meshed as intended | 100,000-130,000 | range: the count changes slightly between Gmsh versions | 109,050 |
+| `checkMesh_Mesh_OK`       | mesh quality | `Mesh OK.` | - | yes |
+| `two_mesh_regions`        | rotor and stator are separate meshes, touching only through AMI | 2 | exact | 2 |
+| `AMI_weights`             | each face of each interface side is fully covered by the other side, at every step | sum = 1 | 1e-3 (the 10 µm gap and polygonal faces give ~1e-5) | max \|sum − 1\| = 2.2e-5 |
+| `reached_end_spinup`      | 8 revolutions completed | 1.2566 s | 1e-4 s | 1.2566 s |
+| `reached_end_record`      | 10 revolutions completed | 1.5708 s | 1e-4 s | 1.5708 s |
+| `power_coefficient`       | the rotor extracts power, less than the Betz limit (mean of revolutions 7-10) | 0 < Cp < 0.593 | physical bounds | 0.131 |
+| `power_coefficient_regression` | same result as the reference run | 0.131 | ± 0.015 (single revolutions scatter ± 5 %, see [Results](#11-results)) | 0.131 |
+| `settled_last_revs`       | the wake has developed: mean Cp of revolutions 9-10 vs 7-8 | < 10 % | revolutions 3-6 still gave 15 % more than 7-10 | 0.135 → 0.127 (5.7 %) |
+| `blades_share_equally`    | three identical blades do the same work, revolutions 7-10 | spread < 15 % | rotational symmetry; single revolutions scatter ± 15 % per blade | 11.7 % |
+| `torque_pulses_3_per_rev` | the rotor torque pulses once per blade pass | 19.1 Hz | ± 1 frequency bin (1.6 Hz) | 19.1 Hz |
+| `upwind_half_dominates`   | blades do most of their work in the upwind half (θ = 0-180°), revolutions 7-10 | > 60 % | the downwind half sees wind already slowed by the rotor | 78 % |
 
 ---
 
 ## Table of Contents
 
-1. [Problem Description](#1-problem-description)
-2. [Physical Background — MRF Theory](#2-physical-background--mrf-theory)
-3. [MRF vs AMI: Choosing the Right Approach](#3-mrf-vs-ami-choosing-the-right-approach)
+1. [The Rotor](#1-the-rotor)
+2. [Physics: How a Darrieus Rotor Makes Power](#2-physics-how-a-darrieus-rotor-makes-power)
+3. [Moving Meshes: MRF vs Sliding Mesh](#3-moving-meshes-mrf-vs-sliding-mesh)
 4. [Case Structure](#4-case-structure)
-5. [Mesh Generation — blockMesh](#5-mesh-generation--blockmesh)
-6. [Cell Zone Creation — topoSet](#6-cell-zone-creation--toposet)
-7. [MRFProperties — The Key Configuration](#7-mrfproperties--the-key-configuration)
-8. [Boundary Conditions](#8-boundary-conditions)
-9. [Turbulence Setup](#9-turbulence-setup)
-10. [Solver Configuration](#10-solver-configuration)
-11. [How to Run](#11-how-to-run)
-12. [Expected Results](#12-expected-results)
-13. [Post-Processing](#13-post-processing)
-14. [Exercises](#14-exercises)
-15. [Industrial Applications](#15-industrial-applications)
-16. [Troubleshooting](#16-troubleshooting)
-17. [References](#17-references)
-18. [Cross-References](#18-cross-references)
+5. [Mesh Generation with Gmsh](#5-mesh-generation-with-gmsh)
+6. [The Rotating Zone and the AMI Interface](#6-the-rotating-zone-and-the-ami-interface)
+7. [Boundary Conditions](#7-boundary-conditions)
+8. [Solver Settings](#8-solver-settings)
+9. [Function Objects and Run Stages](#9-function-objects-and-run-stages)
+10. [How to Run](#10-how-to-run)
+11. [Results](#11-results)
+12. [Making the Reel](#12-making-the-reel)
+13. [Exercises](#13-exercises)
+14. [Troubleshooting](#14-troubleshooting)
+15. [References](#15-references)
 
 ---
 
-## 1. Problem Description
-
-This tutorial demonstrates the **Multiple Reference Frame (MRF)** technique in OpenFOAM,
-a fundamental approach for simulating rotating machinery. Instead of physically rotating
-the mesh (which is computationally expensive and requires transient solvers), MRF adds
-source terms to the governing equations that approximate the effect of rotation.
-
-We simulate wind flowing past a circular **rotating zone** that represents a simplified
-turbine rotor disk. The MRF approach treats this zone as if it were spinning at 100 RPM,
-which deflects the flow and creates a lateral pressure asymmetry without any mesh motion.
-
-> **Scope.** The zone is an empty disc of fluid: no blades, no walls. The rotation
-> therefore only enters through the Coriolis and centrifugal terms. The case does not
-> extract energy from the wind and has no torque, power coefficient or wake deficit.
-> See [Section 5](#5-mesh-generation--blockmesh) for what a real blade case adds.
-
-### Domain Layout
-
-The zone is centred at (1.0, 0.5), so it sits in the lower part of the channel and
-spans y = 0.2 m to 0.8 m.
+## 1. The Rotor
 
 ```
-                         3.0 m
-  ◄─────────────────────────────────────────────────►
-
-  ▲  ┌──────────────────────────────────────────────┐  ▲
-  │  │              topAndBottom (slip)             │  │
-  │  │                                              │  │
-  │  │                                              │  │
-  │  │                                              │  │
-  │  │                                              │  │
-     │                                              │
- 2.0 │  →→→→→→                            →→→→→→    │  2.0 m
-  m  │  →→→→→→     ╭──────────────╮       →→→→→→    │
-     │  →→→→→→    ╱                ╲      →→→→→→    │
-  │  │  →→→→→→   │    Rotating      │     →→→→→→    │  │
-  │  │  →→→→→→   │    MRF Zone      │     →→→→→→    │  │
-  │  │            │  ω = 100 RPM ↺   │                │  │
-  │  │             ╲   r = 0.3 m    ╱                │  │
-  │  │              ╰──────────────╯                 │  │
-  │  │            center: (1.0, 0.5)                 │  │
-  ▼  └──────────────────────────────────────────────┘  ▼
-         inlet        topAndBottom (slip)        outlet
-         U = 10 m/s                              p = 0
+                       y
+                       ▲            blade 1 (θ = 0): moving into the wind
+                       │               ◄══════
+        wind           │        .  -  ‾  -  .
+      8 m/s    ─►    .'            │          '.     rotor disc, R_AMI = 0.75 m
+      ─►            /     blades on R = 0.5 m   \    (turns anticlockwise,
+      ─►           │               ●──────────── │ ─► x     40 rad/s)
+      ─►            \             axis          /
+                     '.                       .'      blades 2 and 3 at
+                        '  -  _  _  _  -  '           θ = 120° and 240°
 ```
 
-(↺ = counter-clockwise, i.e. positive `omega` about +z.)
+| Parameter                  | Value | Notes |
+|----------------------------|-------|-------|
+| Blades                     | 3 × NACA 0018, chord c = 0.1 m | symmetric, zero pitch, quarter chord on the circle |
+| Rotor radius `R`           | 0.5 m (diameter D = 1 m) | |
+| Solidity `σ = N c / (2R)`  | 0.3 | |
+| Wind speed `U`             | 8 m/s | uniform, 1 % turbulence intensity |
+| Rotor speed `ω`            | 40 rad/s (382 rpm) | one revolution every 0.157 s |
+| Tip-speed ratio `λ = ωR/U` | **2.5** | blade speed is 2.5 × the wind speed |
+| Blade Reynolds number `λ U c / ν` | 1.3 × 10⁵ | |
+| Domain                     | x = -6 … 16 m, y = ±7.5 m | 6D upstream, 16D downstream, blockage 1/15 |
+| Depth                      | 1 m, one cell | forces are per metre of blade |
 
-### Domain Specifications
+The blade angle θ is measured from the top of the rotor in the direction of rotation:
+at θ = 0 a blade moves straight into the wind, at θ = 90° it is furthest upwind,
+at θ = 270° furthest downwind. θ = 0-180° is the **upwind half**.
 
-```
-  ┌──────────────────────────────────────────────────────────┐
-  │  Physical Domain:  3.0 m × 2.0 m × 0.1 m (quasi-2D)      │
-  │  MRF Zone Center:  (1.0, 0.5, 0.0)                        │
-  │  MRF Zone Radius:  0.3 m (diameter 0.6 m)                 │
-  │  MRF Zone Shape:   Cylinder (z-axis aligned), 716 cells   │
-  │  Rotation Speed:   100 RPM = 10.472 rad/s                 │
-  │  Rotation Axis:    z-axis (0, 0, 1)                       │
-  │  Zone tip speed:   ω R = 10.472 × 0.3 = 3.14 m/s          │
-  │  Tip-speed ratio:  ω R / U = 3.14 / 10 = 0.31             │
-  │  Inlet Velocity:   10 m/s (uniform, x-direction)          │
-  │  Mesh Resolution:  150 × 100 × 1 cells (dx = dy = 0.02 m) │
-  │  Reynolds Number:  U D / ν = 10 × 0.6 / 1.5e-5 = 4e5      │
-  └──────────────────────────────────────────────────────────┘
-```
+## 2. Physics: How a Darrieus Rotor Makes Power
 
-This zone therefore has a tip-speed ratio of 0.31. A real turbine runs at roughly 5 to 9,
-so this zone rotates far more slowly relative to the wind than a real rotor; see
-Exercise 1 to vary it.
-
-### Flow Physics Overview
-
-```
-  Upstream          MRF Zone                  Downstream
-  (Undisturbed)     (Rotation Effects)        (Deflected flow)
-
-     →→→→          ╭───╮                     →→→↘
-     →→→→   ↗     ╱  ↺  ╲                    →→→→→
-     →→→→  ───►  │  ω    │  ───►             →→→↘
-     →→→→         ╲     ╱                    →→→→→
-     →→→→          ╰───╯                     →→→↘
-
-  Uniform flow   Coriolis + centrifugal      Flow deflected upward before
-  U = 10 m/s     source terms applied        and downward behind the zone
-                  inside this region         (u_y of a few tenths of m/s)
-```
-
----
-
-## 2. Physical Background — MRF Theory
-
-### What is MRF (Multiple Reference Frame)?
-
-The **Multiple Reference Frame** method is a steady-state approximation for simulating
-rotating machinery. Rather than physically rotating the mesh, MRF modifies the governing
-equations inside a designated zone by adding source terms that account for the rotational
-effects.
-
-#### The Concept
-
-In a rotating reference frame, an observer spinning with the rotor sees the flow as
-steady (or approximately steady). The transformation between the inertial (stationary)
-frame and the rotating frame introduces two additional body forces:
-
-```
-  ┌─────────────────────────────────────────────────────────────────┐
-  │                                                                 │
-  │  Navier-Stokes in Rotating Frame:                               │
-  │                                                                 │
-  │  ∂U_r                                                           │
-  │  ──── + (U_r · ∇)U_r = -∇p/ρ + ν∇²U_r                          │
-  │   ∂t                                                            │
-  │                         - 2ω × U_r        ← Coriolis           │
-  │                         - ω × (ω × r)     ← Centrifugal        │
-  │                                                                 │
-  │  where:                                                         │
-  │    U_r  = velocity in the rotating frame                        │
-  │    ω    = angular velocity vector                               │
-  │    r    = position vector from rotation axis                    │
-  │                                                                 │
-  └─────────────────────────────────────────────────────────────────┘
-```
-
-In OpenFOAM the solver keeps the absolute velocity as the unknown in the zone and adds
-the $\boldsymbol\omega\times\mathbf U$ term to the momentum equation, with the convecting flux taken relative to
-the rotating frame (see `MRFZone.C`). The physical content is the same two forces.
-
-#### Coriolis Force: $-2\boldsymbol\omega\times\mathbf U_r$
-
-The Coriolis force acts perpendicular to both the rotation axis and the relative velocity.
-It is responsible for deflecting the flow and creating the swirling motion that is
-characteristic of rotating machinery. For this case ($\omega$ along +z, U along +x) the force
-per unit mass points in the **-y** direction, which is why pressure builds up on the
-lower side of the zone.
-
-```
-  Rotation axis (ω, out of page, +z)
-        ⊙
-                    y
-                    ▲
-                    │
-        U_r ───────►│          Coriolis force -2ω × U_r
-        (+x)        │          points toward -y
-                    ▼
-```
-
-#### Centrifugal Acceleration: $-\boldsymbol\omega\times(\boldsymbol\omega\times\mathbf r)$
-
-The centrifugal term always points radially **outward** from the rotation axis with
-magnitude $\omega^{2}$ r. In a closed rotating frame it is balanced by a radial pressure gradient.
-
-```
-                    ω (rotation axis, out of page)
-                    ⊙
-
-         centrifugal         centrifugal
-          ◄──────  ●  ──────►
-                 center
-
-    Points radially OUTWARD from the rotation axis
-```
-
-#### Frozen Rotor Approximation
-
-The "frozen rotor" name comes from the fact that the rotor geometry (if present) remains
-**frozen** in one angular position. The MRF approach does NOT:
-
-- Move or rotate any mesh cells
-- Account for transient rotor-stator interaction
-- Capture unsteady wake effects or vortex shedding from blades
-
-The MRF approach DOES:
-
-- Add Coriolis and centrifugal source terms inside the rotating zone
-- Produce a time-averaged (steady-state) flow field
-- Provide, for a case that contains blades, a good initial estimate of performance
-  (pressure rise, torque)
-- Run much faster than transient sliding-mesh simulations
-
-#### Tip-speed ratio
-
-The rotor speed is usually quoted as the tip-speed ratio
-
-The tip-speed ratio and angular velocity are
+A blade moving at `ωR` through wind `U` feels the **relative wind** `W`, the vector
+difference of the two. Ignoring the slowing of the wind by the rotor, its direction
+relative to the chord, the **angle of attack**, is
 
 $$
-\lambda=\frac{\omega R}{U_\infty},\qquad
-\omega=\frac{\mathrm{RPM}\cdot2\pi}{60}\quad[\mathrm{rad/s}].
+\alpha(\theta) = \arctan\frac{\sin\theta}{\lambda + \cos\theta}.
 $$
 
-For this case:
+It swings from 0 at θ = 0 to a maximum of $\arctan(1/\sqrt{\lambda^2-1})$ = 23.6° (at
+λ = 2.5) and back, once per revolution, on alternating sides of the blade. The lift on
+the blade is roughly perpendicular to `W`; because `W` is tilted forward, the lift has a
+component **in the direction of motion**, which drives the rotor. That is why a
+symmetric, un-pitched blade still produces torque.
+
+**Dynamic stall.** A NACA 0018 at this Reynolds number stalls around 10-14° in steady
+flow. On the rotor the angle of attack rises past that within a few hundredths of a
+second, faster than the separation can develop: lift keeps rising, a strong vortex forms
+at the leading edge, runs along the blade, and is shed. The torque then drops sharply.
+These shed vortices are the dark spots in the [vorticity pictures](#11-results).
+
+**Upwind vs downwind.** The blades take energy from the wind in the upwind half, so in
+the downwind half they meet slower wind, and their own wakes. The downwind half
+produces much less torque.
+
+**Power coefficient.** The power of the wind through the rotor's frontal area
+`A = D × span` is ½ρU³A. The rotor extracts `P = M ω`, so
 
 $$
-\lambda=\frac{10.472\cdot0.3}{10}\approx0.31.
+C_p = \frac{M\,\omega}{\tfrac12 \rho U^3 D\,L}.
 $$
 
-Horizontal-axis wind turbines are typically designed for $\lambda$ of about 5 to 9. To reach a
-turbine-like $\lambda$ = 7 with $U_\infty$ = 10 m/s and R = 0.3 m this zone would have to rotate at
-$\omega = \lambda U_\infty / R = 233\,\mathrm{rad/s}$ (about 2,200 RPM).
+No turbine can exceed the **Betz limit** 16/27 = 0.593.
 
-### When to Use MRF
+**Torque ripple.** Each blade's torque peaks once per revolution, so the rotor torque
+pulses three times per revolution: 3 × 40/(2π) = **19.1 Hz**.
 
-MRF is appropriate when:
-- The flow is approximately steady in the rotating frame
-- Rotor-stator spacing is large relative to blade pitch
-- You need a quick estimate of machine performance
-- You want to initialize a transient AMI simulation
+## 3. Moving Meshes: MRF vs Sliding Mesh
 
-MRF is NOT appropriate when:
-- Strong unsteady rotor-stator interaction exists
-- You need accurate wake dynamics or vortex shedding
-- Blade passing frequency effects are important
-- The geometry has large circumferential non-uniformity near the interface
+| | MRF (frozen rotor) | Sliding mesh (this project) |
+|---|---|---|
+| Mesh | fixed; extra Coriolis and centrifugal terms in the rotating zone | the rotor zone really turns |
+| Time | steady (`simpleFoam`) | transient (`pimpleFoam`) |
+| Blade positions | frozen in one position | all positions, every time step |
+| Blade-wake interaction, dynamic stall | not captured | captured |
+| Torque | one value for one frozen position | full history, ripple, per-blade curves |
+| Cost | minutes | about an hour here |
 
----
-
-## 3. MRF vs AMI: Choosing the Right Approach
-
-OpenFOAM provides two main methods for simulating rotating machinery:
-
-```
-  ┌─────────────────────┐              ┌─────────────────────┐
-  │                     │              │                     │
-  │   MRF (Frozen       │              │   AMI (Arbitrary    │
-  │   Rotor)            │              │   Mesh Interface)   │
-  │                     │              │                     │
-  │  ┌───┐              │              │  ┌───┐ → ┌───┐      │
-  │  │ ● │  No mesh     │              │  │ ↺ │   │   │      │
-  │  │   │  motion      │              │  │   │   │   │      │
-  │  └───┘              │              │  └───┘   └───┘      │
-  │                     │              │  Mesh actually      │
-  │  Source terms only  │              │  slides/rotates     │
-  │                     │              │                     │
-  └─────────────────────┘              └─────────────────────┘
-```
-
-### Comparison Table
-
-| Feature                  | MRF (This Tutorial)      | AMI (Sliding Mesh)        |
-|--------------------------|--------------------------|---------------------------|
-| **Type**                 | Steady-state             | Transient                 |
-| **Mesh Motion**          | None                     | Actual rotation           |
-| **Solver**               | `simpleFoam`             | `pimpleFoam`              |
-| **Computational Cost**   | Low (★★☆☆☆)              | High (★★★★★)              |
-| **Setup Complexity**     | Moderate                 | Complex (AMI interfaces)  |
-| **Physical Accuracy**    | Moderate                 | High                      |
-| **Rotor-Stator Effects** | Not captured             | Fully captured            |
-| **Blade Wake**           | Time-averaged            | Resolved per time step    |
-| **Typical Use**          | Initial design, screening| Detailed analysis         |
-| **Run Time**             | Minutes                  | Hours to days             |
-| **Interface Treatment**  | cellZone (no interface)  | AMI patch pair            |
-| **Multiple Zones**       | Yes (multiple MRF zones) | Yes (multiple AMI zones)  |
-
-(Relative cost and run-time entries are general guidance; this case itself runs in seconds.)
-
-### Decision Flowchart
-
-```
-  Start
-    │
-    ▼
-  Is the flow approximately ──── Yes ───► Use MRF
-  steady in the rotating frame?            (simpleFoam)
-    │
-    No
-    │
-    ▼
-  Do you need unsteady ──── Yes ───► Use AMI
-  rotor-stator effects?               (pimpleFoam)
-    │
-    No
-    │
-    ▼
-  Is this an initial ──── Yes ───► Use MRF first,
-  design study?                     then AMI for final
-    │
-    No
-    │
-    ▼
-  Use AMI for detailed analysis
-```
-
----
+MRF is useful when the flow seen in the rotating frame is nearly steady: a fan in a
+duct, a mixer impeller far from the baffles. A vertical-axis turbine is the opposite
+case: every blade sees its angle of attack change by ±24° on every revolution and passes
+through the wakes of the others. The previous version of this project used MRF on an
+empty disc (no blades) and therefore produced no torque at all.
 
 ## 4. Case Structure
 
 ```
 09_wind_turbine_blade/
-├── 0/                          ◄── Initial & boundary conditions
-│   ├── U                       ◄── Velocity field
-│   ├── p                       ◄── Pressure field (kinematic)
-│   ├── k                       ◄── Turbulent kinetic energy
-│   ├── epsilon                 ◄── Turbulent dissipation rate
-│   └── nut                     ◄── Turbulent viscosity
-├── constant/                   ◄── Physical properties
-│   ├── transportProperties     ◄── Fluid properties (air)
-│   ├── turbulenceProperties    ◄── Turbulence model selection
-│   ├── MRFProperties           ◄── ★ MRF zone definition ★
-│   └── polyMesh/               ◄── Mesh (generated by blockMesh)
-├── system/                     ◄── Solver & numerics configuration
-│   ├── blockMeshDict           ◄── Background mesh definition
-│   ├── topoSetDict             ◄── Cell zone creation for MRF
-│   ├── controlDict             ◄── Run control (endTime 1000, write every 100)
-│   ├── fvSchemes               ◄── Discretisation schemes
-│   └── fvSolution              ◄── Solver & SIMPLE settings
-├── Allrun                      ◄── Run script (local OpenFOAM)
-├── Allclean                    ◄── Clean script
-├── run_docker.sh               ◄── Clean + run + verify in the Docker image
-├── verify.py                   ◄── Result checks (reads logs and fields only)
-├── make_images.py              ◄── Renders images/ with pvpython
-├── open_paraview.sh            ◄── Opens the case in ParaView
-├── images/                     ◄── Figures used in this README
-└── README.md                   ◄── This file
+├── generate_vawt_geo.py      Gmsh geometry script: blades, rotor disc, wind tunnel, mesh sizes
+├── 0/
+│   ├── U, p                  inlet 8 m/s, outlet p = 0, moving walls on the blades
+│   └── k, omega, nut         k-ω SST with wall functions on the blades
+├── constant/
+│   ├── dynamicMeshDict       solid-body rotation of cellZone "rotor", 40 rad/s about z
+│   ├── transportProperties   ν = 1.5e-5 m²/s
+│   └── turbulenceProperties  RAS, kOmegaSST
+├── system/
+│   ├── changeDictionaryDict  patch types: cyclicAMI pair, walls, symmetry, empty
+│   ├── controlDict           Δt = 0.2° of rotation, forces per blade, probes, y+, Courant
+│   ├── fvSchemes, fvSolution PIMPLE (2 outer × 2 pressure correctors)
+│   └── decomposeParDict      scotch, cores set by Allrun
+├── Allrun / Allclean         run / clean inside an OpenFOAM environment
+├── run_docker.sh             Gmsh on the host + Allrun in Docker + verify.py
+├── verify.py                 PASS/FAIL checks
+├── make_images.py            figures in images/ (pvpython)
+├── reel.json                 settings for tools/make_reel.py
+└── open_paraview.sh          open the results in ParaView
 ```
 
----
+## 5. Mesh Generation with Gmsh
 
-## 5. Mesh Generation — blockMesh
+`generate_vawt_geo.py` writes `constant/vawt.geo`; Gmsh meshes it and `gmshToFoam`
+imports it. All dimensions and mesh sizes are constants at the top of the script.
 
-The mesh is a simple rectangular domain created with `blockMesh`. This is intentionally
-simplified — a real wind turbine simulation would use `snappyHexMesh` with an actual
-blade STL geometry. The purpose here is to demonstrate the MRF concept.
+**Blades.** Each NACA 0018 profile is two splines (upper and lower side) through 80
+points, with 121 mesh nodes per side clustered at the leading and trailing edges
+(`Transfinite Curve ... Using Bump 0.2`). A `BoundaryLayer` field puts ~14 layers of thin
+quadrilaterals around each blade: first cell 80 µm, growth 1.2, 4 mm thick. At the sharp
+trailing edges the layers fan around the corner (`FanPointsList`).
 
-### Domain Geometry
+**Mesh size fields** (the smallest one wins):
 
-```
-  z = 0.1  ┌──────────────────────────────────────────┐
-           │                                          │  Patch: frontAndBack
-           │  150 × 100 × 1 cells                     │  (empty — 2D)
-           │                                          │
-  z = 0    └──────────────────────────────────────────┘
+| Region | Cell size |
+|--------|-----------|
+| within 12 cm of a blade, outside the quad layers | 1.5 mm → 12 mm |
+| rest of the rotor disc | 12 mm |
+| near wake (x < 2.5 m, \|y\| < 0.9 m) | 20 mm |
+| far wake (x < 8 m, \|y\| < 1.5 m) | 45 mm |
+| everywhere else | growing from 20 mm at the interface to 0.35 m |
 
-           x = 0                                x = 3
-           y = 0                                y = 2
+**Two meshes in one.** The rotor disc and the wind tunnel around it are separate Gmsh
+surfaces, each with its own copy of the interface circle, so they share no nodes. Gmsh
+merges points that coincide, so the stator's circle is 10 µm larger. After extrusion
+(one cell, 1 m deep) and import, the result has about 109,000 cells (mostly prisms,
+hexahedra in the blade layers) and two cell zones, `rotor` and `stator`, from the
+physical volumes.
 
-           y
-           ▲
-       2.0 ┤ ╔══════════════════════════════════════╗
-           │ ║            topAndBottom              ║
-           │ ║                                      ║
-       1.0 ┤ ║                                      ║
-           │ ║          ╭──────╮                    ║
-       0.8 ┤ ║          │ MRF  │                    ║
-           │ ║i         │ zone │               out  ║
-       0.5 ┤ ║n    ─────┤ r=0.3│               let  ║
-           │ ║l         │      │                    ║
-       0.2 ┤ ║e         ╰──────╯                    ║
-           │ ║t        center:(1,0.5)               ║
-           │ ║            topAndBottom              ║
-       0.0 ┤ ╚══════════════════════════════════════╝
-           └──┬─────────┬─────────┬─────────┬───────►x
-             0.0       1.0       2.0       3.0
-```
+![The rotor disc and its sliding interface](images/mesh_rotor.png)
 
-### Mesh and zone
+![Blade mesh: quadrilateral layers around a NACA 0018](images/mesh_blade.png)
 
-![Mesh with the MRF zone highlighted](images/mesh_zone.png)
+`checkMesh` reports `Number of regions: 2` with an asterisk. For an AMI mesh that is
+expected: the two regions are joined only through the interface.
 
-*Figure 1: the 150 x 100 background mesh; the red cells are `cellZone rotatingZone`
-(716 cells, radius 0.3 m, centre (1.0, 0.5)).*
+## 6. The Rotating Zone and the AMI Interface
 
-### blockMeshDict Key Parameters
+`constant/dynamicMeshDict` turns every point of the cell zone `rotor` as a rigid body:
 
-| Parameter       | Value                          | Purpose                      |
-|-----------------|--------------------------------|------------------------------|
-| Domain size     | $3.0 \times 2.0 \times 0.1$ m              | Rectangular, quasi-2D        |
-| Cell count      | $150 \times 100 \times 1$                  | 15,000 cells total           |
-| Cell size (dx)  | 0.02 m                         | Uniform spacing              |
-| Cell size (dy)  | 0.02 m                         | Uniform spacing              |
-| Grading         | (1 1 1) — uniform              | No stretching                |
-
-### Patch Definitions
-
-| Patch Name     | Type   | Location        | Face Vertices  |
-|----------------|--------|-----------------|----------------|
-| `inlet`        | patch  | x = 0 plane     | (0 4 7 3)      |
-| `outlet`       | patch  | x = 3 plane     | (1 2 6 5)      |
-| `topAndBottom` | patch  | y = 0, y = 2    | Top + bottom   |
-| `frontAndBack` | empty  | z = 0, z = 0.1  | Front + back   |
-
-### What a real blade case would add
-
-This case stops at the rotating zone. A case with actual blades differs as follows
-(these items are not part of this tutorial's files):
-
-- **Geometry and mesh:** a 3D domain with the blade (and hub) surface as an STL,
-  meshed with `snappyHexMesh`; the MRF `cellZone` can be created by `snappyHexMesh`
-  or with `topoSet` around the rotor disc.
-- **Walls in the zone:** blade and hub patches inside the zone are walls with a
-  no-slip condition; the MRF treatment moves them with the zone. Patches inside the
-  zone that must stay stationary are listed in `nonRotatingPatches`.
-- **Wall treatment:** wall functions or a resolved boundary layer (`nut`, `k`,
-  `epsilon` wall boundary conditions) replace the `calculated`/`slip` setup here.
-- **Axis and origin:** `origin` and `axis` must match the real rotor axis; the sign of
-  `omega` follows the right-hand rule about `axis`.
-- **Performance output:** torque and thrust are obtained by integrating pressure and
-  viscous forces over the blade patches (e.g. the `forces` function object with the
-  rotation centre `CofR` set to `origin`); power is torque times omega, and the power
-  coefficient follows from the free-stream power available over the swept area.
-- **Operating point:** `omega` is chosen from the target tip-speed ratio
-  (omega = $\lambda$ $U_\infty$ / R); several values give the performance curve.
-
----
-
-## 6. Cell Zone Creation — topoSet
-
-The `topoSet` utility creates cell sets and cell zones from geometric primitives.
-For MRF, we need a **cellZone** (not just a cellSet) because the MRF framework
-references zones by name.
-
-### topoSet Workflow
-
-```
-  ┌──────────────────────────────────────────────────────────────┐
-  │                                                              │
-  │  Step 1: cylinderToCell                                      │
-  │  ─────────────────────                                       │
-  │  Select all cells whose centers fall inside a cylinder:      │
-  │                                                              │
-  │    • Center axis: from (1.0, 0.5, -1) to (1.0, 0.5, 1)       │
-  │    • Radius: 0.3 m                                           │
-  │    • Result: cellSet "rotatingZone" (716 cells)              │
-  │                                                              │
-  │             ╭───────╮                                        │
-  │            ╱         ╲       All cells with centers          │
-  │           │  selected │      inside this cylinder            │
-  │           │   cells   │      are marked                      │
-  │            ╲         ╱                                       │
-  │             ╰───────╯                                        │
-  │                                                              │
-  │  Step 2: setToCellZone                                       │
-  │  ────────────────────                                        │
-  │  Convert the cellSet to a cellZone:                          │
-  │                                                              │
-  │    cellSet "rotatingZone" ──► cellZone "rotatingZone"        │
-  │                                                              │
-  │  The cellZone is stored in the mesh and can be referenced    │
-  │  by MRFProperties.                                           │
-  │                                                              │
-  └──────────────────────────────────────────────────────────────┘
+```cpp
+dynamicFvMesh   dynamicMotionSolverFvMesh;
+motionSolverLibs ("libfvMotionSolvers.so");
+motionSolver    solidBody;
+cellZone        rotor;                       // physical volume "rotor" from Gmsh
+solidBodyMotionFunction rotatingMotion;
+origin          (0 0 0);
+axis            (0 0 1);                     // anticlockwise seen from +z
+omega           40;                          // rad/s
 ```
 
-The cylinder end points at z = -1 and z = 1 lie outside the domain (depth 0.1 m), so
-the selection spans the full depth.
+The rotor's outer boundary `AMI_rotor` slides along the stator's inner boundary
+`AMI_stator`. `system/changeDictionaryDict` makes them a `cyclicAMI` pair:
 
-### Why Two Steps?
-
-OpenFOAM distinguishes between:
-
-- **cellSet**: A simple collection of cell indices (used for selection/manipulation)
-- **cellZone**: A mesh topology entity that solvers can reference by name
-
-MRF requires a `cellZone`, so we first select cells with `cylinderToCell` (creating a
-cellSet), then convert it to a cellZone with `setToCellZone`.
-
-### topoSet Source Types
-
-| Source Type         | Description                               |
-|---------------------|-------------------------------------------|
-| `cylinderToCell`    | Cells inside a cylinder (used here)       |
-| `sphereToCell`      | Cells inside a sphere                     |
-| `boxToCell`         | Cells inside a bounding box               |
-| `surfaceToCell`     | Cells near/inside an STL surface          |
-| `zoneToCell`        | Cells from an existing zone               |
-| `regionToCell`      | Connected region of cells                 |
-
----
-
-## 7. MRFProperties — The Key Configuration
-
-The `constant/MRFProperties` file is what makes this an MRF simulation. When
-`simpleFoam` reads this file, it adds rotational source terms to the momentum
-equation inside the specified cell zone.
-
-### MRFProperties Dictionary Breakdown
-
-```
-MRF1                            // Name for this MRF zone (arbitrary)
-{
-    cellZone    rotatingZone;   // Must match the cellZone from topoSet
-    active      yes;            // Enable/disable this MRF zone
-
-    nonRotatingPatches ();      // Patches INSIDE the zone that don't rotate
-                                // (e.g., stator blades). Empty = all rotate.
-
-    origin      (1.0 0.5 0);    // Point on the rotation axis (zone centre)
-    axis        (0 0 1);        // Rotation axis direction (z-axis here)
-    omega       10.472;         // Angular velocity in rad/s (100 RPM)
-}
+```cpp
+AMI_rotor  { type cyclicAMI; neighbourPatch AMI_stator; transform noOrdering; }
+AMI_stator { type cyclicAMI; neighbourPatch AMI_rotor;  transform noOrdering; }
 ```
 
-### Angular Velocity Conversion
+At every time step OpenFOAM intersects the faces of the two sides and computes
+**weights**: which fraction of each face overlaps which faces on the other side. Fluxes
+are interpolated with these weights, so the faces need not match. The log prints, for
+each step:
 
 ```
-  RPM to rad/s:   ω = RPM × 2π / 60
-
-  ┌──────────────────────────────────────┐
-  │  100 RPM × 2π / 60 = 10.472 rad/s    │
-  │   50 RPM × 2π / 60 =  5.236 rad/s    │
-  │  200 RPM × 2π / 60 = 20.944 rad/s    │
-  │  500 RPM × 2π / 60 = 52.360 rad/s    │
-  │ 1000 RPM × 2π / 60 = 104.72 rad/s    │
-  │ 1500 RPM × 2π / 60 = 157.08 rad/s    │
-  │ 3000 RPM × 2π / 60 = 314.16 rad/s    │
-  └──────────────────────────────────────┘
+AMI: Patch source sum(weights) min/max/average = 1.0000116, 1.0000116, 1.0000116
+AMI: Patch target sum(weights) min/max/average = 0.99999828, 0.99999828, 0.99999828
 ```
 
-With `R = 0.3 m` and `U = 10 m/s`, the tip-speed ratio $\lambda=\omega R/U$ is 0.31 for
-100 RPM and scales linearly with `omega` (200 RPM gives 0.63, 500 RPM gives 1.57).
+A sum of 1 means every face is fully covered; values far from 1 point to a gap or
+overlap between the two sides (check the radii and the `rotor` zone). `verify.py`
+checks every one of these lines.
 
-### Multiple MRF Zones
+## 7. Boundary Conditions
 
-You can define multiple MRF zones (e.g., for a multi-stage compressor):
+| Patch | `U` | `p` | `k` | `omega` | `nut` |
+|-------|-----|-----|-----|---------|-------|
+| `inlet` | `fixedValue (8 0 0)` | `zeroGradient` | `fixedValue 0.0096` | `fixedValue 64` | `calculated` |
+| `outlet` | `inletOutlet` | `fixedValue 0` | `inletOutlet` | `inletOutlet` | `calculated` |
+| `sides` | `symmetry` | `symmetry` | `symmetry` | `symmetry` | `symmetry` |
+| `blade1..3` | `movingWallVelocity` | `zeroGradient` | `kqRWallFunction` | `omegaWallFunction` | `nutUSpaldingWallFunction` |
+| `AMI_rotor`, `AMI_stator` | `cyclicAMI` | `cyclicAMI` | `cyclicAMI` | `cyclicAMI` | `cyclicAMI` |
+| `frontAndBack` | `empty` | `empty` | `empty` | `empty` | `empty` |
 
-```
-// Example: Two counter-rotating rotors
-MRF1
-{
-    cellZone    rotor1Zone;
-    origin      (1.0 0.5 0);
-    axis        (0 0 1);
-    omega       10.472;   // Forward rotation
-}
+- `movingWallVelocity` gives the fluid at the wall the velocity of the moving wall
+  (no slip relative to the blade), computed from the mesh motion.
+- The inlet turbulence is 1 % intensity, `k = 1.5 (0.01 U)²`, with an eddy viscosity of
+  10 ν, `omega = k / (10 ν)`.
+- **Wall treatment.** The first cell is 80 µm high, giving y+ between 0.4 and 8 on the
+  blades (about 3 on average; the `yPlus` lines in the log).
+  `nutUSpaldingWallFunction` uses Spalding's single formula for the viscous sublayer,
+  buffer layer and log layer, and `omegaWallFunction` blends the sublayer and log-layer
+  values, so the treatment is valid at any y+.
 
-MRF2
-{
-    cellZone    rotor2Zone;
-    origin      (2.0 0.5 0);
-    axis        (0 0 1);
-    omega       -10.472;  // Counter-rotation
-}
-```
+## 8. Solver Settings
 
----
+**Time step.** Fixed at 0.2° of rotation per step, `Δt = 2π/(40·1800)` = 87.3 µs, 1800
+steps per revolution. The blades move 1.7 mm per step, and the interface slides by
+2.6 mm, a quarter of an interface face (1.2 cm).
 
-## 8. Boundary Conditions
+**Courant number.** Below 1 in almost all the domain, but much larger in the few tiny
+cells of the trailing-edge fans, where 80 µm cells meet 25 m/s relative flow: the
+largest value per step is typically about 40 and peaks at about 110. `pimpleFoam` is
+implicit, so this does not make it unstable, but it needs:
 
-### Boundary Condition Summary Table
+- **two outer (PIMPLE) iterations with two pressure correctors** per step, so pressure
+  and velocity are coupled in those cells;
+- **first-order upwind convection for k and ω**: with a higher-order scheme ω became
+  negative in the trailing-edge cells within two steps and the run diverged (try it, see
+  [Troubleshooting](#14-troubleshooting)). `U` uses `linearUpwind`.
 
-| Field       | Inlet                 | Outlet          | topAndBottom | frontAndBack |
-|-------------|-----------------------|-----------------|--------------|--------------|
-| **U**       | fixedValue (10 0 0)   | zeroGradient    | slip         | empty        |
-| **p**       | zeroGradient          | fixedValue 0    | slip         | empty        |
-| **k**       | fixedValue 0.375      | zeroGradient    | slip         | empty        |
-| **epsilon** | fixedValue 0.898      | zeroGradient    | slip         | empty        |
-| **nut**     | calculated            | calculated      | calculated   | empty        |
+| Setting | Value | Why |
+|---------|-------|-----|
+| `ddtSchemes` | `backward` | second order in time |
+| `div(phi,U)` | `Gauss linearUpwind grad(U)` | second order, bounded gradients (`cellLimited`) |
+| `div(phi,k)`, `div(phi,omega)` | `Gauss upwind` | keeps k and ω positive |
+| `p` solver | GAMG, `cacheAgglomeration no` | the AMI coupling changes as the rotor turns |
+| `correctPhi` | `no` | solid-body rotation does not change cell volumes |
+| `wallDist` | `meshWave` | wall distance for SST, updated as the blades move |
 
-### Boundary Condition Rationale
+## 9. Function Objects and Run Stages
 
-```
-  ┌─────────────────────────────────────────────────────────────────┐
-  │                                                                 │
-  │  INLET (x = 0):                                                 │
-  │  ├─ U:       fixedValue — prescribe incoming wind speed         │
-  │  ├─ p:       zeroGradient — pressure floats at inlet            │
-  │  ├─ k:       fixedValue — set turbulence level                  │
-  │  ├─ epsilon: fixedValue — set dissipation rate                  │
-  │  └─ nut:     calculated — computed from k and epsilon           │
-  │                                                                 │
-  │  OUTLET (x = 3):                                                │
-  │  ├─ U:       zeroGradient — flow exits freely                   │
-  │  ├─ p:       fixedValue 0 — reference pressure                  │
-  │  ├─ k:       zeroGradient — turbulence exits freely             │
-  │  ├─ epsilon: zeroGradient — dissipation exits freely            │
-  │  └─ nut:     calculated — computed from k and epsilon           │
-  │                                                                 │
-  │  TOP & BOTTOM (y = 0, y = 2):                                   │
-  │  ├─ All:     slip — free-slip, no friction (far-field approx.)  │
-  │  └─ nut:     calculated                                         │
-  │                                                                 │
-  │  FRONT & BACK (z = 0, z = 0.1):                                 │
-  │  └─ All:     empty — 2D simulation (no variation in z)          │
-  │                                                                 │
-  └─────────────────────────────────────────────────────────────────┘
-```
+| Function object | Output |
+|-----------------|--------|
+| `rotor` (`forces`, all three blades) | `postProcessing/rotor/*/forces.dat`: force and moment, every 1° |
+| `blade1`, `blade2`, `blade3` | the same for each blade |
+| `wakeProbes` | velocity 1 m and 3 m behind the axis |
+| `yPlus`, `courant` | fields `yPlus` and `Co` at write times; y+ also in the log |
 
-`p` is the kinematic pressure (static pressure divided by density), in $\mathrm{m}^{2}/\mathrm{s}^{2}$.
+The moment about the z axis through the origin is column 12 (pressure) + column 15
+(viscous) of `forces.dat` after removing the brackets.
 
----
+`Allrun` runs `pimpleFoam` twice with the same dictionary:
 
-## 9. Turbulence Setup
+| Stage | Revolutions | Written | Purpose |
+|-------|-------------|---------|---------|
+| `spinup` | 0 → 8 | once per revolution | the wake develops and the torque settles |
+| `record` | 8 → 10 | every 4° (180 times) | analysis (`verify.py`) and animation (`make_reel.py`) |
 
-### k-epsilon Model
+Because the mesh moves, every written time also contains `polyMesh/points`, which is
+how ParaView shows the rotor turning.
 
-The standard k-epsilon model is used with two transport equations:
-
-```
-  ┌──────────────────────────────────────────────────────────────┐
-  │                                                              │
-  │  Turbulent kinetic energy (k):                               │
-  │                                                              │
-  │  ∂k         ∂k        ∂   ⎡        ν_t  ∂k ⎤                 │
-  │  ── + U_j ─── = ──── ⎢(ν + ───) ──── ⎥ + P_k - ε             │
-  │  ∂t        ∂x_j     ∂x_j ⎣        σ_k  ∂x_j⎦                 │
-  │                                                              │
-  │                                                              │
-  │  Turbulent dissipation rate (ε):                             │
-  │                                                              │
-  │  ∂ε         ∂ε        ∂   ⎡        ν_t  ∂ε ⎤    ε           │
-  │  ── + U_j ─── = ──── ⎢(ν + ───) ──── ⎥ + ─ (C₁P_k - C₂ε)    │
-  │  ∂t        ∂x_j     ∂x_j ⎣        σ_ε  ∂x_j⎦    k           │
-  │                                                              │
-  └──────────────────────────────────────────────────────────────┘
-```
-
-OpenFOAM's coefficients (printed in `log.simpleFoam`): Cmu = 0.09, C1 = 1.44,
-C2 = 1.92, sigmak = 1, sigmaEps = 1.3.
-
-### Inlet Turbulence Estimation
-
-Given $U_{\mathrm{inlet}}=10\ \mathrm{m/s}$, turbulence intensity $I=0.05$ and length scale $l=0.042\ \mathrm m$ (approximately $0.07D_{\mathrm{MRF}}$):
-
-**Turbulent kinetic energy:**
-
-$$
-k=\tfrac32(UI)^2=\tfrac32(10\cdot0.05)^2=0.375\ \mathrm{m}^2/\mathrm{s}^2
-$$
-
-**Turbulent dissipation:**
-
-$$
-\varepsilon=\frac{C_\mu^{0.75}k^{1.5}}l=\frac{0.09^{0.75}\cdot0.375^{1.5}}{0.042}\approx0.898\ \mathrm{m}^2/\mathrm{s}^3
-$$
-
-**Turbulent viscosity:**
-
-$$
-\nu_t=\frac{C_\mu k^2}{\varepsilon}=\frac{0.09\cdot0.375^2}{0.898}\approx1.41\times10^{-2}\ \mathrm{m}^2/\mathrm{s},\qquad\nu_t/\nu\approx940
-$$
-
----
-
-## 10. Solver Configuration
-
-### SIMPLE Algorithm
-
-This case uses the **SIMPLE** (Semi-Implicit Method for Pressure-Linked Equations)
-algorithm, which is standard for steady-state incompressible flow:
-
-```
-  ┌─────────────────────────────────────────────────────┐
-  │                                                     │
-  │  SIMPLE Iteration Loop:                             │
-  │                                                     │
-  │  1. Solve momentum (U) with guessed pressure;       │
-  │     the MRF source terms are part of this equation  │
-  │  2. Solve pressure correction equation              │
-  │  3. Correct velocity with pressure correction       │
-  │  4. Solve turbulence equations (k, ε)               │
-  │  5. Update turbulent viscosity (ν_t)                │
-  │  6. Check convergence → if not converged, go to 1   │
-  │                                                     │
-  │  ┌───┐  ┌───┐  ┌───┐  ┌─────┐  ┌─────┐             │
-  │  │ U │→│ p │→│ U │→│ k,ε │→│ ν_t │→ Repeat      │
-  │  └───┘  └───┘  └───┘  └─────┘  └─────┘             │
-  │                                                     │
-  └─────────────────────────────────────────────────────┘
-```
-
-Convergence is declared when the initial residuals of `p`, `U` and `k|epsilon` are all
-below `residualControl` (1e-4 in `fvSolution`).
-
-### Linear Solver Settings
-
-| Field     | Solver         | Smoother         | Tolerance | relTol |
-|-----------|----------------|------------------|-----------|--------|
-| p         | GAMG           | GaussSeidel      | 1e-6      | 0.1    |
-| U         | smoothSolver   | symGaussSeidel   | 1e-6      | 0.1    |
-| k         | smoothSolver   | symGaussSeidel   | 1e-6      | 0.1    |
-| epsilon   | smoothSolver   | symGaussSeidel   | 1e-6      | 0.1    |
-
-### Relaxation Factors
-
-| Field/Equation | Factor | Purpose                                    |
-|----------------|--------|--------------------------------------------|
-| p (field)      | 0.3    | Pressure under-relaxation (stabilizes)     |
-| U (equation)   | 0.7    | Velocity equation relaxation               |
-| k (equation)   | 0.7    | Turbulent KE equation relaxation           |
-| epsilon (eq.)  | 0.7    | Dissipation equation relaxation            |
-
-### Discretisation Schemes
-
-| Term             | Scheme                            | Properties          |
-|------------------|-----------------------------------|---------------------|
-| Time             | steadyState                       | No time derivative  |
-| Gradient         | Gauss linear                      | 2nd order accurate  |
-| grad(U)          | cellLimited Gauss linear 1        | Limited gradient    |
-| div(phi,U)       | bounded Gauss linearUpwind grad(U)| 2nd order, bounded  |
-| div(phi,k)       | bounded Gauss upwind              | 1st order, stable   |
-| div(phi,epsilon) | bounded Gauss upwind              | 1st order, stable   |
-| Laplacian        | Gauss linear corrected            | 2nd order           |
-
-The solver also uses `consistent yes` (SIMPLEC) in the `SIMPLE` dictionary of
-`fvSolution`.
-
----
-
-## 11. How to Run
-
-### Prerequisites
-
-- Either Docker with the `cfdengine/openfoam` image (OpenFOAM 6), used by `run_docker.sh`,
-  or a local OpenFOAM installation sourced in the shell. The dictionaries were tested
-  with OpenFOAM 6 only; other versions may need small changes (for example function
-  object syntax).
-- `python3` (standard library only) for `verify.py`.
-- `blockMesh`, `topoSet`, `checkMesh` and `simpleFoam` in `$PATH` for a local run.
-
-### Step-by-Step Execution
+## 10. How to Run
 
 ```bash
-# Navigate to the case directory
 cd projects/09_wind_turbine_blade
 
-# Option 1: Docker (cleans, runs Allrun, then runs verify.py)
-./run_docker.sh
+# Docker (recommended): Gmsh on the host, OpenFOAM in the container, then verify.py
+./run_docker.sh                 # all cores, at most 8
+NPROCS=4 ./run_docker.sh
 
-# Option 2: local OpenFOAM, run everything with the Allrun script
-./Allrun
-python3 verify.py
-
-# Option 3: run each step manually
-blockMesh          # Generate the rectangular mesh
-topoSet            # Create the cylindrical MRF cell zone
-checkMesh          # Mesh quality report
-simpleFoam         # Run the solver
-
-# Clean all generated files (mesh, time directories, logs)
-./Allclean
+# Inside an OpenFOAM 6 environment with gmsh installed
+./Allclean && ./Allrun && python3 verify.py
 ```
 
-### What Each Step Does
+Steps: Gmsh mesh → `gmshToFoam` → `changeDictionary` (patch types) → `checkMesh` →
+`decomposePar` → `pimpleFoam` (spin-up) → `pimpleFoam` (record) → `reconstructPar`.
 
-```
-  ┌─────────────┐   ┌─────────────┐   ┌─────────────┐   ┌──────────────┐
-  │  blockMesh  │──►│   topoSet   │──►│  checkMesh  │──►│  simpleFoam  │
-  │             │   │             │   │             │   │              │
-  │ Creates the │   │ Selects     │   │ Reports     │   │ Solves N-S   │
-  │ rectangular │   │ cylindrical │   │ mesh        │   │ with MRF     │
-  │ background  │   │ cell zone   │   │ quality and │   │ source terms │
-  │ mesh        │   │ for MRF     │   │ zone count  │   │              │
-  │             │   │             │   │             │   │ Iterates     │
-  │ 150×100×1   │   │ r=0.3m at   │   │             │   │ until        │
-  │ = 15,000    │   │ (1.0,0.5)   │   │             │   │ convergence  │
-  │ cells       │   │ 716 cells   │   │             │   │              │
-  └─────────────┘   └─────────────┘   └─────────────┘   └──────────────┘
-```
-
-### Monitoring Convergence
-
-Residuals are printed in `log.simpleFoam`. To plot them:
+Run time: about 70 minutes on 8 cores (0.2-0.25 s per time step), 6-8 hours on one core.
+Follow it with:
 
 ```bash
-# Extract residual histories from the log into logs/ (p_0, Ux_0, Uy_0, k_0, epsilon_0)
-foamLog log.simpleFoam
-
-# Plot with gnuplot
-gnuplot -e "set logscale y; plot 'logs/Ux_0' w l, 'logs/Uy_0' w l, 'logs/p_0' w l; pause -1"
+grep "^Time" log.pimpleFoam.spinup | tail -1        # current time; 0.157 s per revolution
+tail -3 postProcessing/rotor/0/forces.dat            # latest forces and moments
 ```
 
----
+## 11. Results
 
-## 12. Expected Results
+### Power over the run
 
-The numbers and figures below come from a run of this case as shipped (OpenFOAM 6).
-`simpleFoam` stops with `SIMPLE solution converged in 124 iterations` and writes time
-directories `100` and `124`.
+![Power coefficient over 10 revolutions](images/power_history.png)
 
-### Flow Field Description
+During the first revolutions the rotor turns in undisturbed wind and gives Cp ≈ 0.17.
+As the wake behind it builds up, the wind through the rotor slows and the power drops,
+levelling off from revolution 7 at **Cp ≈ 0.13** (mean of revolutions 7-10: 0.131,
+that is 1.03 N·m and 41 W per metre of blade). Single revolutions still differ by about
+± 5 % (0.122-0.135): the stall vortices are never shed in exactly the same way twice,
+so an unsteady RANS simulation of a stalling rotor does not settle into a perfectly
+repeating cycle. That is why the checks use averages over several revolutions.
 
-```
-  ┌──────────────────────────────────────────────────────────────┐
-  │                                                              │
-  │  What you should observe:                                    │
-  │                                                              │
-  │  1. UPSTREAM: Close to uniform flow at 10 m/s in x           │
-  │     (small upward component, u_y up to +0.26 m/s at x = 0.5) │
-  │                                                              │
-  │  2. MRF ZONE: The Coriolis term deflects the flow:           │
-  │     • Speed ranges from 7.9 m/s (lower side, y ≈ 0.21)       │
-  │       to 11.8 m/s (upper side, y ≈ 0.79) near x = 1.1        │
-  │     • Velocity magnitude is largest near the zone edge       │
-  │     • |u_y| reaches 1.6 m/s inside the zone                  │
-  │     • z-vorticity is about -9.5 1/s inside the zone          │
-  │       (mean for r < 0.25 m), about +0.3 1/s elsewhere        │
-  │                                                              │
-  │  3. DOWNSTREAM:                                              │
-  │     • Flow is deflected downward (u_y = -0.37 m/s at x = 1.5)│
-  │     • The deflection decays to about -0.09 m/s at the outlet │
-  │     • No pronounced velocity deficit: the zone has no blades │
-  │       or walls and extracts no momentum                      │
-  │                                                              │
-  │  4. PRESSURE FIELD (kinematic):                              │
-  │     • Maximum +28.6 m²/s² on the lower side (x ≈ 0.9)        │
-  │     • Minimum -26.6 m²/s² on the upper side (x ≈ 0.9)        │
-  │     • Dipole-like asymmetry across the zone (rotation effect)│
-  │                                                              │
-  └──────────────────────────────────────────────────────────────┘
-```
+The instantaneous Cp swings between about −0.5 and +0.8 three times per revolution.
+It can briefly exceed the Betz limit, which applies to the average power only.
 
-With `omega` negated the asymmetry reverses: the pressure maximum moves to the upper
-side (y = 0.79) and the minimum to the lower side (y = 0.21).
+### One blade over one revolution
 
-### Qualitative Flow Pattern (schematic of the measured trend)
+![Each blade's contribution to Cp over its azimuth](images/blade_torque.png)
 
-```
-  Inlet                MRF Zone                   Outlet
-  ─────                ────────                   ──────
+All three blades follow the same curve:
 
-  →→→→→→→→→        ╭───────────╮           →→→→→→→→
-  →→→→→→→→→       ╱    fast    ╲          →→→→→→→→
-  →→→→→→→→→      │      ↺       │         →→→↘→→→→
-  →→→→→→→→→      │     slow     │         →→→→→→→→
-  →→→→→→→→→       ╲            ╱          →→→→→→→→
-  →→→→→→→→→        ╰───────────╯           →→→→→→→→
+- **θ = 0-80°:** moving from the top into the upwind half, the blade's angle of attack
+  grows and its lift pulls it forwards; its share of Cp peaks at about 0.55 at θ ≈ 80°.
+- **θ ≈ 95-175°:** the blade **stalls**: lift collapses, drag rises, and for about 70° of
+  every turn the blade brakes the rotor (down to −0.4 at θ ≈ 135°). The stall vortex is
+  shed here.
+- **θ = 180-360°:** in the downwind half the blade meets wind already slowed by the
+  rotor and the wakes of the other blades, and adds little (a small peak near 200°).
 
-  Near-uniform      Fast side above,        Weak downward
-  freestream        slow side below         deflection
-```
+Over revolutions 7-10 the upwind half delivers **78 %** of the work. Up to the stall the
+twelve curves (3 blades × 4 revolutions) lie on top of each other; after it they scatter,
+which is where the revolution-to-revolution variation of the power comes from. The stall
+loss is also why Cp is low at this tip-speed ratio: a faster rotor sees a smaller
+angle-of-attack swing ([Exercise 1](#13-exercises)).
 
-### Figures
+### Flow field
 
-![Velocity magnitude](images/velocity_magnitude.png)
+![Vorticity around the rotor and in the near wake](images/vorticity.png)
 
-*Figure 2: `|U|` at the converged state. Look for the speed-up on the upper edge and
-the slow-down on the lower edge of the black zone outline.*
+Each blade trails a thin sheet of vorticity along its path (the curved arcs). On the
+upwind side, the stalling blades shed pairs of strong vortices (red and blue spots) that
+are carried through the middle of the rotor and out into the wake, where they merge
+into larger, weaker structures.
 
-![Kinematic pressure](images/pressure.png)
+![Wind speed: the slow wake behind the rotor](images/velocity.png)
 
-*Figure 3: kinematic pressure. Look for the positive region on the lower side and the
-negative region on the upper side of the zone (the asymmetry that `verify.py` checks).*
+Behind the rotor the wind is slowed to a few m/s over a band about one rotor diameter
+wide. The rotor holds back the air with a mean thrust of 37 N per metre of blade
+(thrust coefficient 0.95): a large force for little power, as expected when the blades
+spend part of every turn stalled and much of the force is drag. The wake is also
+shifted towards +y, the side where the blades move against the wind: on average the air
+pushes the rotor sideways with 8 N/m towards −y, so the rotor pushes the air towards +y.
+(Mean forces over revolutions 7-10, from `postProcessing/rotor/*/forces.dat`.)
 
-![Vorticity](images/vorticity.png)
+### How good is the number?
 
-*Figure 4: z-component of vorticity of the velocity field (colour scale clipped at
-+-10 1/s; the minimum is about -16 1/s). Look for the nearly uniform negative
-(clockwise) vorticity inside the zone, about -9.5 1/s on average for r < 0.25 m against
-+0.3 1/s elsewhere, and the streaks of the opposite sign leaving the zone downstream.
-The sign is a property of the solved (absolute-velocity) field and is the measured
-result of this run.*
+There is no measurement for this exact 2D rotor, so Cp = 0.13 is a reference value of
+this setup, not a validated prediction. Keep in mind:
 
-### Convergence Expectations
+1. A 2D simulation is an infinitely long rotor: it has no blade-tip vortices, struts or
+   shaft, all of which cost power on a real turbine.
+2. Unsteady RANS reproduces dynamic stall only roughly. The size and timing of the stall
+   vortex, which dominate the power here, depend on the turbulence model and on the
+   near-wall mesh (y+ ≈ 3 with wall functions here).
+3. The result comes from one mesh and one time step. [Exercise 4](#13-exercises) tests
+   the time step; a mesh study would refine the blade surfaces and the rotor disc.
 
-- The first iterations have large residuals (the first `Ux` solve needs up to 1000
-  linear iterations) and then fall.
-- The 1e-4 target on `p`, `U`, `k` and `epsilon` is reached after 124 iterations in the
-  reference run; `endTime` is 1000.
-- If residuals oscillate in a modified case, reduce the relaxation factors.
+What is robust is the shape of the result: the upwind peak, the stall loss, the weak
+downwind half and the three-per-revolution torque ripple.
 
----
-
-## 13. Post-Processing
-
-### ParaView Visualization
+## 12. Making the Reel
 
 ```bash
-# Create wind_turbine.foam and open the case in ParaView
-./open_paraview.sh
-
-# Or, inside an OpenFOAM shell
-paraFoam
-
-# Or create a .foam file manually for recent ParaView versions
-touch case.foam
-paraview case.foam
+pvbatch tools/make_reel.py projects/09_wind_turbine_blade
 ```
 
-To regenerate the figures of this README (offscreen, from a finished run):
+writes `output/artifacts/09_wind_turbine_blade/rotor_wake.mp4`: the last two
+revolutions in slow motion, coloured by vorticity, with the live power coefficient read
+from `postProcessing/rotor/*/forces.dat` (`"overlay"` in `reel.json`, columns 12 + 15
+scaled by ω / (½ρU³D)). The camera starts on the rotor and pans into the wake. The
+reel tool interpolates the moving mesh points between written times (every 4°), so the
+rotor turns smoothly at 30 frames per second. `"solid": true` paints the blades grey; the
+10 µm gap of the sliding interface lets a little of that grey through, which shows up as
+a faint dotted circle: the edge of the rotating mesh, pointed out in the captions.
 
-```bash
-pvpython --force-offscreen-rendering make_images.py
-```
+## 13. Exercises
 
-### Recommended Visualizations
+1. **Tip-speed ratio.** Change `omega` in `constant/dynamicMeshDict` to 32 (λ = 2) and
+   56 (λ = 3.5); keep 1800 steps per revolution by scaling `deltaT` and the stage end
+   times in `Allrun` (one revolution is 2π/ω). Plot `Cp` against λ: where is the peak?
+2. **Dynamic stall.** At λ = 2 the angle of attack reaches 35°. Compare the vorticity
+   pictures and the blade torque curve with λ = 2.5.
+3. **Solidity.** Use two blades (`N_BLADES = 2` in `generate_vawt_geo.py`) or a chord
+   of 0.15 m. How do `Cp`, the ripple frequency and the optimal λ change?
+4. **Time step.** Halve `deltaT` (0.1° per step, 3600 steps per revolution) and compare
+   `Cp`. How much does it change?
+5. **MRF.** Freeze the rotor (`dynamicFvMesh staticFvMesh;`), add
+   `constant/MRFProperties` for the `rotor` zone and run `simpleFoam`. Compare its torque
+   with the cycle average here, for two different frozen blade positions.
 
-1. **Velocity Magnitude Contour**
-   - Shows the speed-up and slow-down at the zone edges
+## 14. Troubleshooting
 
-2. **Streamlines**
-   - Seed from the inlet
-   - Shows how flow is deflected by the rotating zone
+| Symptom | Cause | Fix |
+|---------|-------|-----|
+| `bounding omega, min: -5e4` in the first steps, then divergence | higher-order convection of ω at high Courant number in the trailing-edge cells | keep `div(phi,omega) Gauss upwind` (and for k) |
+| Courant number grows to 100s at the start | impulsive start: the flow around the sharp trailing edge is nearly singular in the first step | keep 2 outer correctors; do not enlarge `deltaT` |
+| AMI weights far from 1 | gap or overlap between the two circles | check `R_AMI` and `AMI_GAP` in the script and that `gmshToFoam` made both zones |
+| `Could not match gmsh face` in `log.gmshToFoam`, patches with 0 faces | Gmsh did not merge extruded points (for example `Geometry.AutoCoherence = 0`) | keep Gmsh's default point merging |
+| `gmsh: command not found` inside Docker | the image has no Gmsh | use `./run_docker.sh` (meshes on the host) |
+| The rotor jumps between frames in an animation | results written too rarely for the moving mesh | keep the `record` stage writing every 4° or less (`writeInterval 20` steps); `make_reel.py` interpolates the mesh points linearly between written times |
 
-3. **Pressure Contour**
-   - Lower-side high pressure and upper-side low pressure around the zone
+## 15. References
 
-4. **Velocity Vectors (Glyph filter)**
-   - Inside the MRF zone: shows the tangential component
+1. **Paraschivoiu, I.** (2002). *Wind Turbine Design: With Emphasis on Darrieus
+   Concept*. Polytechnic International Press. Aerodynamics of Darrieus rotors, angle of
+   attack and dynamic stall.
+2. **Betz, A.** (1920). "Das Maximum der theoretisch möglichen Ausnützung des Windes
+   durch Windmotoren." *Zeitschrift für das gesamte Turbinenwesen*, 26, 307-309.
+3. **Menter, F.R.** (1994). "Two-equation eddy-viscosity turbulence models for
+   engineering applications." *AIAA Journal*, 32(8), 1598-1605. k-ω SST.
+4. **Spalding, D.B.** (1961). "A single formula for the law of the wall." *Journal of
+   Applied Mechanics*, 28(3), 455-458.
+5. **Farrell, P.E. & Maddison, J.R.** (2011). "Conservative interpolation between
+   volume meshes by local Galerkin projection." *Computer Methods in Applied Mechanics
+   and Engineering*, 200, 89-100. The method behind OpenFOAM's AMI weights.
+6. OpenFOAM 6 tutorial `incompressible/pimpleFoam/RAS/propeller`: a 3D rotating AMI case
+   with the same `dynamicMeshDict` and PIMPLE settings.
 
-5. **Vorticity**
-   - Apply the `curl(U)` calculator, or use the command-line tool below
-   - Strongest at the boundary of the MRF zone
-
-6. **Zone cells**
-   - In the ParaView reader, enable `cellZone/rotatingZone` under Mesh Regions
-
-### Command-Line Post-Processing
-
-```bash
-# Calculate vorticity field (written to the latest time directory)
-simpleFoam -postProcess -func vorticity -latestTime
-
-# Calculate Q-criterion
-simpleFoam -postProcess -func Q -latestTime
-```
-
-To sample along a line through the zone centre, create a `system/sampleDict` (see
-`$FOAM_ETC/caseDicts/postProcessing/graphs/sampleDict.cfg`) with a `lineUniform` set
-from `(0 0.5 0.05)` to `(3 0.5 0.05)` for the fields `U` and `p`, or use ParaView's
-`Plot Over Line` filter on the same line.
+Companion notes: [Meshing](../../notes/04_meshing.md),
+[Boundary conditions](../../notes/05_boundary_conditions.md),
+[Turbulence models](../../notes/06_turbulence_models.md),
+[CFL number](../../notes/08_cfl_number.md), [Parallelization](../../notes/07_parallelization.md).
 
 ---
 
-## 14. Exercises
-
-### Exercise 1: Vary the Rotation Speed
-
-Modify `constant/MRFProperties` to test different RPMs:
-
-```
-omega   5.236;    // 50 RPM — mild rotation
-omega   10.472;   // 100 RPM — baseline (current)
-omega   20.944;   // 200 RPM — strong rotation
-omega   52.360;   // 500 RPM — very strong rotation (may need lower relaxation)
-```
-
-Observe how the pressure asymmetry and flow deflection change with RPM, and compute the
-tip-speed ratio for each. Only `simpleFoam` needs to be re-run.
-
-### Exercise 2: Change the MRF Zone Size
-
-Modify `system/topoSetDict` to change the cylinder radius:
-
-```
-radius  0.15;    // Smaller rotor zone
-radius  0.30;    // Baseline (current)
-radius  0.50;    // Larger rotor zone
-radius  0.80;    // Very large zone (check domain size!)
-```
-
-Re-run `topoSet` and `simpleFoam` after changing. How does the zone size affect the
-flow? (Note that the centre is at y = 0.5, so r = 0.5 touches the bottom boundary and
-r = 0.8 extends beyond it.)
-
-### Exercise 3: Move the MRF Zone
-
-Change the MRF zone position to see how upstream/downstream distance affects results:
-
-```
-// In topoSetDict:
-p1 (0.5 0.5 -1);  p2 (0.5 0.5 1);   // Closer to inlet
-p1 (1.0 0.5 -1);  p2 (1.0 0.5 1);   // Default position
-p1 (2.0 0.5 -1);  p2 (2.0 0.5 1);   // Closer to outlet
-
-// Don't forget to update MRFProperties origin to match!
-```
-
-### Exercise 4: Add a Second MRF Zone (Counter-Rotating)
-
-Add a second rotor zone downstream to simulate a counter-rotating turbine:
-
-```
-// In topoSetDict — add a second cylinder:
-{
-    name    rotatingZone2;
-    type    cellSet;
-    action  new;
-    source  cylinderToCell;
-    sourceInfo { p1 (2.0 0.5 -1); p2 (2.0 0.5 1); radius 0.3; }
-}
-{
-    name    rotatingZone2;
-    type    cellZoneSet;
-    action  new;
-    source  setToCellZone;
-    sourceInfo { set rotatingZone2; }
-}
-
-// In MRFProperties — add counter-rotating zone:
-MRF2
-{
-    cellZone    rotatingZone2;
-    active      yes;
-    nonRotatingPatches ();
-    origin      (2.0 0.5 0);
-    axis        (0 0 1);
-    omega       -10.472;  // Counter-rotation (negative)
-}
-```
-
-### Exercise 5: Refine the Mesh
-
-Test mesh sensitivity by modifying `system/blockMeshDict`:
-
-```
-// Coarse:  75 × 50 × 1 = 3,750 cells
-// Medium: 150 × 100 × 1 = 15,000 cells (current)
-// Fine:   300 × 200 × 1 = 60,000 cells
-// Very fine: 450 × 300 × 1 = 135,000 cells
-```
-
-Compare velocity profiles through the MRF zone center for each mesh. (`verify.py`
-reads the cell counts from `blockMeshDict`, but its velocity and pressure bands refer
-to the baseline mesh.)
-
-### Exercise 6: Try k-omega SST Turbulence Model
-
-Replace k-epsilon with k-omega SST:
-
-1. Change `constant/turbulenceProperties`:
-   ```
-   RASModel    kOmegaSST;
-   ```
-2. Replace `0/epsilon` with `0/omega` (dimensions `[0 0 -1 0 0 0 0]`) and set the
-   `omega` boundary conditions; add `omega` entries to `fvSchemes` and `fvSolution`
-3. Adjust inlet values for omega:
-$$
-\omega=\frac{\varepsilon}{C_\mu k}=\frac{0.898}{0.09\cdot0.375}\approx26.6\ \mathrm{s}^{-1}
-$$
-
-### Exercise 7: Transition to AMI (Advanced)
-
-For a more accurate simulation, convert this case to use the AMI sliding mesh approach:
-
-1. Create a cylindrical mesh region with `snappyHexMesh` or `cfMesh`
-2. Define AMI patch pairs at the interface
-3. Switch to `pimpleFoam` (transient solver)
-4. Add `dynamicMeshDict` with rotation
-5. Use much smaller time steps (Courant number < 1)
-
-This is significantly more complex but physically more accurate.
-
----
-
-## 15. Industrial Applications
-
-The MRF technique demonstrated here is widely used in industry:
-
-```
-  ┌──────────────────────────────────────────────────────────┐
-  │                                                          │
-  │  WIND TURBINES                                           │
-  │  ┌───┐                                                   │
-  │  │ ╱ │  • Rotor performance prediction                   │
-  │  │╱  │  • Annual energy production estimates             │
-  │  │╲  │  • Wake interaction studies                       │
-  │  │ ╲ │  • Yaw misalignment effects                       │
-  │  └───┘                                                   │
-  │                                                          │
-  │  CENTRIFUGAL PUMPS & FANS                                │
-  │  ╭───╮                                                   │
-  │  │ ↺ │  • Impeller performance curves                    │
-  │  ╰───╯  • Head-flow characteristics                      │
-  │         • Efficiency optimization                        │
-  │                                                          │
-  │  AXIAL COMPRESSORS                                       │
-  │  ═══╪═══  • Stage performance matching                   │
-  │     │     • Surge/stall prediction                       │
-  │           • Multi-stage interactions                     │
-  │                                                          │
-  │  MIXING VESSELS                                          │
-  │  ┌─┬─┐                                                   │
-  │  │ │ │  • Impeller mixing efficiency                     │
-  │  │ ↺ │  • Power consumption prediction                   │
-  │  └───┘  • Blending time estimates                        │
-  │                                                          │
-  │  MARINE PROPELLERS                                       │
-  │  ───╤───  • Thrust and torque prediction                 │
-  │     │     • Cavitation onset                             │
-  │           • Hull-propeller interaction                   │
-  │                                                          │
-  │  HELICOPTER ROTORS                                       │
-  │  ──┼──    • Hover performance                            │
-  │    │      • Forward flight approximation                 │
-  │           • Ground effect studies                        │
-  │                                                          │
-  └──────────────────────────────────────────────────────────┘
-```
-
-These are typical uses of MRF in general; each requires a model with the real blade or
-impeller geometry, which this tutorial does not include. Cavitation and free-surface
-effects in particular need models beyond the single-phase `simpleFoam` used here.
-
----
-
-## 16. Troubleshooting
-
-### Common Issues
-
-| Problem                          | Cause                          | Solution                       |
-|----------------------------------|--------------------------------|--------------------------------|
-| `cellZone not found`             | topoSet not run or failed      | Run `topoSet` before solver    |
-| Divergence at startup            | RPM too high, relaxation too high | Reduce omega, reduce relaxation |
-| Residuals plateau high           | Mesh too coarse                | Refine mesh near MRF zone      |
-| `empty` patch error              | Wrong face assignment          | Check blockMeshDict faces      |
-| No rotation effect visible       | MRF zone too small or omega=0, or `active no` | Check MRFProperties settings |
-| Oscillating residuals            | Pressure-velocity coupling too aggressive | Reduce p relaxation to 0.2 |
-| `Unknown function type`          | Function object not available in this OpenFOAM version (e.g. `solverInfo`, `MRF` in OpenFOAM 6) | Remove it or use the syntax of your version; read residuals from `log.simpleFoam` |
-| `wrong token type ... libs`      | `libs (name)` written unquoted | Use `libs ("libfieldFunctionObjects.so");` |
-
-### Debugging Tips
-
-```bash
-# Check mesh quality and the number of cell zones
-checkMesh -allGeometry -allTopology
-
-# Check that the cellZone was created and how many cells it has
-grep "cellZoneSet" log.topoSet
-
-# Check that MRF is being read by the solver
-grep -i "MRF" log.simpleFoam
-
-# Visualize just the MRF zone cells
-paraFoam   # enable "cellZone/rotatingZone" under Mesh Regions in the reader
-```
-
----
-
-## 17. References
-
-1. **OpenFOAM User Guide — MRF**
-   - Section on Multiple Reference Frame zones
-   - `$WM_PROJECT_DIR/doc/` or https://www.openfoam.com/documentation/guides
-
-2. **OpenFOAM Tutorial: Mixer (MRF)**
-   - `$FOAM_TUTORIALS/incompressible/simpleFoam/mixerVessel2D`
-   - Standard MRF tutorial case included with OpenFOAM (checked present in OpenFOAM 6)
-
-3. **Luo, J.Y., Issa, R.I., Gosman, A.D. (1994)**
-   - "Prediction of Impeller-Induced Flows in Mixing Vessels Using
-     Multiple Frames of Reference"
-   - Institution of Chemical Engineers Symposium Series, 136, pp. 549-556
-
-4. **Tabor, G., Gosman, A.D., Issa, R.I. (1996)**
-   - "Numerical Simulation of the Flow in a Mixing Vessel Stirred by
-     a Rushton Turbine"
-   - Institution of Chemical Engineers Symposium Series, 140, pp. 25-34
-   - (The original README listed a wind-engineering conference proceedings as the
-     venue; that was a citation error. Please check the volume and pages in the
-     publisher's record before citing.)
-
-5. **Jasak, H. (1996)**
-   - "Error Analysis and Estimation for the Finite Volume Method with
-     Applications to Fluid Flows"
-   - PhD Thesis, Imperial College London
-   - (General reference for the finite volume discretisation used in OpenFOAM,
-     not specific to MRF)
-
-6. **OpenFOAM Source Code**
-   - `src/finiteVolume/cfdTools/general/MRF/` — MRF implementation
-   - `src/finiteVolume/cfdTools/general/MRF/MRFZone.C` — Source term calculation
-
----
-
-## 18. Cross-References
-
-### Related Tutorials in This Repository
-
-- `01_lid_driven_cavity`: basic `blockMesh` case structure and a first solver run
-  (`icoFoam`)
-- `04_naca_airfoil_analysis`, `06_ahmed_body_aerodynamics`, `07_backward_facing_step`:
-  other steady `simpleFoam` cases with RAS turbulence modelling
-- See the `notes/` directory for additional learning materials (meshing, boundary
-  conditions, turbulence models, linear solvers)
-
-### Related OpenFOAM Utilities
-
-| Utility          | Purpose                                      |
-|------------------|----------------------------------------------|
-| `blockMesh`      | Structured mesh generation                   |
-| `topoSet`        | Cell/face/point set and zone manipulation    |
-| `checkMesh`      | Mesh quality analysis                        |
-| `simpleFoam`     | Steady-state incompressible solver           |
-| `pimpleFoam`     | Transient incompressible solver (for AMI)    |
-| `foamToVTK`      | Convert results to VTK format                |
-| `foamLog`        | Extract residual histories from a solver log |
-| `postProcess`    | Run function objects on existing results     |
-| `paraFoam`       | Launch ParaView with OpenFOAM reader         |
-
-### OpenFOAM Keyword Reference
-
-| Keyword in This Case  | File                    | Purpose                    |
-|-----------------------|-------------------------|----------------------------|
-| `MRF1`                | MRFProperties           | MRF zone definition        |
-| `cellZone`            | MRFProperties           | Zone name reference        |
-| `omega`               | MRFProperties           | Angular velocity (rad/s)   |
-| `cylinderToCell`      | topoSetDict             | Cylinder cell selection    |
-| `setToCellZone`       | topoSetDict             | Convert set to zone        |
-| `steadyState`         | fvSchemes               | No time derivative         |
-| `SIMPLE`              | fvSolution              | Pressure-velocity coupling |
-| `GAMG`                | fvSolution              | Geometric agglomeration    |
-| `linearUpwind`        | fvSchemes               | 2nd order bounded scheme   |
-
----
-
-*This tutorial is part of the OpenFoam-Tutorials repository.*
-*For questions or improvements, please open an issue or pull request.*
+*This case is part of the [OpenFOAM Tutorials](https://github.com/djeada/OpenFoam-Tutorials/blob/main/README.md) learning series.*

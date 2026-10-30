@@ -16,24 +16,47 @@ FoamFile
 
 dimensions      [0 1 -1 0 0 0 0];
 
-internalField   uniform (10 0 0);
+// Wind speed 8 m/s along +x
+internalField   uniform (8 0 0);
 
 boundaryField
 {
     inlet
     {
         type            fixedValue;
-        value           uniform (10 0 0);
+        value           $internalField;
     }
 
     outlet
     {
-        type            zeroGradient;
+        type            inletOutlet;
+        inletValue      uniform (0 0 0);
+        value           $internalField;
     }
 
-    topAndBottom
+    // No-slip on a moving wall: the fluid at the blade surface moves with the
+    // blade (the face velocity comes from the mesh motion).
+    "blade.*"
     {
-        type            slip;
+        type            movingWallVelocity;
+        value           uniform (0 0 0);
+    }
+
+    AMI_rotor
+    {
+        type            cyclicAMI;
+        value           $internalField;
+    }
+
+    AMI_stator
+    {
+        type            cyclicAMI;
+        value           $internalField;
+    }
+
+    sides
+    {
+        type            symmetry;
     }
 
     frontAndBack

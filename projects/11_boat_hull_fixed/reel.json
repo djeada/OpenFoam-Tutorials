@@ -1,11 +1,55 @@
 {
+  "name": "bow_waves",
   "title": "Boat hull in calm water",
   "intro": {
     "seconds": 5,
-    "text": "Water flows past a boat hull that is held in place.\n\nThis is a side slice through the hull: blue is water, dark is air."
+    "text": "A toy boat hull is held still while water flows past it at 0.3 m/s.\n\nWhat waves does it make?"
   },
   "outro": {
-    "seconds": 5,
-    "text": "The bow pushes up a wave and the hull leaves a wake behind it.\n\nOpenFOAM interFoam · VOF · snappyHexMesh"
-  }
+    "seconds": 6,
+    "text": "The hull feels 0.056 N of drag, about the weight of 6 grams. Turning it bow-first is a one-line change (see the README).\n\nOpenFOAM interFoam · VOF · snappyHexMesh"
+  },
+  "field": "alpha.water",
+  "free_surface": true,
+  "normal": "z",
+  "up": "x",
+  "include_zero": false,
+  "duration": 40,
+  "range": [-3, 3],
+  "bar_title": "Water surface height (mm): dark trough, light crest",
+  "camera": [
+    {"at": 0, "zoom": 1.4, "center": [0.25, 0, 0]},
+    {"at": 6, "zoom": 1.4, "center": [0.25, 0, 0]},
+    {"at": 15, "zoom": 3.0, "center": [0.05, 0, 0]},
+    {"at": 21, "zoom": 3.0, "center": [0.05, 0, 0]},
+    {"at": 30, "zoom": 2.0, "center": [0.4, 0, 0]},
+    {"at": 37, "zoom": 1.4, "center": [0.25, 0, 0]}
+  ],
+  "captions": [
+    {
+      "from": 0.05,
+      "to": 0.55,
+      "text": "Seen from above: water flows up the screen at 0.3 m/s past a 15 cm hull held in place."
+    },
+    {
+      "from": 0.55,
+      "to": 1.1,
+      "text": "Starting the flow suddenly sends ripples across the tank. Light is a crest, dark a trough."
+    },
+    {
+      "from": 1.1,
+      "to": 1.65,
+      "text": "This hull meets the water stern-first, so the water piles up against its blunt end."
+    },
+    {
+      "from": 1.65,
+      "to": 2.35,
+      "text": "Behind it, the disturbed water leaves a trail of waves only a millimetre or two high."
+    },
+    {
+      "from": 2.35,
+      "to": 3.0,
+      "text": "Making waves costs energy: it is part of the drag on the hull."
+    }
+  ]
 }

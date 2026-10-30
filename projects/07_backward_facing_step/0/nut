@@ -16,37 +16,36 @@ FoamFile
 
 dimensions      [0 2 -1 0 0 0 0];
 
+// Subgrid-scale viscosity of the WALE model. WALE goes to zero at walls by
+// itself, so walls need no wall function: nut = 0 there.
 internalField   uniform 0;
 
 boundaryField
 {
     inlet
     {
-        type            calculated;
-        value           uniform 0;
+        type            zeroGradient;
     }
 
     outlet
     {
-        type            calculated;
-        value           uniform 0;
+        type            zeroGradient;
     }
 
-    topWall
+    top
     {
-        type            nutkWallFunction;
-        value           uniform 0;
-    }
-
-    bottomWall
-    {
-        type            nutkWallFunction;
-        value           uniform 0;
+        type            slip;
     }
 
     step
     {
-        type            nutkWallFunction;
+        type            fixedValue;
+        value           uniform 0;
+    }
+
+    floor
+    {
+        type            fixedValue;
         value           uniform 0;
     }
 

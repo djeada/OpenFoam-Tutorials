@@ -14,7 +14,7 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-dimensions      [0 2 -2 0 0 0 0];
+dimensions      [0 2 -2 0 0 0 0];   // kinematic pressure p/rho
 
 internalField   uniform 0;
 
@@ -31,17 +31,17 @@ boundaryField
         value           uniform 0;
     }
 
-    topWall
+    top
     {
-        type            zeroGradient;
-    }
-
-    bottomWall
-    {
-        type            zeroGradient;
+        type            slip;
     }
 
     step
+    {
+        type            zeroGradient;
+    }
+
+    floor
     {
         type            zeroGradient;
     }

@@ -14,25 +14,30 @@ FoamFile
 }
 // * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * * //
 
-application     simpleFoam;
+application     pimpleFoam;
 
-startFrom       startTime;
+startFrom       latestTime;
 
 startTime       0;
 
 stopAt          endTime;
 
-endTime         3000;
+// Allrun runs two stages with the same dictionary:
+//   1. 0 -> 0.08 s, written every 0.25 ms: the start-up and the first vortices,
+//      dense enough to animate (tools/make_reel.py);
+//   2. 0.08 -> 0.40 s, written every 0.08 s: statistics (fieldAverage below).
+// One flow-through (30h at the inlet speed) takes about 0.04 s.
+endTime         0.08;
 
-deltaT          1;
+deltaT          5e-06;
 
-writeControl    timeStep;
+writeControl    adjustableRunTime;
 
-writeInterval   200;
+writeInterval   0.00025;
 
-purgeWrite      3;
+purgeWrite      0;
 
-writeFormat     ascii;
+writeFormat     binary;
 
 writePrecision  8;
 
@@ -44,13 +49,34 @@ timePrecision   6;
 
 runTimeModifiable true;
 
+// The time step follows the Courant number (cells near the step lip are
+// 0.15 mm, so steps are about 1e-5 s).
+adjustTimeStep  yes;
+
+maxCo           0.8;
+
+maxDeltaT       1e-4;
+
 functions
 {
-    fieldAverage1
+    // Passive dye s carried by the flow (boundary values in 0/s).
+    dye
+    {
+        type            scalarTransport;
+        libs            ("libsolverFunctionObjects.so");
+        field           s;
+        schemesField    s;
+        D               1e-9;           // almost no molecular diffusion
+        nCorr           0;
+    }
+
+    // Mean and fluctuation fields, collected once the start-up has washed out.
+    fieldAverage
     {
         type            fieldAverage;
         libs            ("libfieldFunctionObjects.so");
         writeControl    writeTime;
+        timeStart       0.08;
         fields
         (
             U
@@ -62,25 +88,48 @@ functions
             p
             {
                 mean        on;
-                prime2Mean  on;
+                prime2Mean  off;
                 base        time;
             }
         );
     }
 
-    wallShearStress1
+    // Signals in the shear layer and in the bubble, every time step
+    // (shedding frequency in verify.py).
+    probes
     {
-        type            wallShearStress;
-        libs            ("libfieldFunctionObjects.so");
-        writeControl    writeTime;
-        patches         (bottomWall step);
+        type            probes;
+        libs            ("libsampling.so");
+        writeControl    timeStep;
+        writeInterval   1;
+        fields          (U p);
+        probeLocations
+        (
+            (0.02 0.01 0)       // x = 2h, at step-lip height
+            (0.04 0.01 0)       // x = 4h
+            (0.06 0.0075 0)     // x = 6h, near reattachment
+            (0.10 0.005 0)      // x = 10h, recovery region
+        );
     }
 
-    yPlus1
+    // Inlet and outlet flow rates (mass balance check in verify.py).
+    flowRates
     {
-        type            yPlus;
+        type            surfaceFieldValue;
         libs            ("libfieldFunctionObjects.so");
-        writeControl    writeTime;
+        writeControl    timeStep;
+        writeInterval   20;
+        log             false;
+        writeFields     false;
+        regionType      patch;
+        name            inlet;
+        operation       sum;
+        fields          (phi);
+    }
+    outletFlow
+    {
+        $flowRates;
+        name            outlet;
     }
 }
 

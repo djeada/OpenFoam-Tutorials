@@ -1,6 +1,7 @@
 #!/bin/bash
 # =========================================================================
-#  Open the results in ParaView (run the case first).
+#  Open the results in ParaView (run the case first). Use the Play button:
+#  the rotor turns, because the mesh points are written at every time.
 # =========================================================================
 set -euo pipefail
 cd "$(dirname "${BASH_SOURCE[0]}")"

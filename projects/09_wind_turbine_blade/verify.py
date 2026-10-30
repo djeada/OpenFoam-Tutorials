@@ -1,232 +1,184 @@
 #!/usr/bin/env python3
-"""Check the results of a finished run of the wind turbine MRF case.
+"""Check the results of a finished vertical-axis wind turbine run.
 
-Usage:  python3 verify.py [case_directory]
+Usage:  python3 verify.py [case_dir]
 
-Reads only files already written by ./Allrun (log.*, the latest time
-directory, constant/polyMesh/cellZones, the case dictionaries and
-README.md). It starts no solver. Standard library only.
-
-Exit status: 0 if all checks pass, 1 if any check fails, 2 if results are
-missing.
-
-Scope: the case has no blades or walls inside the MRF zone, so there is no
-torque or power to verify. The checks cover mesh, zone, convergence, mass
-balance and the size and sign of the rotation-induced flow asymmetry.
-
-The numerical bands (velocity range, pressure range) are measured values
-from one reference run with OpenFOAM 6 plus an allowance (+-10 % velocity,
-+-15 % pressure) for other versions, compilers and linear-solver details.
-They are not derived from run-to-run scatter, which was not measured.
+Only reads files already written by ./Allrun (log.*, postProcessing/*,
+system/*, constant/*). No OpenFOAM, docker or third-party Python packages are
+needed. Prints one line per check and exits 0 only if all pass.
 """
+import cmath
 import glob
 import math
 import os
 import re
 import sys
 
-CASE = os.path.abspath(sys.argv[1] if len(sys.argv) > 1 else os.path.dirname(__file__))
+CASE = os.path.abspath(sys.argv[1]) if len(sys.argv) > 1 else os.path.dirname(os.path.abspath(__file__))
+
+U_INF = 8.0         # wind speed [m/s]                   (0/U)
+OMEGA = 40.0        # rotor speed [rad/s]                (constant/dynamicMeshDict)
+R = 0.5             # rotor radius [m]                   (generate_vawt_geo.py)
+SPAN = 1.0          # mesh depth [m]                     (generate_vawt_geo.py)
+RHO = 1.225         # air density used by the forces    (system/controlDict, rhoInf)
+N_REV = 10          # revolutions simulated              (Allrun: endTime = 10 T)
+N_AVG = 4           # revolutions averaged (7-10)
+PERIOD = 2 * math.pi / OMEGA
+BETZ = 16.0 / 27.0
+# Mean power coefficient of revolutions 7-10 in the reference run (OpenFOAM 6,
+# cfdengine/openfoam image, Gmsh 4.12.1, 8 cores); see the README.
+CP_REF = 0.131
+
 results = []
 
 
 def fail_missing(msg):
-    print("ERROR: %s\nRun ./Allrun (or ./run_docker.sh) first." % msg, file=sys.stderr)
+    print("ERROR: %s" % msg, file=sys.stderr)
+    print("Run ./run_docker.sh (or ./Allrun inside OpenFOAM) first.", file=sys.stderr)
     sys.exit(2)
 
 
-def path(*p):
-    return os.path.join(CASE, *p)
+def read(rel):
+    path = os.path.join(CASE, rel)
+    if not os.path.isfile(path):
+        fail_missing("missing file %s" % rel)
+    with open(path, errors="replace") as f:
+        return f.read()
 
 
-def read(*p):
-    f = path(*p)
-    if not os.path.isfile(f):
-        fail_missing("missing file %s" % os.path.relpath(f, CASE))
-    with open(f, errors="replace") as fh:
-        return fh.read()
-
-
-def strip_comments(s):
-    s = re.sub(r"/\*.*?\*/", "", s, flags=re.S)
-    return re.sub(r"//[^\n]*", "", s)
-
-
-def check(name, ok, measured, expected, tol=""):
+def check(name, measured, expected, tol, ok):
     results.append(ok)
-    print("%s  %-34s measured=%s  expected=%s%s"
+    print("%s  %-30s measured=%s  expected=%s%s"
           % ("PASS" if ok else "FAIL", name, measured, expected,
-             (" +- " + tol) if tol else ""))
+             (" +- %s" % tol) if tol is not None else ""), flush=True)
 
 
-def within(name, val, exp, tol, fmt="%.4g", rel=False):
-    t = tol * abs(exp) if rel else tol
-    check(name, abs(val - exp) <= t, fmt % val, fmt % exp,
-          (fmt % tol + (" (relative)" if rel else "")))
+def moment_z(name):
+    """(time, M_z) of a forces function object, pressure + viscous, all restarts."""
+    files = sorted(glob.glob(os.path.join(CASE, "postProcessing", name, "*", "forces.dat")),
+                   key=lambda p: float(p.split(os.sep)[-2]))
+    if not files:
+        fail_missing("postProcessing/%s/<time>/forces.dat" % name)
+    rows = {}
+    for path in files:
+        for line in open(path):
+            if line.strip() and not line.startswith("#"):
+                v = [float(x) for x in line.replace("(", " ").replace(")", " ").split()]
+                rows[v[0]] = v[12] + v[15]  # moment: pressure z + viscous z
+    return sorted(rows.items())
 
 
-def parse_list(text, vec):
-    """Parse 'N ( ... )' after a List<...> keyword; return list of floats/tuples."""
-    m = re.search(r"List<\w+>\s*(\d+)\s*\(", text)
-    if not m:
-        return None
-    n = int(m.group(1))
-    body = text[m.end():]
-    if vec:
-        vals = re.findall(r"\(\s*([-+\d.eE]+)\s+([-+\d.eE]+)\s+([-+\d.eE]+)\s*\)", body)[:n]
-        return [tuple(float(c) for c in v) for v in vals]
-    vals = re.findall(r"^\s*([-+\d.eE]+)\s*$", body, re.M)[:n]
-    return [float(v) for v in vals]
+def mean_over(series, t0, t1):
+    values = [m for t, m in series if t0 < t <= t1 + 1e-9]
+    return sum(values) / len(values)
+
+
+def cp(torque):
+    return torque * OMEGA / (0.5 * RHO * U_INF ** 3 * 2 * R * SPAN)
 
 
 # ---------------------------------------------------------------- logs
-logs = {n: read("log." + n) for n in ("blockMesh", "topoSet", "checkMesh", "simpleFoam")}
+logs = {name: read("log." + name) for name in
+        ("gmshToFoam", "changeDictionary", "checkMesh", "pimpleFoam.spinup", "pimpleFoam.record")}
 
-fatal = [n for n, t in logs.items() if "FOAM FATAL" in t]
-check("no FATAL ERROR in logs", not fatal, "none" if not fatal else ",".join(fatal), "none")
+# 1. No fatal errors in any log
+fatal = [n for n, t in logs.items()
+         if "FOAM FATAL" in t or "Floating point exception" in t or "Segmentation fault" in t]
+check("no_fatal_error", "none" if not fatal else ",".join(fatal), "none", None, not fatal)
 
-# ---------------------------------------------------------------- mesh
+# 2. Mesh. The cell count depends a little on the Gmsh version, so it is a range.
 m = re.search(r"cells:\s+(\d+)", logs["checkMesh"])
 ncells = int(m.group(1)) if m else -1
-bm = strip_comments(read("system", "blockMeshDict"))
-nb = re.search(r"hex\s*\([^)]*\)\s*\((\d+)\s+(\d+)\s+(\d+)\)", bm)
-nx, ny, nz = (int(v) for v in nb.groups())
-check("mesh cell count (blockMeshDict)", ncells == nx * ny * nz, ncells, nx * ny * nz, "0")
+check("mesh_cell_count", ncells, "100000 .. 130000", None, 100000 <= ncells <= 130000)
+check("checkMesh_Mesh_OK", "yes" if "Mesh OK." in logs["checkMesh"] else "no", "yes", None,
+      "Mesh OK." in logs["checkMesh"])
+# The rotor and the stator are two separate regions: they touch only through AMI.
+m = re.search(r"Number of regions: (\d+)", logs["checkMesh"])
+check("two_mesh_regions", m.group(1) if m else "?", "2", None, bool(m) and m.group(1) == "2")
 
-check("checkMesh reports Mesh OK", "Mesh OK" in logs["checkMesh"],
-      "Mesh OK" if "Mesh OK" in logs["checkMesh"] else "not found", "Mesh OK")
+# 3. AMI: every face of each side is fully covered by the other side. sum(weights)
+#    is 1 for a perfect overlap; the 10 micrometre gap between the circles and
+#    the polygonal faces leave about 1e-5.
+weights = [float(w) for pair in re.findall(
+    r"sum\(weights\) min/max/average = ([\d.e+-]+), ([\d.e+-]+)",
+    logs["pimpleFoam.spinup"] + logs["pimpleFoam.record"]) for w in pair]
+worst = max(abs(w - 1) for w in weights) if weights else 1
+check("AMI_weights", "max |sum - 1| = %.1e" % worst, "0", "1e-3", bool(weights) and worst < 1e-3)
 
-m = re.search(r"cell zones:\s+(\d+)", logs["checkMesh"])
-check("number of cell zones", m is not None and int(m.group(1)) == 1,
-      m.group(1) if m else "n/a", 1, "0")
+# 4. Both stages reached their end time (8 and 10 revolutions).
+for stage, revs in (("spinup", 8), ("record", N_REV)):
+    times = [float(t) for t in re.findall(r"^Time = (\S+)", logs["pimpleFoam." + stage], re.M)]
+    last = times[-1] if times else -1
+    check("reached_end_%s" % stage, "%.4f s" % last, "%.4f s (%d rev)" % (revs * PERIOD, revs),
+          "1e-4", abs(last - revs * PERIOD) < 1e-4 and "\nEnd" in logs["pimpleFoam." + stage])
 
-# ---------------------------------------------------------------- zone
-topo = strip_comments(read("system", "topoSetDict"))
-radius = float(re.search(r"radius\s+([-+\d.eE]+);", topo).group(1))
-m = re.search(r"cellZoneSet rotatingZone now size (\d+)", logs["topoSet"])
-zone_n = int(m.group(1)) if m else -1
-verts = re.findall(r"\(\s*([-+\d.eE]+)\s+([-+\d.eE]+)\s+([-+\d.eE]+)\s*\)", bm.split("blocks")[0])
-lx = max(float(v[0]) for v in verts)
-ly = max(float(v[1]) for v in verts)
-dx, dy = lx / nx, ly / ny
-expected_zone = math.pi * radius ** 2 / (dx * dy)
-# A lattice-point count in a circle differs from pi r^2 / (dx dy) by far
-# less than the perimeter cell count (2 pi r / dx ~ 94); 5 % (~35 cells)
-# is a deliberately loose allowance.
-within("cells in rotatingZone (topoSet)", zone_n, expected_zone, 0.05, "%.4g", rel=True)
+# ---------------------------------------------------------------- torque and power
+# The blades stall dynamically on every upwind pass and the shed vortices are never
+# exactly the same twice, so the power changes by about +-5 % from one revolution to the
+# next even once the wake has developed. Statistics therefore use the last four
+# revolutions (7-10); forces are written every degree in both stages.
+rotor = moment_z("rotor")
+blades = [moment_z("blade%d" % k) for k in (1, 2, 3)]
+t_end = N_REV * PERIOD
+t_avg = t_end - N_AVG * PERIOD
+cp_mean = cp(mean_over(rotor, t_avg, t_end))
 
-zones = read("constant", "polyMesh", "cellZones")
-zm = re.search(r"rotatingZone\s*\{.*?cellLabels\s+List<label>\s*(\d+)\s*\(([^)]*)\)", zones, re.S)
-labels = [int(v) for v in zm.group(2).split()] if zm else []
-check("cellZones file matches topoSet log", zm is not None and len(labels) == zone_n,
-      len(labels), zone_n, "0")
+# 5. The rotor extracts power, less than the Betz limit 16/27 of the wind's power.
+check("power_coefficient", "%.3f" % cp_mean, "0 < Cp < %.3f (Betz)" % BETZ, None,
+      0 < cp_mean < BETZ)
+# Same result as the reference run. +-0.015: about twice the scatter of a 4-revolution
+# mean, given the +-5 % scatter of single revolutions.
+check("power_coefficient_regression", "%.3f" % cp_mean, "%.3f" % CP_REF, "0.015",
+      abs(cp_mean - CP_REF) <= 0.015)
 
-check("MRF zone created by simpleFoam",
-      re.search(r"creating MRF zone: MRF1", logs["simpleFoam"]) is not None,
-      "MRF1" if "creating MRF zone: MRF1" in logs["simpleFoam"] else "not found",
-      "MRF1")
+# 6. Settled: the mean power of revolutions 9-10 is within 10 % of revolutions 7-8.
+#    (Early on it drifts by more: revolutions 3-6 give about 15 % more power than 7-10,
+#    while the wake behind the rotor is still building up.)
+cp_a = cp(mean_over(rotor, t_end - 4 * PERIOD, t_end - 2 * PERIOD))
+cp_b = cp(mean_over(rotor, t_end - 2 * PERIOD, t_end))
+change = abs(cp_b - cp_a) / abs(cp_b)
+check("settled_last_revs", "Cp %.3f -> %.3f (%.1f %%)" % (cp_a, cp_b, 100 * change),
+      "< 10 %", None, change < 0.10)
 
-# ---------------------------------------------------------------- omega / TSR vs README
-mrf = strip_comments(read("constant", "MRFProperties"))
-omega = float(re.search(r"\bomega\s+([-+\d.eE]+);", mrf).group(1))
-origin = [float(v) for v in re.search(r"origin\s*\(([^)]*)\)", mrf).group(1).split()]
-u0 = read("0", "U")
-uin = float(re.search(r"inlet\s*\{[^}]*value\s+uniform\s*\(\s*([-+\d.eE]+)", u0).group(1))
-readme = read("README.md")
-rm = re.search(r"(\d+(?:\.\d+)?) RPM = ([\d.]+) rad/s", readme)
-rpm_readme, omega_readme = float(rm.group(1)), float(rm.group(2))
-# MRFProperties stores omega rounded to 5 significant digits, hence 1e-3.
-within("omega vs README RPM [rad/s]", abs(omega), rpm_readme * 2 * math.pi / 60, 1e-3, "%.5g")
-within("omega vs README rad/s value", abs(omega), omega_readme, 1e-3, "%.5g")
-tsr = abs(omega) * radius / uin
-tm = re.search(r"tip-speed\s+ratio\s+of\s+(\d+\.\d+)", readme)
-# README quotes the TSR to two decimals, so +-0.005 is the rounding limit.
-within("tip-speed ratio vs README", tsr, float(tm.group(1)), 0.005, "%.4f")
-ox, oy = origin[0], origin[1]
-cyl = re.search(r"p1\s*\(\s*([-+\d.eE]+)\s+([-+\d.eE]+)", topo)
-within("MRF origin matches topoSet axis",
-       math.hypot(ox - float(cyl.group(1)), oy - float(cyl.group(2))), 0.0, 1e-9, "%.3g")
+# 7. Three identical blades do the same work on average. Single revolutions scatter by
+#    about +-15 % per blade, so over four revolutions the blades agree to ~15 %.
+shares = [mean_over(b, t_avg, t_end) for b in blades]
+spread = (max(shares) - min(shares)) / (sum(shares) / 3)
+check("blades_share_equally", "spread %.1f %%" % (100 * spread), "< 15 %", None, spread < 0.15)
 
-# ---------------------------------------------------------------- convergence
-cm = re.search(r"SIMPLE solution converged in (\d+) iterations", logs["simpleFoam"])
-cd = strip_comments(read("system", "controlDict"))
-end_time = float(re.search(r"\bendTime\s+([-+\d.eE]+);", cd).group(1))
-it = int(cm.group(1)) if cm else -1
-check("SIMPLE converged before endTime", cm is not None and it < end_time,
-      it if cm else "not converged", "< %g" % end_time)
+# 8. The rotor torque pulses three times per revolution (once per blade pass):
+#    dominant frequency 3 * omega / (2 pi) = 19.1 Hz over the last four revolutions.
+window = [(t, m) for t, m in rotor if t > t_avg]
+mean = sum(m for _, m in window) / len(window)
+n = len(window)
+dt = (window[-1][0] - window[0][0]) / (n - 1)
+spectrum = [(k / (n * dt), abs(sum((m - mean) * cmath.exp(-2j * math.pi * k * j / n)
+                                   for j, (_, m) in enumerate(window))))
+            for k in range(1, n // 4)]
+f_peak = max(spectrum, key=lambda fp: fp[1])[0]
+f_3p = 3 * OMEGA / (2 * math.pi)
+check("torque_pulses_3_per_rev", "%.1f Hz" % f_peak, "%.1f Hz" % f_3p,
+      "1 bin (%.1f Hz)" % (1 / (n * dt)), abs(f_peak - f_3p) <= 0.51 / (n * dt) + 1e-9)
 
-fs = strip_comments(read("system", "fvSolution"))
-rc = re.search(r"residualControl\s*\{([^}]*)\}", fs).group(1)
-tol_p = float(re.search(r"\bp\s+([-+\d.eE]+);", rc).group(1))
-last = {}
-for fld, val in re.findall(r"Solving for (\w+), Initial residual = ([-+\d.eE]+)", logs["simpleFoam"]):
-    last[fld] = float(val)
-worst = max(last[f] for f in ("Ux", "Uy", "p", "k", "epsilon"))
-# SIMPLE stops when every initial residual is below residualControl (all
-# equal to tol_p here), so the last-iteration values must be below it.
-check("final initial residuals < residualControl", worst < tol_p, "%.3g" % worst,
-      "< %g" % tol_p)
+# 9. Most of the work is done in the upwind half of the revolution. Blade k starts at
+#    theta = 120 (k - 1) deg, where theta = 0 is the top of the rotor (moving into the
+#    wind); the rotor turns anticlockwise, so 0 < theta < 180 deg is the upwind half.
+up = down = 0.0
+for k, blade in enumerate(blades):
+    for t, m in blade:
+        if t > t_avg:
+            theta = (120 * k + math.degrees(OMEGA * t)) % 360
+            if 0 < theta < 180:
+                up += m
+            else:
+                down += m
+check("upwind_half_dominates", "upwind %.0f %% of blade work" % (100 * up / (up + down)),
+      "> 60 %", None, up / (up + down) > 0.6)
 
-times = [d for d in os.listdir(CASE) if re.fullmatch(r"\d+(\.\d+)?", d) and d != "0"]
-if not times:
-    fail_missing("no time directory found")
-latest = max(times, key=float)
-check("latest time dir = convergence iteration", cm is not None and float(latest) == it,
-      latest, it, "0")
-
-# ---------------------------------------------------------------- fields
-U = parse_list(read(latest, "U").split("internalField", 1)[1], True)
-p = parse_list(read(latest, "p").split("internalField", 1)[1], False)
-if U is None or p is None or len(U) != ncells or len(p) != ncells:
-    fail_missing("could not read U/p fields of time %s" % latest)
-
-speed = [math.sqrt(a * a + b * b + c * c) for a, b, c in U]
-# Measured (OpenFOAM 6): min 7.93, max 11.80 m/s. Band +-10 %.
-within("minimum |U| [m/s]", min(speed), 7.93, 0.10, "%.3g", rel=True)
-within("maximum |U| [m/s]", max(speed), 11.80, 0.10, "%.3g", rel=True)
-# Measured: p in [-26.6, +28.6] m^2/s^2. Band +-15 %.
-within("minimum p [m^2/s^2]", min(p), -26.6, 0.15, "%.3g", rel=True)
-within("maximum p [m^2/s^2]", max(p), 28.6, 0.15, "%.3g", rel=True)
-
-# Mass balance from the face flux phi (kinematic: m^3/s for the 0.1 m depth).
-phi = read(latest, "phi")
-
-
-def patch_flux(patch):
-    blk = re.search(r"\b%s\s*\{(.*?)\n    \}" % patch, phi.split("boundaryField", 1)[1], re.S).group(1)
-    vals = parse_list(blk, False)
-    if vals is None:
-        v = re.search(r"value\s+uniform\s+([-+\d.eE]+)", blk)
-        vals = [float(v.group(1))] * (int(ny))
-    return sum(vals)
-
-
-qin, qout = patch_flux("inlet"), patch_flux("outlet")
-depth = max(float(v[2]) for v in verts)
-within("inlet flux = -U*H*depth [m^3/s]", qin, -uin * ly * depth, 1e-6, "%.6g")
-# Outflow equals inflow to the extent the pressure equation is converged;
-# 0.5 % of the inflow is a loose limit for a 1e-4 residual target.
-within("outlet flux + inlet flux [m^3/s]", qin + qout, 0.0, 0.005 * abs(qin), "%.3g")
-
-# Rotation-induced asymmetry: mean p over the upper half of the zone minus
-# the lower half (cells ordered i fastest, then j, for the single block).
-up, lo = [], []
-for c in labels:
-    j = c // nx
-    y = (j + 0.5) * dy
-    (up if y > oy else lo).append(p[c])
-dp = sum(up) / len(up) - sum(lo) / len(lo)
-# Sign: measured upper - lower < 0 for omega > 0 (about +z); reversed when
-# omega is negated (separate run, see README).
-sign_ok = dp * omega < 0
-scale = 2 * abs(omega) * uin * 2 * radius  # Coriolis estimate 2*omega*U*D
-check("zone p asymmetry sign (upper-lower)", sign_ok, "%.3g" % dp,
-      "opposite sign to omega")
-# Order-of-magnitude check against the Coriolis scale 2*omega*U*D = 126
-# m^2/s^2: measured |dp| is about 0.11 of it. Pass between 0.05 and 1.0.
-check("zone p asymmetry magnitude", 0.05 * scale <= abs(dp) <= 1.0 * scale,
-      "%.3g" % abs(dp), "[%.3g, %.3g]" % (0.05 * scale, scale))
-
-n_pass = sum(results)
-print("\n%d/%d checks passed" % (n_pass, len(results)))
-print("Not verified: torque and power (the zone contains no blades or walls).")
-sys.exit(0 if n_pass == len(results) else 1)
+# ---------------------------------------------------------------- summary
+npass = sum(results)
+print("-" * 60)
+print("Cp (revolutions 7-10) = %.3f, tip-speed ratio %.1f" % (cp_mean, OMEGA * R / U_INF))
+print("%d of %d checks passed" % (npass, len(results)))
+print("RESULT: %s" % ("PASS" if npass == len(results) else "FAIL"))
+sys.exit(0 if npass == len(results) else 1)

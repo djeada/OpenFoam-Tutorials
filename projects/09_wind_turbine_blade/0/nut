@@ -32,10 +32,30 @@ boundaryField
         value           uniform 0;
     }
 
-    topAndBottom
+    // Spalding's law of the wall covers the viscous sublayer, the buffer layer
+    // and the log layer in one formula, so the first cell can sit at any y+
+    // (here a few units).
+    "blade.*"
     {
-        type            calculated;
+        type            nutUSpaldingWallFunction;
         value           uniform 0;
+    }
+
+    AMI_rotor
+    {
+        type            cyclicAMI;
+        value           $internalField;
+    }
+
+    AMI_stator
+    {
+        type            cyclicAMI;
+        value           $internalField;
+    }
+
+    sides
+    {
+        type            symmetry;
     }
 
     frontAndBack

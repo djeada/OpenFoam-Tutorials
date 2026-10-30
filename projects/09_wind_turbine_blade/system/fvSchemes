@@ -16,28 +16,30 @@ FoamFile
 
 ddtSchemes
 {
-    default         steadyState;
+    default         backward;       // second order in time
 }
 
 gradSchemes
 {
     default         Gauss linear;
-    grad(p)         Gauss linear;
     grad(U)         cellLimited Gauss linear 1;
 }
 
 divSchemes
 {
     default         none;
-    div(phi,U)      bounded Gauss linearUpwind grad(U);
-    div(phi,k)      bounded Gauss upwind;
-    div(phi,epsilon) bounded Gauss upwind;
+    div(phi,U)      Gauss linearUpwind grad(U);
+    // Turbulence quantities: first-order upwind keeps k and omega positive at the
+    // high Courant numbers of the trailing-edge cells (as in the OpenFOAM
+    // propeller tutorial).
+    div(phi,k)      Gauss upwind;
+    div(phi,omega)  Gauss upwind;
     div((nuEff*dev2(T(grad(U))))) Gauss linear;
 }
 
 laplacianSchemes
 {
-    default         Gauss linear corrected;
+    default         Gauss linear limited corrected 0.5;
 }
 
 interpolationSchemes
@@ -47,9 +49,10 @@ interpolationSchemes
 
 snGradSchemes
 {
-    default         corrected;
+    default         limited corrected 0.5;
 }
 
+// Distance to the blades for k-omega SST, updated as the rotor turns
 wallDist
 {
     method          meshWave;
